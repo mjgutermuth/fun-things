@@ -35,16 +35,10 @@ def get_color_description(hex_color):
     else:
         descriptions.append("bright")
 
-    if r > (g + b) / 2:  # red is dominant
-        if b > 0.25 * (r + b):  # blue component is more than 25% of the red-blue sum
-            descriptions.append("with cool undertones")
-        else:
-            descriptions.append("with warm undertones")
+    if (r + g) > 2 * b:  # sum of red and green is dominant over twice the blue component
+        descriptions.append("with warm undertones")
     else:
-        if b > 0.4 or g > 0.6:
-            descriptions.append("with cool undertones")
-        else:
-            descriptions.append("with warm undertones")
+        descriptions.append("with cool undertones")
 
     return " ".join(descriptions)
 
