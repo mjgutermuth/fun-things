@@ -31,18 +31,16 @@ def get_color_description(hex_color):
     else:
         descriptions.append("vivid")
 
-    if 0 <= h < 1/6:
-        descriptions.append("with red tones")
-    elif 1/6 <= h < 1/3:
-        descriptions.append("with yellow tones")
-    elif 1/3 <= h < 1/2:
-        descriptions.append("with green tones")
-    elif 1/2 <= h < 2/3:
-        descriptions.append("with cyan tones")
-    elif 2/3 <= h < 5/6:
-        descriptions.append("with blue tones")
+    if r > (g + b) / 2:  # red is dominant
+        if b > 0.25 * (r + b):  # blue component is more than 25% of the red-blue sum
+            descriptions.append("with cool undertones")
+        else:
+            descriptions.append("with warm undertones")
     else:
-        descriptions.append("with magenta tones")
+        if b > 0.4 or g > 0.6:  # Adjusted the blue threshold down and added a green threshold
+            descriptions.append("with cool undertones")
+        else:
+            descriptions.append("with warm undertones")
 
     return " ".join(descriptions)
 
@@ -51,4 +49,3 @@ print("Grayscale Level:", get_grayscale_level(hex_color))
 print("Is Muted:", is_muted(hex_color))
 print("Is Bright:", is_bright(hex_color))
 print("Color Description:", get_color_description(hex_color))
-
