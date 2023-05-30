@@ -10,15 +10,11 @@ def get_grayscale_level(hex_color):
     grayscale_level = 1 - statistics.stdev([r, g, b]) / 127.5
     return grayscale_level
 
-def is_muted(hex_color):
-    return get_grayscale_level(hex_color) > 0.5
-
-def is_bright(hex_color):
-    return not is_muted(hex_color)
-
-def print_grayscale_level(hex_color):
-    grayscale_level = get_grayscale_level(hex_color)
-    print(f"Grayscale level (percent muted): {round(grayscale_level * 100, 2)}%")
+def get_brightness_description(hex_color):
+    if get_grayscale_level(hex_color) > 0.5:
+        return "muted"
+    else:
+        return "bright"
 
 def get_color_description(hex_color):
     r, g, b = hex_to_rgb(hex_color)
