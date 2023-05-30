@@ -35,10 +35,54 @@ def get_color_description(hex_color):
     else:
         descriptions.append("bright")
 
-    if (r + g) > 2 * b:  # sum of red and green is dominant over twice the blue component
-        descriptions.append("with warm undertones")
-    else:
-        descriptions.append("with cool undertones")
+    h *= 360  # convert hue to degrees for easier interpretation
+
+    # Color-specific undertone rules
+    if 0 <= h < 30:  # reds
+        color_name = "red"
+        if b > 0.25 * (r + b):
+            descriptions.append("with cool undertones")
+        else:
+            descriptions.append("with warm undertones")
+    elif 30 <= h < 90:  # yellows and oranges
+        color_name = "yellow"
+        if b > 0:
+          descriptions.append("with cool undertones")
+        else:
+          descriptions.append("with warm undertones")
+    elif 90 <= h < 150:  # greens
+        color_name = "green"
+        if r > 0.33 * (g + b):
+            descriptions.append("with warm undertones")
+        else:
+            descriptions.append("with cool undertones")
+    elif 150 <= h < 210:  # cyans
+        color_name = "cyan"
+        if r > 0.2 * (g + b):
+            descriptions.append("with warm undertones")
+        else:
+            descriptions.append("with cool undertones")
+    elif 210 <= h < 270:  # blues
+        color_name = "blue"
+        if r > 0.2 * (g + b):
+            descriptions.append("with warm undertones")
+        else:
+            descriptions.append("with cool undertones")
+    elif 270 <= h < 330:  # purples
+        color_name = "purple"
+        if r < b:
+            descriptions.append("with cool undertones")
+        else:
+            descriptions.append("with warm undertones")
+    else:  # pinks and reds
+        color_name = "pink"
+        if b > 0.33 * (r + b):
+            descriptions.append("with cool undertones")
+        else:
+            descriptions.append("with warm undertones")
+
+    # add the color name to the description
+    descriptions.insert(2, color_name)
 
     return " ".join(descriptions)
 
