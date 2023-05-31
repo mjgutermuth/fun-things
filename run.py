@@ -30,7 +30,7 @@ def get_color_description(hex_color):
     else:
         descriptions.append("light")
 
-    if is_muted(hex_color):
+    if get_brightness_description(hex_color) == "muted":
         descriptions.append("muted")
     else:
         descriptions.append("bright")
@@ -47,9 +47,9 @@ def get_color_description(hex_color):
     elif 30 <= h < 90:  # yellows and oranges
         color_name = "yellow"
         if b > 0:
-          descriptions.append("with cool undertones")
+            descriptions.append("with cool undertones")
         else:
-          descriptions.append("with warm undertones")
+            descriptions.append("with warm undertones")
     elif 90 <= h < 150:  # greens
         color_name = "green"
         if r > 0.33 * (g + b):
