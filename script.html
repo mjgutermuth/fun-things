@@ -1,9 +1,20 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>Color Investigator Test</title>
-    </head>
-    <body>
-        <script src="run.js"></script> 
-    </body>
+<head>
+    <title>Color Investigator</title>
+</head>
+<body>
+    <input type="text" id="hexColorInput" placeholder="Enter hex color">
+    <button onclick="displayColorDescription()">Get color description</button>
+    <div id="colorDescription"></div>
+
+    <script src="./run.js"></script>
+    <script>
+        function displayColorDescription() {
+            let hexColor = document.getElementById('hexColorInput').value;
+            document.getElementById('colorDescription').innerText = "Color Description: " + getColorDescription(hexColor);
+        }
+    </script>
+
+</body>
 </html>

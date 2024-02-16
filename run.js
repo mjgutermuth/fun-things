@@ -13,9 +13,6 @@ async function fetchColorInfo(hexColor) {
     }
 }
 
-let hexColor = prompt("Enter a hex color (for example, #FF5733):");
-getColorDescription(hexColor);
-
 function hexToRgb(hexColor) {
     let r = parseInt(hexColor.slice(1, 3), 16);
     let g = parseInt(hexColor.slice(3, 5), 16);
@@ -108,6 +105,3 @@ function getColorDescription(hexColor) {
 
     return descriptions.join(" ");
 }
-
-//let hexColor = "#FF5733"; // Usage Example
-console.log("Color Description:", getColorDescription(hexColor));
