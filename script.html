@@ -6,15 +6,8 @@
 <body>
     <input type="text" id="hexColorInput" placeholder="Enter hex color">
     <button onclick="displayColorDescription()">Get color description</button>
-    <div id="colorDescription"></div>
-
+    <div id="colorInfoDisplay"></div> <!-- For displaying the API-fetched color name -->
+    <div id="colorDescription"></div> <!-- For displaying the locally generated color description -->
     <script src="./run.js"></script>
-    <script>
-        function displayColorDescription() {
-            let hexColor = document.getElementById('hexColorInput').value;
-            document.getElementById('colorDescription').innerText = "Color Description: " + getColorDescription(hexColor);
-        }
-    </script>
-
 </body>
 </html>

@@ -1,16 +1,21 @@
-async function fetchColorInfo(hexColor) {
-    const apiUrl = `https://api.example.com/color?hex=${hexColor}`;
+function getColorNameByHex(hexColor) {
+    const hex = hexColor.startsWith('#') ? hexColor.slice(1) : hexColor;
+    const apiUrl = `https://www.thecolorapi.com/id?hex=${hex}`;
 
-    try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-            throw new Error(`Error: ${response.status}`);
-        }
-        const colorInfo = await response.json();
-        return colorInfo;
-    } catch (error) {
-        console.error('Error fetching color info:', error);
-    }
+    fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+            const colorName = data.name.value;
+            const colorDescription = getColorDescription(hexColor);
+            document.getElementById('colorInfoDisplay').innerText = `${colorName}: ${colorDescription}.`;
+
+        })
+        .catch(error => console.error('Error fetching color name:', error));
+}
+
+function displayColorDescription() {
+    let hexColor = document.getElementById('hexColorInput').value;
+    getColorNameByHex(hexColor);
 }
 
 function hexToRgb(hexColor) {
