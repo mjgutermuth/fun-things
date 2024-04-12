@@ -39,53 +39,68 @@ function hexToRgb(hex) {
 }
 
 function deriveColorName(h, s, l) {
-    if (l < 0.1) return "black";
-    if (l > 0.9) return "white";
-    if (s < 0.15 && l >= 0.1 && l < 0.7) {
-        return "gray";
+    let derivedColor = "";
+
+    if (l < 0.1) {
+        derivedColor = "black";
+    } else if (l > 0.9) {
+        derivedColor = "white";
+    } else if (s < 0.15 && l >= 0.1 && l < 0.7) {
+        derivedColor = "gray";
+    } else if ((h >= 0 && h < 20) || (h >= 350 && h <= 360)) {
+        derivedColor = "red";
+    } else if (h >= 20 && h < 47) {
+        derivedColor = "orange";
+    } else if (h >= 47 && h < 82) {
+        derivedColor = "yellow";
+    } else if (h >= 82 && h < 178) {
+        derivedColor = "green";
+    } else if (h >= 178 && h < 183) {
+        derivedColor = "teal";
+    } else if (h >= 183 && h < 260) {
+        derivedColor = "blue";
+    } else if (h >= 260 && h < 308) {
+        derivedColor = "purple";
+    } else if (h >= 308 && h < 332) {
+        derivedColor = "pink";
+    } else if (l < 0.55 && (s >= 0.3 && s < 0.8) && (h >= 47 && h < 82)) {
+        derivedColor = "brown";
+    } else {
+        derivedColor = "color"; // A fallback for colors not fitting into the above categories.
     }
 
-    if ((h >= 0 && h < 20) || (h >= 350 && h <= 360)) return "red";
-    if (h >= 20 && h < 47) return "orange";
-    if (h >= 47 && h < 82) return "yellow";
-    if (h >= 82 && h < 178) return "green";
-    if (h >= 178 && h < 183) return "teal";
-    if (h >= 183 && h < 260) return "blue";
-    if (h >= 260 && h < 308) return "purple";
-    if (h >= 308 && h < 332) return "pink";
+    console.log("Derived color:", derivedColor); // Log the derived color before returning it
 
-    if (l < 0.55 && (s >= 0.3 && s < 0.8) && (h >= 47 && h < 82)) return "brown";
-
-    return "color"; // A fallback for colors not fitting into the above categories.
+    return derivedColor;
 }
 
-function determineUndertone(h, s, l) {
-    // Basic undertone determination based on hue
-    let undertone = 'neutral'; // Default to neutral for low saturation or extreme lightness/darkness
+function determineUndertone(r, g, b, derivedColor) {
+    console.log("Input RGB values:", r, g, b);
 
-    if (s > 0.2 && !(l > 0.8 || l < 0.2)) {
-        if ((h >= 0 && h < 30) || (h >= 330 && h <= 360)) {
-            // Red: warmer if closer to orange, cooler if closer to pink
-            undertone = h < 15 || h > 345 ? 'warm' : 'cool';
-        } else if (h >= 30 && h < 90) {
-            // Orange to Yellow: generally warm
-            undertone = 'warm';
-        } else if (h >= 90 && h < 150) {
-            // Green: cooler if more blueish, warmer if more yellowish
-            undertone = h < 120 ? 'warm' : 'cool';
-        } else if (h >= 150 && h < 210) {
-            // Cyan to Light Blue: generally cool
-            undertone = 'cool';
-        } else if (h >= 210 && h < 270) {
-            // Blue: cooler, especially at higher saturations
-            undertone = 'cool';
-        } else if (h >= 270 && h < 330) {
-            // Purple to Pink: cooler if more blueish, warmer if closer to red
-            undertone = h < 300 ? 'cool' : 'warm';
-        }
+    // Define undertone rules based on the derived color name
+    const undertoneRules = {
+        "red": (g > b) ? "warm" : "neutral",
+        "orange": (r > g && g > b) ? "warm" : "neutral",
+        "yellow": (r > b && g > b) ? "warm" : "neutral",
+        "green": (b > r && b > g) ? "cool" : "neutral",
+        "teal": (b > r && b > g) ? "cool" : "neutral",
+        "blue": (b > r && b > g) ? "cool" : "neutral",
+        "indigo": (b > r && b > g) ? "cool" : "neutral",
+        "purple": (b > r && b > g) ? "cool" : "neutral",
+        "pink": (b > r && b > g) ? "cool" : "neutral",
+        "brown": (r > g && r > b) ? "warm" : "neutral",
+    };
+
+    // Check if the derived color has a specific undertone rule
+    if (undertoneRules.hasOwnProperty(derivedColor)) {
+        const undertone = undertoneRules[derivedColor];
+        console.log("Undertone:", undertone);
+        return undertone;
+    } else {
+        // Default to neutral if no specific undertone rule is defined
+        console.log("Undertone: undefined");
+        return "neutral";
     }
-
-    return undertone;
 }
 
 function getColorDescription(hexColor, colorName) {
