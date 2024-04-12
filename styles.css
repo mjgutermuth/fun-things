@@ -1,0 +1,42 @@
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f0f0f0; /* Default background color */
+    color: black; /* Default text color */
+}
+
+.container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+input[type="text"], button {
+    padding: 10px;
+    font-size: 16px;
+    border: none;
+    margin-right: 10px;
+}
+
+button {
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+}
+
+.color-info {
+    text-align: center;
+}
+
+.color-info p {
+    font-size: 24px;
+}
+
+#colorInfoDisplay {
+    font-size: 36px; /* Set the font size to very large */
+    margin-top: 20px; /* Add some space between the input and output */
+}

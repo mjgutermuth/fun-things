@@ -9,8 +9,33 @@ function getColorNameByHex(hexColor) {
             const colorDescription = getColorDescription(hexColor, colorName);
             document.getElementById('colorInfoDisplay').innerText = colorDescription;
 
+            // Change background color directly
+            document.body.style.backgroundColor = hexColor;
+            // Change text color based on brightness of hex color
+            document.body.style.color = chroma.contrast(hexColor, 'white') > 4.5 ? 'white' : 'black';
         })
         .catch(error => console.error('Error fetching color name:', error));
+}
+
+function isLight(hexColor) {
+    // Convert hex color to RGB
+    let { r, g, b } = hexToRgb(hexColor);
+
+    // Calculate perceived brightness using YIQ color space
+    let brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+    // Return true if brightness is greater than 128, indicating a light color
+    return brightness > 128;
+}
+
+function hexToRgb(hex) {
+    // Convert hex color to RGB
+    let bigint = parseInt(hex.replace('#', ''), 16);
+    let r = (bigint >> 16) & 255;
+    let g = (bigint >> 8) & 255;
+    let b = bigint & 255;
+
+    return { r, g, b };
 }
 
 function deriveColorName(h, s, l) {
@@ -18,7 +43,7 @@ function deriveColorName(h, s, l) {
     if (l > 0.9) return "white";
 
     // Adjusted conditions for brown
-    if (((h >= 10 && h <= 40) || (h > 340 && h < 30)) && (s >= 0.3 && s < 0.8) && (l >= 0.2 && l < 0.6)) {
+    if ((h >= 15 && h <= 45) && (s >= 0.3 && s < 0.8) && (l >= 0.2 && l < 0.6)) {
         return "brown";
     }
 
@@ -27,14 +52,14 @@ function deriveColorName(h, s, l) {
         return "gray";
     }
 
-    if ((h >= 0 && h < 30) || (h >= 330 && h <= 360)) return "red";
-    if (h >= 30 && h < 45) return "orange";
-    if (h >= 45 && h < 75) return "yellow";
-    if (h >= 75 && h < 165) return "green";
-    if (h >= 165 && h < 195) return "teal";
-    if (h >= 195 && h < 225) return "blue";
-    if (h >= 225 && h < 275) return "indigo";
-    if (h >= 275 && h < 330) return "purple";
+    if ((h >= 0 && h < 45) || (h >= 315 && h <= 360)) return "red";
+    if (h >= 45 && h < 75) return "orange";
+    if (h >= 75 && h < 165) return "yellow";
+    if (h >= 165 && h < 195) return "green";
+    if (h >= 195 && h < 225) return "teal";
+    if (h >= 225 && h < 275) return "blue";
+    if (h >= 275 && h < 330) return "indigo";
+    if (h >= 330 && h < 345) return "purple";
     
     return "color"; // A more descriptive fallback for colors not fitting into the above categories.
 }
@@ -71,17 +96,15 @@ function determineUndertone(h, s, l) {
 function getColorDescription(hexColor, colorName) {
     const color = chroma(hexColor);
     const [h, s, l] = color.hsl();
-
+    let descriptiveColorName = deriveColorName(h, s, l);
     let lightnessDesc = l < 0.33 ? "dark" : l <= 0.66 ? "medium" : "light";
     let brightnessDesc = s < 0.33 ? "muted" : "bright";
-    let descriptiveColorName = deriveColorName(h, s, l);
     let undertoneDesc = determineUndertone(h, s, l);
 
     // Incorporate the fetched color name into the description
     let descriptionParts = [`${colorName}: a ${lightnessDesc}, ${brightnessDesc} ${descriptiveColorName} with ${undertoneDesc} undertones`];
     return descriptionParts.join(" ");
 }
-
 
 function displayColorDescription() {
     let hexColor = document.getElementById('hexColorInput').value;

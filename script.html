@@ -1,13 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Color Investigator</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <input type="text" id="hexColorInput" placeholder="Enter hex color">
-    <button onclick="displayColorDescription()">Identify color</button>
-    <div id="colorInfoDisplay"></div> <!-- API-fetched color name -->
-    <div id="colorDescription"></div> <!-- Locally-generated color description -->
+    <div class="container"> <!-- Wrap input and output in a container for centering -->
+        <input type="text" id="hexColorInput" placeholder="Enter hex color">
+        <button onclick="displayColorDescription()">Identify color</button>
+        <div id="colorInfoDisplay"></div> <!-- Output text goes here -->
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/chroma-js@2/chroma.min.js"></script>
     <script src="./run.js"></script>
 </body>
