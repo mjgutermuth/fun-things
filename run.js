@@ -41,27 +41,22 @@ function hexToRgb(hex) {
 function deriveColorName(h, s, l) {
     if (l < 0.1) return "black";
     if (l > 0.9) return "white";
-
-    // Adjusted conditions for brown
-    if ((h >= 15 && h <= 45) && (s >= 0.3 && s < 0.8) && (l >= 0.2 && l < 0.6)) {
-        return "brown";
-    }
-
-    // Adjusted conditions for gray
     if (s < 0.15 && l >= 0.1 && l < 0.7) {
         return "gray";
     }
 
-    if ((h >= 0 && h < 45) || (h >= 315 && h <= 360)) return "red";
-    if (h >= 45 && h < 75) return "orange";
-    if (h >= 75 && h < 165) return "yellow";
-    if (h >= 165 && h < 195) return "green";
-    if (h >= 195 && h < 225) return "teal";
-    if (h >= 225 && h < 275) return "blue";
-    if (h >= 275 && h < 330) return "indigo";
-    if (h >= 330 && h < 345) return "purple";
-    
-    return "color"; // A more descriptive fallback for colors not fitting into the above categories.
+    if ((h >= 0 && h < 20) || (h >= 350 && h <= 360)) return "red";
+    if (h >= 20 && h < 47) return "orange";
+    if (h >= 47 && h < 82) return "yellow";
+    if (h >= 82 && h < 178) return "green";
+    if (h >= 178 && h < 183) return "teal";
+    if (h >= 183 && h < 260) return "blue";
+    if (h >= 260 && h < 308) return "purple";
+    if (h >= 308 && h < 332) return "pink";
+
+    if (l < 0.55 && (s >= 0.3 && s < 0.8) && (h >= 47 && h < 82)) return "brown";
+
+    return "color"; // A fallback for colors not fitting into the above categories.
 }
 
 function determineUndertone(h, s, l) {
@@ -98,7 +93,7 @@ function getColorDescription(hexColor, colorName) {
     const [h, s, l] = color.hsl();
     let descriptiveColorName = deriveColorName(h, s, l);
     let lightnessDesc = l < 0.33 ? "dark" : l <= 0.66 ? "medium" : "light";
-    let brightnessDesc = s < 0.33 ? "muted" : "bright";
+    let brightnessDesc = s < 0.8 ? "muted" : "bright";
     let undertoneDesc = determineUndertone(h, s, l);
 
     // Incorporate the fetched color name into the description
