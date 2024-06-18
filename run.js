@@ -47,26 +47,28 @@ function deriveColorName(h, s, l) {
         derivedColor = "white";
     } else if (s < 0.15 && l >= 0.1 && l < 0.7) {
         derivedColor = "gray";
-    } else if ((h >= 0 && h < 20) || (h >= 350 && h <= 360)) {
-        derivedColor = "red";
-    } else if (h >= 20 && h < 47) {
-        derivedColor = "orange";
-    } else if (h >= 47 && h < 82) {
-        derivedColor = "yellow";
-    } else if (h >= 82 && h < 178) {
-        derivedColor = "green";
-    } else if (h >= 178 && h < 183) {
-        derivedColor = "teal";
-    } else if (h >= 183 && h < 260) {
-        derivedColor = "blue";
-    } else if (h >= 260 && h < 308) {
-        derivedColor = "purple";
-    } else if (h >= 308 && h < 332) {
-        derivedColor = "pink";
-    } else if (l < 0.55 && (s >= 0.3 && s < 0.8) && (h >= 47 && h < 82)) {
-        derivedColor = "brown";
     } else {
-        derivedColor = "color"; // A fallback for colors not fitting into the above categories.
+        if (h >= 0 && h < 20) {
+            derivedColor = "red";
+        } else if (h >= 20 && h < 47) {
+            derivedColor = "orange";
+        } else if (h >= 47 && h < 60) {
+            derivedColor = "yellow";
+        } else if (h >= 60 && h < 82) {
+            derivedColor = "yellow";
+        } else if (h >= 82 && h < 165) {
+            derivedColor = "green";
+        } else if (h >= 165 && h < 185) {
+            derivedColor = "teal";
+        } else if (h >= 185 && h < 240) {
+            derivedColor = "blue";
+        } else if (h >= 240 && h < 300) {
+            derivedColor = "purple";
+        } else if (h >= 300 && h < 330) {
+            derivedColor = "pink";
+        } else {
+            derivedColor = "red";
+        }
     }
 
     console.log("Derived color:", derivedColor); // Log the derived color before returning it
@@ -76,19 +78,19 @@ function deriveColorName(h, s, l) {
 
 function determineUndertone(r, g, b, derivedColor) {
     console.log("Input RGB values:", r, g, b);
+    console.log("Derived color:", derivedColor);
 
     // Define undertone rules based on the derived color name
     const undertoneRules = {
-        "red": (g > b) ? "warm" : "neutral",
-        "orange": (r > g && g > b) ? "warm" : "neutral",
-        "yellow": (r > b && g > b) ? "warm" : "neutral",
-        "green": (b > r && b > g) ? "cool" : "neutral",
-        "teal": (b > r && b > g) ? "cool" : "neutral",
-        "blue": (b > r && b > g) ? "cool" : "neutral",
-        "indigo": (b > r && b > g) ? "cool" : "neutral",
-        "purple": (b > r && b > g) ? "cool" : "neutral",
-        "pink": (b > r && b > g) ? "cool" : "neutral",
-        "brown": (r > g && r > b) ? "warm" : "neutral",
+        "red": (g > b) ? "warm" : "cool",
+        "orange": "warm",
+        "yellow": (b >= 0.4 * g) ? "cool" : "warm",
+        "green": (b > r && b > g) ? "cool" : "warm",
+        "teal": (g > 1.3 * b) ? "warm" : "cool",
+        "blue": (r >= 0.5 * b) ? "warm" : "cool",
+        "purple": (b > r) ? "cool" : "warm",
+        "pink": (b > r) ? "cool" : "warm",
+        "brown": (r > g && r > b) ? "warm" : "cool",
     };
 
     // Check if the derived color has a specific undertone rule
@@ -98,7 +100,7 @@ function determineUndertone(r, g, b, derivedColor) {
         return undertone;
     } else {
         // Default to neutral if no specific undertone rule is defined
-        console.log("Undertone: undefined");
+        console.log("Undertone: neutral");
         return "neutral";
     }
 }
