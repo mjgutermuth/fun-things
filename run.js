@@ -78,7 +78,6 @@ function deriveColorName(h, s, l) {
 
 function determineUndertone(r, g, b, derivedColor) {
     console.log("Input RGB values:", r, g, b);
-    console.log("Derived color:", derivedColor);
 
     // Define undertone rules based on the derived color name
     const undertoneRules = {
@@ -87,10 +86,15 @@ function determineUndertone(r, g, b, derivedColor) {
         "yellow": (b >= 0.4 * g) ? "cool" : "warm",
         "green": (b > r && b > g) ? "cool" : "warm",
         "teal": (g > 1.3 * b) ? "warm" : "cool",
-        "blue": (r >= 0.5 * b) ? "warm" : "cool",
+        "blue": (r >= 0.4 * b) ? "warm" : "cool",
         "purple": (b > r) ? "cool" : "warm",
         "pink": (b > r) ? "cool" : "warm",
         "brown": (r > g && r > b) ? "warm" : "cool",
+        "white": (r > 230 && g > 230 && b > 230) ?
+                  ((r > g && r > b) ? "warm" :
+                  (b > r && b > g) ? "cool" :
+                  (Math.abs(r - g) < 10 && Math.abs(g - b) < 10 && Math.abs(r - b) < 10) ? "neutral" :
+                  "warm") : "neutral" // Warm if red is dominant, cool if blue is dominant, neutral otherwise
     };
 
     // Check if the derived color has a specific undertone rule
@@ -108,15 +112,19 @@ function determineUndertone(r, g, b, derivedColor) {
 function getColorDescription(hexColor, colorName) {
     const color = chroma(hexColor);
     const [h, s, l] = color.hsl();
-    let descriptiveColorName = deriveColorName(h, s, l);
+    const { r, g, b } = hexToRgb(hexColor);
+    const derivedColor = deriveColorName(h, s, l);
+
     let lightnessDesc = l < 0.33 ? "dark" : l <= 0.66 ? "medium" : "light";
     let brightnessDesc = s < 0.8 ? "muted" : "bright";
-    let undertoneDesc = determineUndertone(h, s, l);
+
+    let undertoneDesc = determineUndertone(r, g, b, derivedColor);
 
     // Incorporate the fetched color name into the description
-    let descriptionParts = [`${colorName}: a ${lightnessDesc}, ${brightnessDesc} ${descriptiveColorName} with ${undertoneDesc} undertones`];
+    let descriptionParts = [`${colorName}: a ${lightnessDesc}, ${brightnessDesc} ${derivedColor} with ${undertoneDesc} undertones`];
     return descriptionParts.join(" ");
 }
+
 
 function displayColorDescription() {
     let hexColor = document.getElementById('hexColorInput').value;
