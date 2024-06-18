@@ -128,5 +128,8 @@ function getColorDescription(hexColor, colorName) {
 
 function displayColorDescription() {
     let hexColor = document.getElementById('hexColorInput').value;
+    if (!hexColor.startsWith('#')) {
+        hexColor = `#${hexColor}`;
+    }
     getColorNameByHex(hexColor);
 }
