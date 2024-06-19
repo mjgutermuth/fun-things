@@ -1,3 +1,1 @@
-# README
-
-This repo contains the files for my project site.
+Welcome to melimuth.fun!
