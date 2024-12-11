@@ -1,0 +1,99 @@
+openapi: 3.0.3
+info:
+  title: Color Info API
+  description: An API to manage and retrieve information about colors.
+  version: 1.0.0
+servers:
+  - url: https://api.example.com/v1
+    description: Production Server
+  - url: https://api-dev.example.com/v1
+    description: Development Server
+paths:
+  /colors:
+    get:
+      summary: Get a list of colors
+      description: Retrieve a list of predefined colors.
+      responses:
+        '200':
+          description: A list of colors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Color'
+    post:
+      summary: Add a new color
+      description: Add a custom color to the list.
+      requestBody:
+        description: Color to add
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ColorInput'
+      responses:
+        '201':
+          description: Color successfully added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Color'
+        '400':
+          description: Invalid input
+  /colors/{colorId}:
+    get:
+      summary: Get color details
+      description: Retrieve detailed information about a specific color.
+      parameters:
+        - name: colorId
+          in: path
+          required: true
+          description: The ID of the color
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Details about the color
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Color'
+        '404':
+          description: Color not found
+components:
+  schemas:
+    Color:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the color
+          example: "1"
+        name:
+          type: string
+          description: Name of the color
+          example: "Sky Blue"
+        hexCode:
+          type: string
+          description: Hexadecimal code of the color
+          example: "#87CEEB"
+        rgb:
+          type: string
+          description: RGB representation of the color
+          example: "135,206,235"
+    ColorInput:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the color
+          example: "Ocean Green"
+        hexCode:
+          type: string
+          description: Hexadecimal code of the color
+          example: "#48D1CC"
+        rgb:
+          type: string
+          description: RGB representation of the color
+          example: "72,209,204"
