@@ -1,0 +1,137 @@
+openapi: 3.0.3
+info:
+  title: Bubble Tea API
+  description: An API to explore and order delicious bubble tea.
+  version: 1.0.0
+servers:
+  - url: https://api.bubbletea.com/v1
+    description: Production Server
+  - url: https://api-dev.bubbletea.com/v1
+    description: Development Server
+paths:
+  /flavors:
+    get:
+      summary: Get all bubble tea flavors
+      description: Retrieve a list of available bubble tea flavors.
+      responses:
+        '200':
+          description: A list of bubble tea flavors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Flavor'
+  /toppings:
+    get:
+      summary: Get all toppings
+      description: Retrieve a list of available toppings for bubble tea.
+      responses:
+        '200':
+          description: A list of toppings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Topping'
+  /sizes:
+    get:
+      summary: Get all cup sizes
+      description: Retrieve a list of available cup sizes for bubble tea.
+      responses:
+        '200':
+          description: A list of cup sizes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Size'
+  /orders:
+    post:
+      summary: Place a bubble tea order
+      description: Create an order for a customized bubble tea.
+      requestBody:
+        description: Details of the bubble tea order
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderInput'
+      responses:
+        '201':
+          description: Order successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Invalid order details
+components:
+  schemas:
+    Flavor:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the flavor
+          example: "1"
+        name:
+          type: string
+          description: Name of the flavor
+          example: "Classic Milk Tea"
+    Topping:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the topping
+          example: "1"
+        name:
+          type: string
+          description: Name of the topping
+          example: "Tapioca Pearls"
+    Size:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the size
+          example: "1"
+        name:
+          type: string
+          description: Name of the size
+          example: "Large"
+    OrderInput:
+      type: object
+      required:
+        - flavorId
+        - sizeId
+        - toppings
+      properties:
+        flavorId:
+          type: string
+          description: ID of the selected flavor
+          example: "1"
+        sizeId:
+          type: string
+          description: ID of the selected cup size
+          example: "2"
+        toppings:
+          type: array
+          description: List of selected toppings
+          items:
+            type: string
+          example: ["1", "2"]
+    OrderResponse:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: Unique identifier for the order
+          example: "abc123"
+        status:
+          type: string
+          description: Status of the order
+          example: "Order placed successfully!"
