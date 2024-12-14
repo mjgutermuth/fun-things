@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Bubble Tea API
   description: An API to explore and order delicious bubble tea.
-  version: 1.0.0
+  version: 1.2.0
 servers:
   - url: https://api.bubbletea.com/v1
     description: Production Server
@@ -48,26 +48,26 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Size'
-/orders:
-  post:
-    summary: Place a bubble tea order
-    description: Create an order for a customized bubble tea. **Breaking Change:** The `toppings` field has been replaced by the `customizations` object.
-    requestBody:
-      description: Details of the bubble tea order
-      required: true
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/OrderInput'
-    responses:
-      '201':
-        description: Order successfully created
+  /orders:
+    post:
+      summary: Place a bubble tea order
+      description: Create an order for a customized bubble tea. **Breaking Change:** The `toppings` field has been replaced by the `customizations` object.
+      requestBody:
+        description: Details of the bubble tea order
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OrderResponse'
-      '400':
-        description: Invalid order details
+              $ref: '#/components/schemas/OrderInput'
+      responses:
+        '201':
+          description: Order successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Invalid order details
 components:
   schemas:
     Flavor:
