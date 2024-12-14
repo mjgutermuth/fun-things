@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Bubble Tea API
   description: An API to explore and order delicious bubble tea.
-  version: 1.2.0
+  version: 1.2.1
 servers:
   - url: https://api.bubbletea.com/v1
     description: Production Server
