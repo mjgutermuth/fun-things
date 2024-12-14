@@ -14,7 +14,6 @@ files[] = {"id":"29718546-4378f98e-9abd-4d72-bdbe-c9764bc43d0f","path":"Bubble T
 [config.relations.collections.metaData]
 
 [config.relations.apiDefinition]
-files[] = {"path":"boba_api Copy.yaml","metaData":{}}
 files[] = {"path":"boba_api.yaml","metaData":{}}
 
 [config.relations.apiDefinition.metaData]
