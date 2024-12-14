@@ -1,0 +1,119 @@
+openapi: 3.0.0
+info:
+  title: Bubble Tea API
+  description: A simple API to manage bubble tea flavors, sizes, and orders.
+  version: 1.1.0
+  contact:
+    name: API Support
+    email: support@bubbleteaapi.com
+    url: https://bubbleteaapi.com/support
+servers:
+  - url: https://api.bubbletea.com/v1
+    description: Production server
+  - url: https://staging.bubbletea.com/v1
+    description: Staging server
+paths:
+  /flavors:
+    get:
+      summary: Retrieve all available flavors
+      operationId: getFlavors
+      responses:
+        '200':
+          description: A list of available flavors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Flavor'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /orders:
+    post:
+      summary: Create a new bubble tea order
+      operationId: createOrder
+      requestBody:
+        description: Order details for the bubble tea
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderInput'
+            example:
+              flavorId: "1"
+              sizeId: "2"
+              toppings: ["1", "2"]
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Invalid order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Flavor:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the flavor
+          example: "matcha"
+        name:
+          type: string
+          description: Name of the flavor
+          example: "Matcha"
+    OrderInput:
+      type: object
+      required:
+        - flavorId
+        - sizeId
+        - toppings
+      properties:
+        flavorId:
+          type: string
+          description: ID of the selected flavor
+          example: "matcha"
+        sizeId:
+          type: string
+          description: ID of the selected cup size
+          example: "large"
+        toppings:
+          type: array
+          description: List of selected toppings
+          items:
+            type: string
+            description: Topping name or identifier
+            example: "boba"
+          example: ["boba", "jelly"]
+    OrderResponse:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: Unique identifier for the order
+          example: "12345"
+        flavor:
+          $ref: '#/components/schemas/Flavor'
+        sizeId:
+          type: string
+          description: ID of the selected cup size
+          example: "large"
+        toppings:
+          type: array
+          description: List of topping names for the order
+          items:
+            type: string
+            description: Topping name
+            example: "boba"
+          example: ["boba", "pudding"]

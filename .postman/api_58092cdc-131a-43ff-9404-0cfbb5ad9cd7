@@ -9,10 +9,12 @@ id = 58092cdc-131a-43ff-9404-0cfbb5ad9cd7
 
 [config.relations.collections]
 rootDirectory = postman/collections
+files[] = {"id":"29718546-4378f98e-9abd-4d72-bdbe-c9764bc43d0f","path":"Bubble Tea API.json","metaData":{"generateCollectionPreferences":"{\"folderStrategy\":\"Paths\",\"includeDeprecated\":true,\"includeAuthInfoInExample\":true,\"enableOptionalParameters\":true,\"keepImplicitHeaders\":false,\"requestNameSource\":\"Fallback\",\"indentCharacter\":\"Space\",\"requestParametersResolution\":\"Example\",\"exampleParametersResolution\":\"Example\",\"collapseFolders\":true,\"optimizeConversion\":true}"}}
 
 [config.relations.collections.metaData]
 
 [config.relations.apiDefinition]
+files[] = {"path":"boba_api Copy.yaml","metaData":{}}
 files[] = {"path":"boba_api.yaml","metaData":{}}
 
 [config.relations.apiDefinition.metaData]

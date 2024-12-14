@@ -1,0 +1,441 @@
+{
+	"info": {
+		"_postman_id": "4378f98e-9abd-4d72-bdbe-c9764bc43d0f",
+		"name": "Bubble Tea API",
+		"description": "An API to explore and order delicious bubble tea.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_uid": "29718546-4378f98e-9abd-4d72-bdbe-c9764bc43d0f"
+	},
+	"item": [
+		{
+			"name": "flavors",
+			"item": [
+				{
+					"name": "Get all bubble tea flavors",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "5077e9ba-0894-44ee-8f36-e77398032744",
+								"exec": [
+									"// Test response schema",
+									"pm.test(\"Response schema is valid\", function () {",
+									"  var schema = {",
+									"    type: \"array\",",
+									"    items: {",
+									"      type: \"object\",",
+									"      properties: {",
+									"        id: { type: \"string\" },",
+									"        name: { type: \"string\" }",
+									"      },",
+									"      required: [\"id\", \"name\"]",
+									"    }",
+									"  };",
+									"",
+									"  pm.expect(tv4.validate(pm.response.json(), schema)).to.be.true;",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "225d5281-2772-4495-8a9f-4e05a0a6bcbe",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/flavors",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"flavors"
+							]
+						},
+						"description": "Retrieve a list of available bubble tea flavors."
+					},
+					"response": [
+						{
+							"id": "a1e97eb9-fda1-4811-8d42-5292660af37c",
+							"name": "A list of bubble tea flavors",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/flavors",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"flavors"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"uuid": "b5780c0a-03b6-4ac2-b84c-c3d521512f1a"
+								}
+							],
+							"cookie": [],
+							"body": "[\n  {\n    \"id\": \"<string>\",\n    \"name\": \"<string>\"\n  },\n  {\n    \"id\": \"<string>\",\n    \"name\": \"<string>\"\n  }\n]"
+						}
+					]
+				}
+			],
+			"id": "b80a65ad-00a0-4d51-9245-a74d3d8c5f16",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "e3e07469-9962-40dc-8ed0-51ec6a509513",
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "2a7214df-6be1-4bac-bca9-0a65c7a7d255",
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "toppings",
+			"item": [
+				{
+					"name": "Get all toppings",
+					"id": "abd4582d-8f57-4b1a-b3d0-996f6d231b00",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/toppings",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"toppings"
+							]
+						},
+						"description": "Retrieve a list of available toppings for bubble tea."
+					},
+					"response": [
+						{
+							"id": "c0a4c903-406c-4ef8-8500-9e0196abba53",
+							"name": "A list of toppings",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/toppings",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"toppings"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"uuid": "a6bd5b2d-8401-4621-95b2-3daa6443f4c3"
+								}
+							],
+							"cookie": [],
+							"body": "[\n  {\n    \"id\": \"<string>\",\n    \"name\": \"<string>\"\n  },\n  {\n    \"id\": \"<string>\",\n    \"name\": \"<string>\"\n  }\n]"
+						}
+					]
+				}
+			],
+			"id": "dd6f1f8f-1d23-4c05-b8a6-b3146f03d484"
+		},
+		{
+			"name": "sizes",
+			"item": [
+				{
+					"name": "Get all cup sizes",
+					"id": "ec2071fb-e249-4e6f-9a40-7c4d1ec9a9ff",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/sizes",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sizes"
+							]
+						},
+						"description": "Retrieve a list of available cup sizes for bubble tea."
+					},
+					"response": [
+						{
+							"id": "38b0887b-2283-423b-a8f7-f664d9ecad85",
+							"name": "A list of cup sizes",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/sizes",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"sizes"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"uuid": "63e0c022-f87b-49e6-9d80-3d134a71805e"
+								}
+							],
+							"cookie": [],
+							"body": "[\n  {\n    \"id\": \"<string>\",\n    \"name\": \"<string>\"\n  },\n  {\n    \"id\": \"<string>\",\n    \"name\": \"<string>\"\n  }\n]"
+						}
+					]
+				}
+			],
+			"id": "8b2581d5-1310-49eb-898f-ca6b8f4a0d0a"
+		},
+		{
+			"name": "orders",
+			"item": [
+				{
+					"name": "Place a bubble tea order",
+					"id": "6f12cd14-6926-4a2d-81c0-2ba4b083d6ec",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"flavorId\": \"<string>\",\n  \"sizeId\": \"<string>\",\n  \"toppings\": [\n    \"<string>\",\n    \"<string>\"\n  ]\n}",
+							"options": {
+								"raw": {
+									"headerFamily": "json",
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/orders",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders"
+							]
+						},
+						"description": "Create an order for a customized bubble tea."
+					},
+					"response": [
+						{
+							"id": "c5e6c579-0f43-43b4-a538-3f1f60ddc805",
+							"name": "Order successfully created",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"flavorId\": \"<string>\",\n  \"sizeId\": \"<string>\",\n  \"toppings\": [\n    \"<string>\",\n    \"<string>\"\n  ]\n}",
+									"options": {
+										"raw": {
+											"headerFamily": "json",
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/orders",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"orders"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"uuid": "6fec01bd-ba17-4386-a760-905c5a7bcf34"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"orderId\": \"<string>\",\n  \"status\": \"<string>\"\n}"
+						},
+						{
+							"id": "5e34cdb1-244b-46d0-8943-d19c236b98c2",
+							"name": "Invalid order details",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"flavorId\": \"<string>\",\n  \"sizeId\": \"<string>\",\n  \"toppings\": [\n    \"<string>\",\n    \"<string>\"\n  ]\n}",
+									"options": {
+										"raw": {
+											"headerFamily": "json",
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/orders",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"orders"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "text",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text",
+									"uuid": "62918af3-6947-4996-87fd-e2843cfac5a2"
+								}
+							],
+							"cookie": [],
+							"body": null
+						}
+					]
+				}
+			],
+			"id": "b597d137-ae0a-49e5-a3ff-0891f8bd4e7a"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "29b6e98a-5a26-4236-975b-8f2c4f8aadc0",
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "f5e3fc0f-588e-46eb-a86c-40306b543431",
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"id": "6c6827f4-5fed-4fd3-bcd6-77bea36f6cce",
+			"key": "baseUrl",
+			"value": "https://api.bubbletea.com/v1"
+		}
+	]
+}
