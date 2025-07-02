@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Packing Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+```
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #f8fafc;
+        color: #334155;
+        line-height: 1.6;
+    }
+
+    .container {
+        max-width: 700px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+
+    .header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .header h1 {
+        font-size: 2.2rem;
+        font-weight: 300;
+        color: #1e293b;
+        margin-bottom: 10px;
+    }
+
+    .header p {
+        color: #64748b;
+        font-size: 1rem;
+    }
+
+    .trip-form {
+        background: white;
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
+
+    .segment {
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .segment.main {
+        border-color: #3b82f6;
+        background: #f0f9ff;
+    }
+
+    .segment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .segment-title {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 1rem;
+    }
+
+    .remove-btn {
+        background: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        width: 28px;
+        height: 28px;
+        cursor: pointer;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        color: #374151;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 12px 14px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 15px;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #3b82f6;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #2563eb;
+    }
+
+    .btn-secondary {
+        background: #e5e7eb;
+        color: #374151;
+        border: 2px solid #d1d5db;
+    }
+
+    .btn-secondary:hover {
+        background: #d1d5db;
+    }
+
+    .btn-add {
+        background: #10b981;
+        color: white;
+        width: 100%;
+        margin: 20px 0;
+    }
+
+    .btn-add:hover {
+        background: #059669;
+    }
+
+    .actions {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        justify-content: center;
+        margin-top: 25px;
+    }
+
+    .calendar-section {
+        background: white;
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
+
+    .calendar-header {
+        text-align: center;
+        margin-bottom: 25px;
+    }
+
+    .calendar-header h2 {
+        color: #1e293b;
+        font-size: 1.4rem;
+        margin-bottom: 10px;
+    }
+
+    .calendar-controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .temp-toggle {
+        display: flex;
+        background: #f1f5f9;
+        border-radius: 8px;
+        padding: 4px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .temp-toggle button {
+        padding: 6px 12px;
+        border: none;
+        background: transparent;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #64748b;
+        transition: all 0.3s ease;
+    }
+
+    .temp-toggle button.active {
+        background: #3b82f6;
+        color: white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 2px;
+        background: #e2e8f0;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .calendar-header-row {
+        display: contents;
+    }
+
+    .calendar-day-header {
+        background: #334155;
+        color: white;
+        padding: 12px 8px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .calendar-day {
+        background: #f8fafc;
+        min-height: 120px;
+        padding: 8px;
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+    .calendar-day.trip-day {
+        cursor: pointer;
+    }
+
+    .calendar-day.trip-day:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 10;
+    }
+
+    .calendar-day.other-month {
+        background: #f1f5f9;
+        color: #94a3b8;
+    }
+
+    .day-number {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #1e293b;
+        margin-bottom: 6px;
+    }
+
+    .other-month .day-number {
+        color: #94a3b8;
+    }
+
+    .day-location {
+        font-size: 0.7rem;
+        color: #64748b;
+        margin-bottom: 4px;
+        font-weight: 500;
+    }
+
+    .weather-info {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 4px;
+    }
+
+    .weather-icon {
+        font-size: 1rem;
+    }
+
+    .weather-temp {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.8rem;
+    }
+
+    .weather-desc {
+        font-size: 0.7rem;
+        color: #64748b;
+        line-height: 1.2;
+    }
+
+    .packing-suggestions {
+        background: white;
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .packing-header {
+        text-align: center;
+        margin-bottom: 25px;
+    }
+
+    .packing-categories {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+    }
+
+    .packing-category {
+        background: #f8fafc;
+        border-radius: 10px;
+        padding: 20px;
+    }
+
+    .category-title {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 10px;
+        font-size: 0.9rem;
+    }
+
+    .category-items {
+        list-style: none;
+        font-size: 0.85rem;
+        color: #64748b;
+    }
+
+    .category-items li {
+        margin-bottom: 4px;
+    }
+
+    /* Weather-based color coding */
+    .weather-hot { background: linear-gradient(135deg, #fed7aa, #fb923c); }
+    .weather-warm { background: linear-gradient(135deg, #fef3c7, #f59e0b); }
+    .weather-mild { background: linear-gradient(135deg, #dcfce7, #22c55e); }
+    .weather-cool { background: linear-gradient(135deg, #dbeafe, #3b82f6); }
+    .weather-cold { background: linear-gradient(135deg, #e0e7ff, #6366f1); }
+    .weather-rain { background: linear-gradient(135deg, #e2e8f0, #64748b); }
+
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: #64748b;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding: 20px 15px;
+        }
+        
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .actions {
+            flex-direction: column;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+        }
+    }
+</style>
+```
+
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎒 Travel Packing Assistant</h1>
+            <p>Get weather-based packing suggestions for your trip</p>
+        </div>
+
+```
+    <div class="trip-form">
+        <div class="segment main" id="mainSegment">
+            <div class="segment-header">
+                <div class="segment-title">Main Trip</div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="startDate">Start Date</label>
+                    <input type="date" id="startDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="endDate">End Date</label>
+                    <input type="date" id="endDate" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="location">Location</label>
+                <input type="text" id="location" placeholder="e.g., Paris, France" required>
+            </div>
+        </div>
+        
+        <div id="additionalSegments"></div>
+        
+        <button class="btn btn-add" onclick="addTripSegment()">+ Add Trip Segment</button>
+        
+        <div class="actions">
+            <button class="btn btn-primary" onclick="generateCalendar()">Generate Packing Calendar</button>
+        </div>
+    </div>
+    
+    <div class="calendar-section" id="calendarSection" style="display: none;">
+        <div class="calendar-header">
+            <h2>Your Trip Calendar</h2>
+            <div class="calendar-controls">
+                <p>Color-coded by weather conditions</p>
+                <div class="temp-toggle">
+                    <button id="celsiusBtn" class="active" onclick="setTempUnit('C')">°C</button>
+                    <button id="fahrenheitBtn" onclick="setTempUnit('F')">°F</button>
+                </div>
+            </div>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+    </div>
+    
+    <div class="packing-suggestions" id="packingSuggestions" style="display: none;">
+        <div class="packing-header">
+            <h2>🧳 Packing Suggestions</h2>
+            <p>Based on your weather conditions</p>
+        </div>
+        <div class="packing-categories" id="packingCategories"></div>
+    </div>
+</div>
+
+<script>
+    let segmentCounter = 0;
+    let currentTripData = null;
+    let tempUnit = 'C'; // Default to Celsius
+    
+    // OpenWeatherMap API configuration
+    // You'll need to replace 'YOUR_API_KEY' with your actual API key from openweathermap.org
+    const WEATHER_API_KEY = 'YOUR_API_KEY'; // Get free key at openweathermap.org
+    const WEATHER_BASE_URL = 'https://api.openweathermap.org/data/2.5';
+
+    function setTempUnit(unit) {
+        tempUnit = unit;
+        
+        // Update button states
+        document.getElementById('celsiusBtn').classList.toggle('active', unit === 'C');
+        document.getElementById('fahrenheitBtn').classList.toggle('active', unit === 'F');
+        
+        // Re-render calendar if we have trip data
+        if (currentTripData) {
+            renderCalendar(currentTripData);
+        }
+    }
+
+    function convertTemp(celsius) {
+        if (tempUnit === 'F') {
+            return Math.round((celsius * 9/5) + 32);
+        }
+        return celsius;
+    }
+
+    function getTempDisplay(celsius) {
+        const temp = convertTemp(celsius);
+        return `${temp}°${tempUnit}`;
+    }
+
+    function getWeatherClass(tempCelsius, condition) {
+        // Always use Celsius for color classification
+        if (condition.includes('rain') || condition.includes('snow')) return 'weather-rain';
+        if (tempCelsius >= 28) return 'weather-hot';
+        if (tempCelsius >= 22) return 'weather-warm';
+        if (tempCelsius >= 15) return 'weather-mild';
+        if (tempCelsius >= 8) return 'weather-cool';
+        return 'weather-cold';
+    }
+
+    function addTripSegment() {
+        segmentCounter++;
+        const additionalSegments = document.getElementById('additionalSegments');
+        
+        const segmentDiv = document.createElement('div');
+        segmentDiv.className = 'segment';
+        segmentDiv.id = `segment-${segmentCounter}`;
+        segmentDiv.innerHTML = `
+            <div class="segment-header">
+                <div class="segment-title">Trip Segment ${segmentCounter}</div>
+                <button class="remove-btn" onclick="removeSegment('segment-${segmentCounter}')">×</button>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" class="segment-start-date" required>
+                </div>
+                <div class="form-group">
+                    <label>End Date</label>
+                    <input type="date" class="segment-end-date" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Location</label>
+                <input type="text" class="segment-location" placeholder="e.g., Rome, Italy" required>
+            </div>
+        `;
+        
+        additionalSegments.appendChild(segmentDiv);
+    }
+
+    function removeSegment(segmentId) {
+        const segment = document.getElementById(segmentId);
+        if (segment) {
+            segment.remove();
+        }
+    }
+
+    function getAllSegments() {
+        const segments = [];
+        
+        // Main segment
+        const mainStart = document.getElementById('startDate').value;
+        const mainEnd = document.getElementById('endDate').value;
+        const mainLocation = document.getElementById('location').value.trim();
+        
+        if (mainStart && mainEnd && mainLocation) {
+            segments.push({
+                startDate: mainStart,
+                endDate: mainEnd,
+                location: mainLocation
+            });
+        }
+        
+        // Additional segments
+        const additionalSegments = document.querySelectorAll('#additionalSegments .segment');
+        additionalSegments.forEach(segment => {
+            const startDate = segment.querySelector('.segment-start-date').value;
+            const endDate = segment.querySelector('.segment-end-date').value;
+            const location = segment.querySelector('.segment-location').value.trim();
+            
+            if (startDate && endDate && location) {
+                segments.push({
+                    startDate,
+                    endDate,
+                    location
+                });
+            }
+        });
+        
+        return segments;
+    }
+
+    async function generateCalendar() {
+        const segments = getAllSegments();
+        
+        if (segments.length === 0) {
+            alert('Please fill in at least the main trip details');
+            return;
+        }
+        
+        // Validate dates
+        for (const segment of segments) {
+            if (new Date(segment.endDate) < new Date(segment.startDate)) {
+                alert(`End date must be after start date for ${segment.location}`);
+                return;
+            }
+        }
+        
+        // Show loading
+        document.getElementById('calendarSection').style.display = 'block';
+        document.getElementById('calendarGrid').innerHTML = '<div class="loading">Generating your calendar...</div>';
+        
+        // Generate trip data
+        const tripData = await generateTripData(segments);
+        currentTripData = tripData; // Store for temperature unit changes
+        
+        // Render calendar and packing suggestions
+        renderCalendar(tripData);
+        renderPackingSuggestions(tripData);
+    }
+
+    async function generateTripData(segments) {
+        const days = [];
+        
+        for (const segment of segments) {
+            const start = new Date(segment.startDate);
+            const end = new Date(segment.endDate);
+            
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const weather = await getWeatherData(segment.location, d.toISOString().split('T')[0]);
+                
+                days.push({
+                    date: new Date(d),
+                    location: segment.location,
+                    weather: weather
+                });
+            }
+        }
+        
+        // Sort by date
+        days.sort((a, b) => a.date - b.date);
+        
+        return { days, segments };
+    }
+
+    async function getWeatherData(location, date) {
+        // Check if we have a valid API key
+        if (!WEATHER_API_KEY || WEATHER_API_KEY === 'YOUR_API_KEY') {
+            console.log('Using mock weather data - add your OpenWeatherMap API key for real data');
+            return getMockWeatherData(location, date);
+        }
+        
+        try {
+            const targetDate = new Date(date);
+            const today = new Date();
+            const daysFromNow = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+            
+            let weatherData;
+            
+            if (daysFromNow <= 5) {
+                // Use forecast API for next 5 days
+                weatherData = await getCurrentForecast(location, date);
+            } else if (daysFromNow <= 16) {
+                // Use 16-day forecast (requires paid plan, fall back to current + historical average)
+                weatherData = await getExtendedForecast(location, date);
+            } else {
+                // Use historical average for dates far in future
+                weatherData = await getHistoricalAverage(location, date);
+            }
+            
+            return weatherData;
+            
+        } catch (error) {
+            console.error('Weather API error, falling back to mock data:', error);
+            return getMockWeatherData(location, date);
+        }
+    }
+    
+    async function getCurrentForecast(location, targetDate) {
+        const response = await fetch(
+            `${WEATHER_BASE_URL}/forecast?q=${encodeURIComponent(location)}&appid=${WEATHER_API_KEY}&units=metric`
+        );
+        
+        if (!response.ok) {
+            throw new Error(`Weather API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Find the forecast closest to our target date
+        const target = new Date(targetDate).toISOString().split('T')[0];
+        const forecast = data.list.find(item => {
+            const forecastDate = new Date(item.dt * 1000).toISOString().split('T')[0];
+            return forecastDate === target;
+        }) || data.list[0]; // Fall back to first forecast if exact date not found
+        
+        return {
+            temp: Math.round(forecast.main.temp),
+            condition: forecast.weather[0].description,
+            icon: getWeatherIcon(forecast.weather[0].icon)
+        };
+    }
+    
+    async function getExtendedForecast(location, targetDate) {
+        // For dates 6-16 days out, we'll use current weather + seasonal adjustment
+        // This is a fallback since 16-day forecast requires paid plan
+        const response = await fetch(
+            `${WEATHER_BASE_URL}/weather?q=${encodeURIComponent(location)}&appid=${WEATHER_API_KEY}&units=metric`
+        );
+        
+        if (!response.ok) {
+            throw new Error(`Weather API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Apply seasonal variation based on target date
+        const targetMonth = new Date(targetDate).getMonth();
+        const currentMonth = new Date().getMonth();
+        const monthDiff = targetMonth - currentMonth;
+        
+        let tempAdjustment = 0;
+        if (Math.abs(monthDiff) <= 6) {
+            // Simple seasonal adjustment (very rough)
+            tempAdjustment = monthDiff * 2; // ~2°C per month difference
+        }
+        
+        return {
+            temp: Math.round(data.main.temp + tempAdjustment),
+            condition: data.weather[0].description,
+            icon: getWeatherIcon(data.weather[0].icon)
+        };
+    }
+    
+    async function getHistoricalAverage(location, targetDate) {
+        // For dates far in future, get current weather and apply historical patterns
+        // This could be enhanced with a historical weather API
+        try {
+            const response = await fetch(
+                `${WEATHER_BASE_URL}/weather?q=${encodeURIComponent(location)}&appid=${WEATHER_API_KEY}&units=metric`
+            );
+            
+            if (!response.ok) {
+                throw new Error(`Weather API error: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            const targetMonth = new Date(targetDate).getMonth();
+            
+            // Apply seasonal historical averages (rough estimates)
+            const lat = data.coord.lat;
+            let seasonalTemp = data.main.temp;
+            
+            // Adjust based on hemisphere and season
+            const isWinter = targetMonth < 2 || targetMonth > 10;
+            const isSummer = targetMonth >= 5 && targetMonth <= 8;
+            
+            if (lat > 0) { // Northern hemisphere
+                if (isWinter) seasonalTemp -= 8;
+                if (isSummer) seasonalTemp += 5;
+            } else { // Southern hemisphere - seasons reversed
+                if (isWinter) seasonalTemp += 5;
+                if (isSummer) seasonalTemp -= 8;
+            }
+            
+            return {
+                temp: Math.round(seasonalTemp),
+                condition: getSeasonalCondition(targetMonth, lat),
+                icon: getSeasonalIcon(targetMonth, lat)
+            };
+            
+        } catch (error) {
+            return getMockWeatherData(location, targetDate);
+        }
+    }
+    
+    function getWeatherIcon(openWeatherIcon) {
+        const iconMap = {
+            '01d': '☀️', '01n': '🌙',
+            '02d': '⛅', '02n': '⛅',
+            '03d': '☁️', '03n': '☁️',
+            '04d': '☁️', '04n': '☁️',
+            '09d': '🌧️', '09n': '🌧️',
+            '10d': '🌦️', '10n': '🌧️',
+            '11d': '⛈️', '11n': '⛈️',
+            '13d': '❄️', '13n': '❄️',
+            '50d': '🌫️', '50n': '🌫️'
+        };
+        return iconMap[openWeatherIcon] || '🌤️';
+    }
+    
+    function getSeasonalCondition(month, latitude) {
+        const isWinter = month < 2 || month > 10;
+        const isNorthern = latitude > 0;
+        
+        if ((isWinter && isNorthern) || (!isWinter && !isNorthern)) {
+            return Math.random() > 0.5 ? 'cloudy' : 'light rain';
+        } else {
+            return Math.random() > 0.3 ? 'sunny' : 'partly cloudy';
+        }
+    }
+    
+    function getSeasonalIcon(month, latitude) {
+        const isWinter = month < 2 || month > 10;
+        const isNorthern = latitude > 0;
+        
+        if ((isWinter && isNorthern) || (!isWinter && !isNorthern)) {
+            return Math.random() > 0.7 ? '❄️' : Math.random() > 0.5 ? '☁️' : '🌧️';
+        } else {
+            return Math.random() > 0.3 ? '☀️' : '⛅';
+        }
+    }
+    
+    function getMockWeatherData(location, date) {
+        // Fallback mock data (same as before)
+        const month = new Date(date).getMonth();
+        const isWinter = month < 2 || month > 10;
+        const isSummer = month >= 5 && month <= 8;
+        
+        let baseTemp = 20;
+        const loc = location.toLowerCase();
+        
+        if (loc.includes('tropical') || loc.includes('thailand') || loc.includes('india') || 
+            loc.includes('africa') || loc.includes('malaysia') || loc.includes('singapore')) {
+            baseTemp = 30;
+        } else if (loc.includes('northern') || loc.includes('scandinavia') || loc.includes('canada') || 
+                  loc.includes('russia') || loc.includes('iceland') || loc.includes('finland')) {
+            baseTemp = 5;
+        } else if (loc.includes('mediterranean') || loc.includes('spain') || loc.includes('italy') || 
+                 loc.includes('greece') || loc.includes('california')) {
+            baseTemp = 25;
+        }
+        
+        if (isWinter) baseTemp -= 8;
+        if (isSummer) baseTemp += 5;
+        
+        const temp = Math.round(baseTemp + (Math.random() * 10 - 5));
+        
+        let conditions;
+        if (isWinter && baseTemp < 15) {
+            conditions = [
+                { condition: 'cloudy', icon: '☁️', prob: 0.4 },
+                { condition: 'light snow', icon: '❄️', prob: 0.3 },
+                { condition: 'sunny', icon: '☀️', prob: 0.2 },
+                { condition: 'light rain', icon: '🌧️', prob: 0.1 }
+            ];
+        } else {
+            conditions = [
+                { condition: 'sunny', icon: '☀️', prob: 0.4 },
+                { condition: 'partly cloudy', icon: '⛅', prob: 0.3 },
+                { condition: 'cloudy', icon: '☁️', prob: 0.2 },
+                { condition: 'light rain', icon: '🌧️', prob: 0.1 }
+            ];
+        }
+        
+        const rand = Math.random();
+        let cumProb = 0;
+        let weather = conditions[0];
+        
+        for (const w of conditions) {
+            cumProb += w.prob;
+            if (rand <= cumProb) {
+                weather = w;
+                break;
+            }
+        }
+        
+        return {
+            temp: temp,
+            condition: weather.condition,
+            icon: weather.icon
+        };
+    }
+
+    function getWeatherClass(temp, condition) {
+        if (condition.includes('rain') || condition.includes('snow')) return 'weather-rain';
+        if (temp >= 28) return 'weather-hot';
+        if (temp >= 22) return 'weather-warm';
+        if (temp >= 15) return 'weather-mild';
+        if (temp >= 8) return 'weather-cool';
+        return 'weather-cold';
+    }
+
+    function getWeatherClass(tempCelsius, condition) {
+        // Always use Celsius for color classification
+        if (condition.includes('rain') || condition.includes('snow')) return 'weather-rain';
+        if (tempCelsius >= 28) return 'weather-hot';
+        if (tempCelsius >= 22) return 'weather-warm';
+        if (tempCelsius >= 15) return 'weather-mild';
+        if (tempCelsius >= 8) return 'weather-cool';
+        return 'weather-cold';
+    }
+
+    function renderCalendar(tripData) {
+        const calendarGrid = document.getElementById('calendarGrid');
+        
+        // Create a map of trip days for easy lookup
+        const tripDays = new Map();
+        tripData.days.forEach(day => {
+            const dateKey = day.date.toISOString().split('T')[0];
+            tripDays.set(dateKey, day);
+        });
+        
+        // Find the date range to display
+        const firstTripDate = new Date(Math.min(...tripData.days.map(d => d.date)));
+        const lastTripDate = new Date(Math.max(...tripData.days.map(d => d.date)));
+        
+        // Start from the beginning of the month containing the first trip date
+        const startDate = new Date(firstTripDate.getFullYear(), firstTripDate.getMonth(), 1);
+        
+        // End at the end of the month containing the last trip date
+        const endDate = new Date(lastTripDate.getFullYear(), lastTripDate.getMonth() + 1, 0);
+        
+        // Adjust to show complete weeks
+        const startDay = new Date(startDate);
+        startDay.setDate(startDate.getDate() - startDate.getDay());
+        
+        const endDay = new Date(endDate);
+        endDay.setDate(endDate.getDate() + (6 - endDate.getDay()));
+        
+        let html = '';
+        
+        // Day headers
+        const dayHeaders = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        dayHeaders.forEach(day => {
+            html += `<div class="calendar-day-header">${day}</div>`;
+        });
+        
+        // Calendar days
+        for (let d = new Date(startDay); d <= endDay; d.setDate(d.getDate() + 1)) {
+            const dateKey = d.toISOString().split('T')[0];
+            const tripDay = tripDays.get(dateKey);
+            const isCurrentMonth = d.getMonth() === firstTripDate.getMonth() || d.getMonth() === lastTripDate.getMonth();
+            const isOtherMonth = !isCurrentMonth && !tripDay;
+            
+            let dayClass = 'calendar-day';
+            let dayContent = `<div class="day-number">${d.getDate()}</div>`;
+            
+            if (isOtherMonth) {
+                dayClass += ' other-month';
+            } else if (tripDay) {
+                dayClass += ' trip-day';
+                const weatherClass = getWeatherClass(tripDay.weather.temp, tripDay.weather.condition);
+                dayClass += ' ' + weatherClass;
+                
+                dayContent += `
+                    <div class="day-location">${tripDay.location}</div>
+                    <div class="weather-info">
+                        <span class="weather-icon">${tripDay.weather.icon}</span>
+                        <span class="weather-temp">${getTempDisplay(tripDay.weather.temp)}</span>
+                    </div>
+                    <div class="weather-desc">${tripDay.weather.condition}</div>
+                `;
+            }
+            
+            html += `<div class="${dayClass}">${dayContent}</div>`;
+        }
+        
+        calendarGrid.innerHTML = html;
+        document.getElementById('packingSuggestions').style.display = 'block';
+    }
+
+    function renderPackingSuggestions(tripData) {
+        const categories = generatePackingCategories(tripData);
+        const packingCategories = document.getElementById('packingCategories');
+        
+        let html = '';
+        Object.entries(categories).forEach(([category, items]) => {
+            html += `
+                <div class="packing-category">
+                    <div class="category-title">${category}</div>
+                    <ul class="category-items">
+                        ${items.map(item => `<li>${item}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        });
+        
+        packingCategories.innerHTML = html;
+    }
+
+    function generatePackingCategories(tripData) {
+        const temps = tripData.days.map(d => d.weather.temp);
+        const minTemp = Math.min(...temps);
+        const maxTemp = Math.max(...temps);
+        const hasRain = tripData.days.some(d => d.weather.condition.includes('rain'));
+        const hasSnow = tripData.days.some(d => d.weather.condition.includes('snow'));
+        
+        const categories = {
+            'Clothing': [],
+            'Footwear': [],
+            'Weather Gear': [],
+            'Accessories': []
+        };
+        
+        // Clothing based on temperature
+        if (maxTemp >= 25) {
+            categories.Clothing.push('Light t-shirts', 'Shorts', 'Summer dresses', 'Breathable fabrics');
+        }
+        if (maxTemp >= 20 && minTemp >= 15) {
+            categories.Clothing.push('Light pants', 'Light sweater');
+        }
+        if (minTemp <= 15) {
+            categories.Clothing.push('Warm jacket', 'Long pants', 'Sweater/hoodie', 'Layers');
+        }
+        if (minTemp <= 5) {
+            categories.Clothing.push('Heavy coat', 'Thermal underwear', 'Warm socks', 'Gloves & hat');
+        }
+        
+        // Footwear
+        categories.Footwear.push('Comfortable walking shoes');
+        if (maxTemp >= 25) {
+            categories.Footwear.push('Sandals');
+        }
+        if (minTemp <= 10 || hasSnow) {
+            categories.Footwear.push('Warm boots', 'Thick socks');
+        }
+        
+        // Weather gear
+        if (hasRain) {
+            categories['Weather Gear'].push('Rain jacket', 'Umbrella');
+        }
+        if (hasSnow) {
+            categories['Weather Gear'].push('Waterproof jacket', 'Warm gloves', 'Winter hat');
+        }
+        if (maxTemp >= 25) {
+            categories['Weather Gear'].push('Sunscreen', 'Sunglasses', 'Hat for sun');
+        }
+        
+        // Accessories
+        categories.Accessories.push('Daypack', 'Portable charger', 'Travel adapter');
+        
+        return categories;
+    }
+
+    // Set default dates (tomorrow and 7 days later)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const weekLater = new Date(tomorrow);
+    weekLater.setDate(weekLater.getDate() + 6);
+
+    document.getElementById('startDate').value = tomorrow.toISOString().split('T')[0];
+    document.getElementById('endDate').value = weekLater.toISOString().split('T')[0];
+</script>
+```
+
+</body>
+</html>
