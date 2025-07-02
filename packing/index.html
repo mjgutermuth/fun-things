@@ -21,7 +21,7 @@
         }
 
         .container {
-            max-width: 700px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 40px 20px;
         }
@@ -336,7 +336,17 @@
             font-size: 0.85rem;
         }
 
-        /* Calendar uses sans-serif font */
+        .data-type-indicator {
+            font-size: 0.6rem;
+            color: #666;
+            margin-top: 2px;
+            font-style: italic;
+        }
+
+        .forecast { color: #22c55e; } /* Green for real forecast */
+        .current { color: #3b82f6; } /* Blue for current weather */
+        .estimated { color: #f59e0b; } /* Orange for estimates */
+        .mock { color: #9333ea; } /* Purple for mock data */
         .calendar-section,
         .calendar-header,
         .calendar-grid,
@@ -541,6 +551,110 @@
             return `${temp}°${tempUnit}`;
         }
 
+        function assessWeatherConditions(weatherData) {
+            // Convert Celsius to Fahrenheit for assessment logic
+            const tempHighC = weatherData.tempHigh;
+            const tempLowC = weatherData.tempLow;
+            const avgTempC = (tempHighC + tempLowC) / 2;
+            
+            // Convert to Fahrenheit for assessment thresholds
+            const avgTempF = (avgTempC * 9/5) + 32;
+            
+            const humidity = weatherData.humidity;
+            const precipChance = weatherData.precipitationChance;
+            const uvIndex = weatherData.uvIndex;
+            
+            // Primary weather assessment based on average temperature and comfort
+            let assessment = '';
+            let icon = weatherData.icon;
+            
+            // Check for precipitation first (overrides temperature assessment)
+            if (precipChance >= 70) {
+                assessment = 'Rainy Day';
+                icon = '🌧️';
+            } else if (precipChance >= 40) {
+                assessment = 'Possible Showers';
+                icon = '🌦️';
+            }
+            // Temperature-based assessments using average temp in Fahrenheit
+            else if (avgTempF >= 95) {
+                if (humidity >= 70) {
+                    assessment = 'Extreme Heat + Humidity';
+                    icon = '🥵';
+                } else {
+                    assessment = 'Extreme Heat';
+                    icon = '🔥';
+                }
+            } else if (avgTempF >= 85) {
+                if (humidity >= 70) {
+                    assessment = 'Hot + Humid';
+                    icon = '🌡️';
+                } else if (humidity >= 50) {
+                    assessment = 'Hot';
+                    icon = '☀️';
+                } else {
+                    assessment = 'Hot + Dry';
+                    icon = '🌵';
+                }
+            } else if (avgTempF >= 75 && avgTempF <= 84) {
+                if (humidity >= 40 && humidity <= 70) {
+                    assessment = 'Pleasant';
+                    icon = '😊';
+                } else if (humidity > 70) {
+                    assessment = 'Warm + Humid';
+                    icon = '💧';
+                } else {
+                    assessment = 'Warm + Dry';
+                    icon = '🌤️';
+                }
+            } else if (avgTempF >= 60) {
+                if (humidity >= 60) {
+                    assessment = 'Cool + Damp';
+                    icon = '🌫️';
+                } else {
+                    assessment = 'Mild';
+                    icon = '🍃';
+                }
+            } else if (avgTempF >= 45) {
+                assessment = 'Cool';
+                icon = '🧥';
+            } else if (avgTempF >= 32) {
+                assessment = 'Cold';
+                icon = '❄️';
+            } else {
+                assessment = 'Freezing';
+                icon = '🧊';
+            }
+            
+            // Add UV warning for high UV days
+            if (uvIndex >= 8 && avgTempF >= 75) {
+                assessment += ' + High UV';
+            }
+            
+            // Show average temperature in user's preferred unit
+            const avgTemp = getTempDisplay(avgTempC);
+            
+            return {
+                assessment: assessment,
+                icon: icon,
+                tempRange: avgTemp, // Now shows average, not range
+                details: {
+                    humidity: `${humidity}%`,
+                    precipitation: precipChance > 0 ? `${precipChance}% chance` : null,
+                    uvIndex: uvIndex >= 3 ? Math.round(uvIndex) : null
+                }
+            };
+        }
+        function getDataTypeLabel(dataType) {
+            const labels = {
+                'forecast': 'forecast',
+                'current': 'current',
+                'estimated': 'estimated',
+                'mock': 'demo data'
+            };
+            return labels[dataType] || 'unknown';
+        }
+
         function getWeatherClass(tempCelsius, condition) {
             // Always use Celsius for color classification
             if (condition.includes('rain') || condition.includes('snow')) return 'weather-rain';
@@ -678,58 +792,106 @@
         }
 
         async function getWeatherData(location, date) {
+            console.log(`🌤️ Getting weather for: ${location} on ${date}`);
+            
             try {
                 // Get coordinates for the location
                 const coords = await getLocationCoords(location);
                 if (!coords) {
-                    console.log('Location not found, using mock data');
+                    console.log('❌ Location not found, using mock data');
                     return getMockWeatherData(location, date);
                 }
+                
+                console.log(`✅ Found coordinates:`, coords);
                 
                 const targetDate = new Date(date);
                 const today = new Date();
                 const daysFromNow = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
                 
+                console.log(`📅 Target date is ${daysFromNow} days from now`);
+                
                 let weatherData;
                 
-                if (daysFromNow >= -7 && daysFromNow <= 7) {
-                    // Use current/forecast data for dates within a week
+                if (daysFromNow >= -7 && daysFromNow <= 16) {
+                    console.log('🔮 Using current/forecast data');
                     weatherData = await getCurrentWeather(coords, date);
                 } else {
-                    // Use historical averages for dates far out
+                    console.log('📊 Using historical data');
                     weatherData = await getHistoricalWeather(coords, date);
                 }
                 
+                console.log(`✅ Weather data retrieved:`, weatherData);
                 return weatherData;
                 
             } catch (error) {
-                console.error('Weather API error, falling back to mock data:', error);
+                console.error('❌ Weather API error, falling back to mock data:', error);
                 return getMockWeatherData(location, date);
             }
         }
         
         async function getLocationCoords(location) {
             try {
-                const response = await fetch(
-                    `${GEOCODING_URL}?name=${encodeURIComponent(location)}&count=1&language=en&format=json`
-                );
+                // Create multiple search variations
+                const stateAbbreviations = {
+                    'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
+                    'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia',
+                    'HI': 'Hawaii', 'ID': 'Idaho', 'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa',
+                    'KS': 'Kansas', 'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
+                    'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi', 'MO': 'Missouri',
+                    'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada', 'NH': 'New Hampshire', 'NJ': 'New Jersey',
+                    'NM': 'New Mexico', 'NY': 'New York', 'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio',
+                    'OK': 'Oklahoma', 'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
+                    'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah', 'VT': 'Vermont',
+                    'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia', 'WI': 'Wisconsin', 'WY': 'Wyoming'
+                };
                 
-                if (!response.ok) {
-                    throw new Error(`Geocoding error: ${response.status}`);
+                const searchTerms = [
+                    location.trim(),
+                    location.split(',')[0].trim(), // Just the city part
+                    location.replace(/,/g, ' ').trim() // Replace commas with spaces
+                ];
+                
+                // If it contains a state abbreviation, add the full state name version
+                const parts = location.split(',').map(p => p.trim());
+                if (parts.length === 2 && stateAbbreviations[parts[1].toUpperCase()]) {
+                    const fullStateName = stateAbbreviations[parts[1].toUpperCase()];
+                    searchTerms.push(`${parts[0]}, ${fullStateName}`);
+                    searchTerms.push(`${parts[0]} ${fullStateName}`);
+                    searchTerms.push(`${parts[0]}, ${fullStateName}, USA`);
                 }
                 
-                const data = await response.json();
+                // Add some common variations
+                searchTerms.push(`${location}, USA`);
+                searchTerms.push(`${location}, United States`);
                 
-                if (data.results && data.results.length > 0) {
-                    const result = data.results[0];
-                    return {
-                        latitude: result.latitude,
-                        longitude: result.longitude,
-                        name: result.name,
-                        country: result.country
-                    };
+                for (const searchTerm of searchTerms) {
+                    console.log(`Trying to geocode: "${searchTerm}"`);
+                    
+                    const response = await fetch(
+                        `${GEOCODING_URL}?name=${encodeURIComponent(searchTerm)}&count=5&language=en&format=json`
+                    );
+                    
+                    if (!response.ok) {
+                        console.log(`Geocoding HTTP error: ${response.status}`);
+                        continue;
+                    }
+                    
+                    const data = await response.json();
+                    console.log(`Geocoding response for "${searchTerm}":`, data);
+                    
+                    if (data.results && data.results.length > 0) {
+                        const result = data.results[0];
+                        console.log(`Found location:`, result);
+                        return {
+                            latitude: result.latitude,
+                            longitude: result.longitude,
+                            name: result.name,
+                            country: result.country || result.admin1 || ''
+                        };
+                    }
                 }
                 
+                console.log('No results found for any search term');
                 return null;
             } catch (error) {
                 console.error('Geocoding error:', error);
@@ -738,40 +900,117 @@
         }
         
         async function getCurrentWeather(coords, targetDate) {
+            console.log(`🌡️ Getting current weather for coords:`, coords);
+            
             try {
-                const response = await fetch(
-                    `${WEATHER_URL}?latitude=${coords.latitude}&longitude=${coords.longitude}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=7`
-                );
+                // Get daily forecast data
+                const dailyUrl = `${WEATHER_URL}?latitude=${coords.latitude}&longitude=${coords.longitude}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,uv_index_max&timezone=auto&forecast_days=16`;
+                console.log(`🌐 Fetching daily data: ${dailyUrl}`);
                 
-                if (!response.ok) {
-                    throw new Error(`Weather API error: ${response.status}`);
+                const dailyResponse = await fetch(dailyUrl);
+                if (!dailyResponse.ok) {
+                    throw new Error(`Daily weather API error: ${dailyResponse.status}`);
+                }
+                const dailyData = await dailyResponse.json();
+                
+                // Get hourly humidity data for the specific date
+                const targetDateStr = new Date(targetDate).toISOString().split('T')[0];
+                const humidityUrl = `${WEATHER_URL}?latitude=${coords.latitude}&longitude=${coords.longitude}&hourly=relative_humidity_2m&start_date=${targetDateStr}&end_date=${targetDateStr}&timezone=auto`;
+                console.log(`🌐 Fetching humidity data: ${humidityUrl}`);
+                
+                const humidityResponse = await fetch(humidityUrl);
+                let avgHumidity = null;
+                
+                if (humidityResponse.ok) {
+                    const humidityData = await humidityResponse.json();
+                    if (humidityData.hourly && humidityData.hourly.relative_humidity_2m) {
+                        // Calculate daily average humidity from hourly data
+                        const humidityValues = humidityData.hourly.relative_humidity_2m.filter(h => h !== null);
+                        if (humidityValues.length > 0) {
+                            avgHumidity = Math.round(humidityValues.reduce((a, b) => a + b, 0) / humidityValues.length);
+                        }
+                    }
                 }
                 
-                const data = await response.json();
+                console.log(`📊 Daily weather API response:`, dailyData);
+                console.log(`💧 Average humidity for ${targetDateStr}:`, avgHumidity);
                 
                 // Find the day closest to our target date
                 const target = new Date(targetDate).toISOString().split('T')[0];
-                const dayIndex = data.daily.time.findIndex(date => date === target);
+                const dayIndex = dailyData.daily.time.findIndex(date => date === target);
                 
-                let temp, weatherCode;
+                let weatherInfo, dataType;
                 
                 if (dayIndex >= 0) {
-                    // Use specific day data
-                    temp = Math.round((data.daily.temperature_2m_max[dayIndex] + data.daily.temperature_2m_min[dayIndex]) / 2);
-                    weatherCode = data.daily.weathercode[dayIndex];
+                    console.log(`📅 Found exact date match at index ${dayIndex} for ${target}`);
+                    
+                    weatherInfo = {
+                        tempHigh: Math.round(dailyData.daily.temperature_2m_max[dayIndex]),
+                        tempLow: Math.round(dailyData.daily.temperature_2m_min[dayIndex]),
+                        temp: Math.round((dailyData.daily.temperature_2m_max[dayIndex] + dailyData.daily.temperature_2m_min[dayIndex]) / 2),
+                        weatherCode: dailyData.daily.weathercode[dayIndex],
+                        precipitation: dailyData.daily.precipitation_sum[dayIndex] || 0,
+                        precipitationChance: dailyData.daily.precipitation_probability_max[dayIndex] || 0,
+                        humidity: avgHumidity || 50, // Use calculated humidity or default
+                        uvIndex: dailyData.daily.uv_index_max[dayIndex] || 0
+                    };
+                    dataType = 'forecast';
                 } else {
-                    // Use current weather
-                    temp = Math.round(data.current_weather.temperature);
-                    weatherCode = data.current_weather.weathercode;
+                    // Check if the date is in the future but within forecast range
+                    const targetDateObj = new Date(targetDate);
+                    const today = new Date();
+                    const daysFromNow = Math.ceil((targetDateObj - today) / (1000 * 60 * 60 * 24));
+                    
+                    if (daysFromNow > 0 && daysFromNow <= 16) {
+                        console.log(`📅 Future date within forecast range but no exact match, using closest forecast`);
+                        // Use the last available forecast day
+                        const lastIndex = dailyData.daily.temperature_2m_max.length - 1;
+                        weatherInfo = {
+                            tempHigh: Math.round(dailyData.daily.temperature_2m_max[lastIndex]),
+                            tempLow: Math.round(dailyData.daily.temperature_2m_min[lastIndex]),
+                            temp: Math.round((dailyData.daily.temperature_2m_max[lastIndex] + dailyData.daily.temperature_2m_min[lastIndex]) / 2),
+                            weatherCode: dailyData.daily.weathercode[lastIndex],
+                            precipitation: dailyData.daily.precipitation_sum[lastIndex] || 0,
+                            precipitationChance: dailyData.daily.precipitation_probability_max[lastIndex] || 0,
+                            humidity: avgHumidity || 50, // Use calculated humidity or default
+                            uvIndex: dailyData.daily.uv_index_max[lastIndex] || 0
+                        };
+                        dataType = 'forecast';
+                    } else {
+                        console.log(`📅 Using current weather for ${daysFromNow} days from now`);
+                        // For current weather, we have limited data
+                        weatherInfo = {
+                            tempHigh: Math.round(dailyData.current_weather.temperature + 3), // Estimate high
+                            tempLow: Math.round(dailyData.current_weather.temperature - 3), // Estimate low
+                            temp: Math.round(dailyData.current_weather.temperature),
+                            weatherCode: dailyData.current_weather.weathercode,
+                            precipitation: 0, // Not available in current weather
+                            precipitationChance: 0,
+                            humidity: avgHumidity || 50, // Use calculated humidity or default
+                            uvIndex: 0 // Not available in current weather
+                        };
+                        dataType = daysFromNow <= 0 ? 'current' : 'estimated';
+                    }
                 }
                 
-                return {
-                    temp: temp,
-                    condition: getWeatherCondition(weatherCode),
-                    icon: getWeatherIcon(weatherCode)
+                const result = {
+                    temp: weatherInfo.temp,
+                    tempHigh: weatherInfo.tempHigh,
+                    tempLow: weatherInfo.tempLow,
+                    condition: getWeatherCondition(weatherInfo.weatherCode),
+                    icon: getWeatherIcon(weatherInfo.weatherCode),
+                    precipitation: weatherInfo.precipitation,
+                    precipitationChance: weatherInfo.precipitationChance,
+                    humidity: weatherInfo.humidity,
+                    uvIndex: weatherInfo.uvIndex,
+                    dataType: dataType
                 };
                 
+                console.log(`✅ Processed weather result:`, result);
+                return result;
+                
             } catch (error) {
+                console.error('❌ getCurrentWeather error:', error);
                 throw error;
             }
         }
@@ -808,8 +1047,15 @@
                     
                     return {
                         temp: avgTemp,
+                        tempHigh: Math.round(avgMaxTemp),
+                        tempLow: Math.round(avgMinTemp),
                         condition: getWeatherCondition(mostCommonWeatherCode),
-                        icon: getWeatherIcon(mostCommonWeatherCode)
+                        icon: getWeatherIcon(mostCommonWeatherCode),
+                        precipitation: 0,
+                        precipitationChance: 0,
+                        humidity: 50,
+                        uvIndex: 3,
+                        dataType: 'estimated'
                     };
                 }
                 
@@ -843,8 +1089,15 @@
             
             return {
                 temp: Math.round(baseTemp + (Math.random() * 6 - 3)),
+                tempHigh: Math.round(baseTemp + (Math.random() * 6 - 3) + 3),
+                tempLow: Math.round(baseTemp + (Math.random() * 6 - 3) - 3),
                 condition: isWinter ? 'cloudy' : 'partly cloudy',
-                icon: isWinter ? '☁️' : '⛅'
+                icon: isWinter ? '☁️' : '⛅',
+                precipitation: Math.random() > 0.7 ? Math.round(Math.random() * 10) : 0,
+                precipitationChance: Math.random() > 0.7 ? Math.round(Math.random() * 50 + 20) : 0,
+                humidity: Math.round(Math.random() * 40 + 40), // 40-80%
+                uvIndex: Math.random() * 8,
+                dataType: 'estimated'
             };
         }
         
@@ -968,18 +1221,16 @@
             
             return {
                 temp: temp,
+                tempHigh: temp + 3,
+                tempLow: temp - 3,
                 condition: weather.condition,
-                icon: weather.icon
+                icon: weather.icon,
+                precipitation: Math.random() > 0.7 ? Math.round(Math.random() * 10) : 0,
+                precipitationChance: Math.random() > 0.7 ? Math.round(Math.random() * 50 + 20) : 0,
+                humidity: Math.round(Math.random() * 40 + 40),
+                uvIndex: Math.random() * 8,
+                dataType: 'mock'
             };
-        }
-
-        function getWeatherClass(temp, condition) {
-            if (condition.includes('rain') || condition.includes('snow')) return 'weather-rain';
-            if (temp >= 28) return 'weather-hot';
-            if (temp >= 22) return 'weather-warm';
-            if (temp >= 15) return 'weather-mild';
-            if (temp >= 8) return 'weather-cool';
-            return 'weather-cold';
         }
 
         function getWeatherClass(tempCelsius, condition) {
@@ -1006,18 +1257,13 @@
             const firstTripDate = new Date(Math.min(...tripData.days.map(d => d.date)));
             const lastTripDate = new Date(Math.max(...tripData.days.map(d => d.date)));
             
-            // Start from the beginning of the month containing the first trip date
-            const startDate = new Date(firstTripDate.getFullYear(), firstTripDate.getMonth(), 1);
+            // Find the start of the week containing the first trip date
+            const startWeek = new Date(firstTripDate);
+            startWeek.setDate(firstTripDate.getDate() - firstTripDate.getDay());
             
-            // End at the end of the month containing the last trip date
-            const endDate = new Date(lastTripDate.getFullYear(), lastTripDate.getMonth() + 1, 0);
-            
-            // Adjust to show complete weeks
-            const startDay = new Date(startDate);
-            startDay.setDate(startDate.getDate() - startDate.getDay());
-            
-            const endDay = new Date(endDate);
-            endDay.setDate(endDate.getDate() + (6 - endDate.getDay()));
+            // Find the end of the week containing the last trip date
+            const endWeek = new Date(lastTripDate);
+            endWeek.setDate(lastTripDate.getDate() + (6 - lastTripDate.getDay()));
             
             let html = '';
             
@@ -1027,12 +1273,19 @@
                 html += `<div class="calendar-day-header">${day}</div>`;
             });
             
-            // Calendar days
-            for (let d = new Date(startDay); d <= endDay; d.setDate(d.getDate() + 1)) {
+            // Calendar days - only show weeks that contain trip days
+            for (let d = new Date(startWeek); d <= endWeek; d.setDate(d.getDate() + 1)) {
                 const dateKey = d.toISOString().split('T')[0];
                 const tripDay = tripDays.get(dateKey);
-                const isCurrentMonth = d.getMonth() === firstTripDate.getMonth() || d.getMonth() === lastTripDate.getMonth();
-                const isOtherMonth = !isCurrentMonth && !tripDay;
+                
+                // Check if this day is in a month that contains trip days
+                const dayMonth = d.getMonth();
+                const dayYear = d.getFullYear();
+                const hasTripsThisMonth = tripData.days.some(td => 
+                    td.date.getMonth() === dayMonth && td.date.getFullYear() === dayYear
+                );
+                
+                const isOtherMonth = !hasTripsThisMonth && !tripDay;
                 
                 let dayClass = 'calendar-day';
                 let dayContent = `<div class="day-number">${d.getDate()}</div>`;
@@ -1044,13 +1297,17 @@
                     const weatherClass = getWeatherClass(tripDay.weather.temp, tripDay.weather.condition);
                     dayClass += ' ' + weatherClass;
                     
+                    // Get weather assessment
+                    const assessment = assessWeatherConditions(tripDay.weather);
+                    
                     dayContent += `
                         <div class="day-location">${tripDay.location}</div>
                         <div class="weather-info">
-                            <span class="weather-icon">${tripDay.weather.icon}</span>
-                            <span class="weather-temp">${getTempDisplay(tripDay.weather.temp)}</span>
+                            <span class="weather-icon">${assessment.icon}</span>
+                            <span class="weather-temp">${assessment.tempRange}</span>
                         </div>
-                        <div class="weather-desc">${tripDay.weather.condition}</div>
+                        <div class="weather-desc">${assessment.assessment}</div>
+                        <div class="data-type-indicator ${tripDay.weather.dataType}">${getDataTypeLabel(tripDay.weather.dataType)}</div>
                     `;
                 }
                 
