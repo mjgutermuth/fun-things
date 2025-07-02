@@ -3,7 +3,7 @@ function assessWeatherConditions(weatherData) {
     const tempHighC = weatherData.tempHigh;
     const tempLowC = weatherData.tempLow;
     const avgTempC = (tempHighC + tempLowC) / 2;
-    const avgTempF = Math.round((avgTempC * 9/5) + 32);  // Add Math.round()
+    const avgTempF = Math.round((avgTempC * 9/5) + 32);
 
     const humidity = weatherData.humidity;
     const precipChance = weatherData.precipitationChance;
@@ -36,7 +36,7 @@ function assessWeatherConditions(weatherData) {
         assessment = 'Heavy Rain';
         icon = '🌧️';
     }
-    else if (precipChance >= 20) {
+    else if (precipChance >= 25) {
         assessment = 'Possible Rain';
         icon = '🌦️';
     } else if (avgTempF >= 95) {
@@ -66,9 +66,8 @@ function assessWeatherConditions(weatherData) {
     };
 }
 
-
 function getWeatherClass(tempCelsius, condition, humidity, precipChance) {
-    if (precipChance >= 20) {
+    if (precipChance >= 25) {
         return 'weather-rain';
     }
     
@@ -330,7 +329,7 @@ function renderWeatherSummary(tripData) {
     const temps = tripData.days.map(d => d.weather.temp);
     const uvLevels = tripData.days.map(d => d.weather.uvIndex || 0);
     const humidityLevels = tripData.days.map(d => d.weather.humidity || 50);
-    const precipDays = tripData.days.filter(d => d.weather.precipitationChance > 20).length;
+    const precipDays = tripData.days.filter(d => d.weather.precipitationChance > 25).length;
     
     const minTemp = Math.min(...temps);
     const maxTemp = Math.max(...temps);

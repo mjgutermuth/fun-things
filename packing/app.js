@@ -1,3 +1,5 @@
+console.log('app.js loaded successfully!');
+
 // Global variables
 let segmentCounter = 0;
 let currentTripData = null;
@@ -107,6 +109,8 @@ function getAllSegments() {
 async function generateCalendar() {
     const segments = getAllSegments();
     
+    console.log('DEBUG: segments =', segments);
+
     if (segments.length === 0) {
         alert('Please fill in at least the main trip details');
         return;
@@ -127,7 +131,7 @@ async function generateCalendar() {
     try {
         const tripData = await generateTripData(segments);
         currentTripData = tripData;
-        
+
         renderCalendar(tripData);
         renderPackingSuggestions(tripData);
     } catch (error) {
@@ -135,15 +139,14 @@ async function generateCalendar() {
         document.getElementById('calendarGrid').innerHTML = '<div class="loading">Error loading weather data. Please try again.</div>';
     }
 }
-
 async function generateTripData(segments) {
     const days = [];
     
     for (const segment of segments) {
-        const start = new Date(segment.startDate);
-        const end = new Date(segment.endDate);
+        const start = new Date(segment.startDate + 'T12:00:00');
+        const end = new Date(segment.endDate + 'T12:00:00');
         
-        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        for (let d = new Date(start); d.getTime() <= end.getTime(); d.setDate(d.getDate() + 1)) {
             const weather = await getWeatherData(segment.location, d.toISOString().split('T')[0]);
             days.push({
                 date: new Date(d),

@@ -256,9 +256,6 @@ body {
     z-index: 10;
 }
 
-
-/* CALENDAR WITH ROUNDED SANS - FRIENDLY & CLEAN */
-
 .calendar-day {
     background: white;
     min-height: 130px;
@@ -381,6 +378,7 @@ body {
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 1px;
+    text-align: center;
 }
 
 .packing-header p {
@@ -525,52 +523,6 @@ body {
     .packing-categories {
         grid-template-columns: 1fr;
     }
-}
-
-/* CALENDAR GRID - BOLD BLOCK STYLE */
-.calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 3px;
-    background: white;
-    border-radius: 0;
-    overflow: hidden;
-    border: 3px solid #9370db;
-}
-
-.calendar-day-header {
-    background: #2e2e2e;
-    color: white;
-    padding: 20px 8px;
-    text-align: center;
-    font-weight: bold;
-    font-size: 1rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-family: 'Courier New', monospace;
-    border: none;
-}
-
-.calendar-day {
-    background: white;
-    min-height: 140px;
-    padding: 12px;
-    position: relative;
-    transition: all 0.3s ease;
-    border: 2px solid #eee;
-    font-family: 'Courier New', monospace;
-}
-
-.calendar-day.trip-day {
-    cursor: pointer;
-    border: 3px solid #2e2e2e;
-}
-
-.calendar-day.trip-day:hover {
-    transform: scale(1.03);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-    z-index: 10;
-    border-color: #ff1493;
 }
 
 /* CALENDAR GRID - BOLD BLOCK STYLE */
