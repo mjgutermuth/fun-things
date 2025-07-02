@@ -56,7 +56,7 @@ function generateSmartPackingCategories(tripData) {
         clothingItems.push('Heavy winter coat');
         clothingItems.push('Insulated gloves or mittens');
         clothingItems.push('Warm winter hat/beanie');
-        clothingItems.push('Scarf or neck warmer');
+        clothingItems.push('Scarf or neck gaiter');
         clothingItems.push(`<span class="quantity-highlight">${Math.max(snowDays, freezingDays)}</span> pairs of wool socks`);
         
         if (freezingDays > 3) {
@@ -76,10 +76,10 @@ function generateSmartPackingCategories(tripData) {
         const swimItems = [];
         
         if (swimWeatherDays >= 5) {
-            swimItems.push('<span class="quantity-highlight">2-3</span> swimsuits/swim trunks');
+            swimItems.push('<span class="quantity-highlight">2-3</span> swimsuits');
             swimItems.push('Beach cover-up or sarong');
         } else {
-            swimItems.push('<span class="quantity-highlight">1-2</span> swimsuits/swim trunks');
+            swimItems.push('<span class="quantity-highlight">1-2</span> swimsuits');
         }
         
         if (veryHotDays >= 2) {
@@ -88,7 +88,7 @@ function generateSmartPackingCategories(tripData) {
         }
         
         if (extremeUVDays >= 2 && swimWeatherDays >= 3) {
-            swimItems.push('Rash guard (UPF protection)');
+            swimItems.push('Rash guard');
             swimItems.push('Wide-brim beach hat');
         }
         
@@ -103,13 +103,13 @@ function generateSmartPackingCategories(tripData) {
         const sunItems = [];
         
         if (extremeUVDays >= 3) {
-            sunItems.push(`<span class="quantity-highlight">SPF 50+</span> sunscreen (${Math.ceil(extremeUVDays/3)} bottles recommended)`);
+            sunItems.push(`<span class="quantity-highlight">SPF 50+</span> sunscreen`);
             sunItems.push('UPF 50+ long-sleeve shirts');
             sunItems.push('Wide-brim sun hat with neck protection');
             sunItems.push('Zinc sunscreen for face/lips');
         } else if (highUVDays >= 2) {
-            sunItems.push(`<span class="quantity-highlight">SPF 30+</span> sunscreen (${Math.ceil(highUVDays/4)} bottles)`);
-            sunItems.push('Sun hat or cap');
+            sunItems.push(`<span class="quantity-highlight">SPF 30+</span> sunscreen`);
+            sunItems.push('Sun hat');
         }
         
         if (highUVDays > 0) {
@@ -134,7 +134,7 @@ function generateSmartPackingCategories(tripData) {
         if (heavyRainDays >= 2) {
             weatherItems.push('Waterproof rain jacket');
             weatherItems.push('Rain pants');
-            weatherItems.push('Compact umbrella + backup');
+            weatherItems.push('Compact umbrella');
         } else if (rainDays >= 2) {
             weatherItems.push('Water-resistant jacket');
             weatherItems.push('Compact umbrella');
@@ -148,12 +148,6 @@ function generateSmartPackingCategories(tripData) {
         if (snowDays > 0) {
             weatherItems.push('Waterproof winter boots');
             weatherItems.push('Warm, waterproof gloves');
-            weatherItems.push('Snow gaiters (if hiking)');
-        }
-        
-        if (freezingDays > 2) {
-            weatherItems.push('Ice cleats or crampons');
-            weatherItems.push('Emergency blanket');
         }
         
         categories['Weather Protection'] = { 
@@ -232,7 +226,7 @@ function generateSmartPackingCategories(tripData) {
     }
     
     if (extremeUVDays >= 2) {
-        healthItems.push('Aloe vera gel (sunburn relief)');
+        healthItems.push('Aloe vera gel');
         healthItems.push('Electrolyte supplements');
     }
     
@@ -242,7 +236,6 @@ function generateSmartPackingCategories(tripData) {
     }
     
     if (freezingDays > 1) {
-        healthItems.push('Frostbite prevention cream');
         healthItems.push('Emergency heat packs');
     }
     
