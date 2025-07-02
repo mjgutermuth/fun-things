@@ -1,0 +1,651 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier New', monospace;
+    background: white;
+    color: #2e2e2e;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 50px;
+    padding: 40px 0;
+}
+
+.header h1 {
+    font-size: 3rem;
+    font-weight: normal;
+    color: #ff1493;
+    margin-bottom: 15px;
+    letter-spacing: -2px;
+}
+
+.header p {
+    color: #666;
+    font-size: 1.1rem;
+    font-weight: normal;
+}
+
+.trip-form {
+    background: white;
+    border: 3px solid #ff1493;
+    border-radius: 0;
+    padding: 40px;
+    margin-bottom: 40px;
+    box-shadow: none;
+}
+
+.segment {
+    border: 2px solid #20b2aa;
+    border-radius: 0;
+    padding: 25px;
+    margin-bottom: 25px;
+    position: relative;
+    background: white;
+}
+
+.segment.main {
+    border-color: #ff1493;
+    border-width: 3px;
+    background: #fffafd;
+}
+
+.segment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.segment-title {
+    font-weight: bold;
+    color: #2e2e2e;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.remove-btn {
+    background: #ff1493;
+    color: white;
+    border: none;
+    border-radius: 0;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-btn:hover {
+    background: #e6127a;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #2e2e2e;
+    font-weight: bold;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #ddd;
+    border-radius: 0;
+    font-size: 16px;
+    font-family: 'Courier New', monospace;
+    transition: border-color 0.3s ease;
+    background: white;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #ff1493;
+    box-shadow: none;
+}
+
+.btn {
+    padding: 15px 30px;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: #ff1493;
+    color: white;
+    border: 3px solid #ff1493;
+}
+
+.btn-primary:hover {
+    background: white;
+    color: #ff1493;
+}
+
+.btn-add {
+    background: #20b2aa;
+    color: white;
+    border: 3px solid #20b2aa;
+    width: 100%;
+    margin: 25px 0;
+}
+
+.btn-add:hover {
+    background: white;
+    color: #20b2aa;
+}
+
+.actions {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 25px;
+}
+
+.calendar-section {
+    background: white;
+    border: 3px solid #9370db;
+    border-radius: 0;
+    padding: 30px;
+    box-shadow: none;
+    margin-bottom: 30px;
+}
+
+.calendar-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.calendar-header h2 {
+    color: #9370db;
+    font-size: 1.8rem;
+    margin-bottom: 15px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'Courier New', monospace;
+}
+
+.calendar-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.calendar-controls p {
+    font-family: 'Courier New', monospace;
+    color: #666;
+    font-weight: normal;
+}
+
+.temp-toggle {
+    display: flex;
+    background: white;
+    border-radius: 0;
+    padding: 0;
+    border: none;
+}
+
+.temp-toggle button {
+    padding: 8px 16px;
+    border: 2px solid #ff1493;
+    background: white;
+    border-radius: 0;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    color: #ff1493;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.temp-toggle button.active {
+    background: #ff1493;
+    color: white;
+    box-shadow: none;
+}
+
+.calendar-day.trip-day {
+    cursor: pointer;
+}
+
+.calendar-day.trip-day:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+}
+
+
+/* CALENDAR WITH ROUNDED SANS - FRIENDLY & CLEAN */
+
+.calendar-day {
+    background: white;
+    min-height: 130px;
+    padding: 10px;
+    position: relative;
+    transition: all 0.3s ease;
+    border: 2px solid #eee;
+    font-family: 'SF Pro Rounded', 'Arial Rounded MT Bold', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.day-number {
+    font-weight: 800;
+    font-size: 1rem;
+    color: #111;
+    margin-bottom: 10px;
+    font-family: 'SF Pro Rounded', 'Arial Rounded MT Bold', -apple-system, BlinkMacSystemFont, sans-serif;
+    display: inline;
+}
+
+.day-location {
+    font-size: 0.7rem;
+    color: #666;
+    margin-bottom: 8px;
+    font-weight: 500;
+    text-transform: capitalize;
+    letter-spacing: 0.3px;
+    font-family: 'SF Pro Rounded', 'Arial Rounded MT Bold', -apple-system, BlinkMacSystemFont, sans-serif;
+    display: inline;
+    margin-left: 6px;
+    text-align: center;
+}
+
+.day-header {
+    margin-bottom: 8px;
+}
+
+.weather-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 8px;
+    justify-content: center;
+}
+
+.weather-icon {
+    font-size: 1.2rem;
+}
+
+.weather-temp {
+    font-weight: 600;
+    color: #555;
+    font-size: 0.85rem;
+    font-family: 'SF Pro Rounded', 'Arial Rounded MT Bold', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.weather-desc {
+    font-size: 1.1rem;
+    color: #111;
+    font-weight: 700;
+    text-transform: capitalize;
+    letter-spacing: 0.2px;
+    font-family: 'SF Pro Rounded', 'Arial Rounded MT Bold', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.2;
+    text-align: center;
+    margin-bottom: 6px;
+}
+
+.data-type-indicator {
+    font-size: 0.55rem;
+    color: #aaa;
+    margin-top: 2px;
+    font-style: normal;
+    font-weight: 400;
+    text-transform: lowercase;
+    font-family: 'SF Pro Rounded', 'Arial Rounded MT Bold', -apple-system, BlinkMacSystemFont, sans-serif;
+    text-align: center;
+    opacity: 0.6;
+}
+
+.calendar-day-header {
+    background: #2e2e2e;
+    color: white;
+    padding: 20px 8px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'SF Pro Rounded', 'Arial Rounded MT Bold', -apple-system, BlinkMacSystemFont, sans-serif;
+    border: none;
+}
+
+/* BETTER PROPORTIONS */
+.calendar-day.other-month {
+    background: #f0f0f0;
+    color: #999;
+}
+
+.other-month .day-number {
+    color: #ccc;
+}
+
+.forecast { color: #22c55e; }
+.current { color: #3b82f6; }
+.estimated { color: #f59e0b; }
+.mock { color: #9333ea; }
+
+.packing-suggestions {
+    background: white;
+    border: 3px solid #20b2aa;
+    border-radius: 0;
+    padding: 40px;
+    box-shadow: none;
+}
+
+.packing-header h2 {
+    color: #20b2aa;
+    font-size: 1.8rem;
+    margin-bottom: 15px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.packing-header p {
+    color: #666;
+    font-weight: normal;
+    margin-bottom: 20px;
+}
+
+.weather-summary {
+    background: #f8f9fa;
+    border: 2px solid #dee2e6;
+    padding: 20px;
+    margin-bottom: 30px;
+    border-radius: 0;
+}
+
+.weather-summary h3 {
+    color: #495057;
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.weather-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: white;
+    border: 1px solid #dee2e6;
+}
+
+.stat-label {
+    font-weight: bold;
+    color: #495057;
+}
+
+.stat-value {
+    color: #6c757d;
+}
+
+.packing-categories {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.packing-category {
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 0;
+    padding: 25px;
+}
+
+.category-title {
+    font-weight: bold;
+    color: #2e2e2e;
+    margin-bottom: 15px;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.category-items {
+    list-style: none;
+    font-size: 0.9rem;
+    color: #2e2e2e;
+    line-height: 1.6;
+}
+
+.category-items li {
+    margin-bottom: 6px;
+}
+
+.category-items li:before {
+    content: "• ";
+    color: #20b2aa;
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.quantity-highlight {
+    background: #fff3cd;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: bold;
+    color: #856404;
+}
+
+.priority-high {
+    background: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.priority-high .category-title {
+    color: #721c24;
+}
+
+.priority-medium {
+    background: #fff3cd;
+    border-color: #ffeaa7;
+}
+
+.priority-medium .category-title {
+    color: #856404;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #64748b;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 20px 15px;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .actions {
+        flex-direction: column;
+    }
+    
+    .header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .weather-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .packing-categories {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* CALENDAR GRID - BOLD BLOCK STYLE */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+    background: white;
+    border-radius: 0;
+    overflow: hidden;
+    border: 3px solid #9370db;
+}
+
+.calendar-day-header {
+    background: #2e2e2e;
+    color: white;
+    padding: 20px 8px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'Courier New', monospace;
+    border: none;
+}
+
+.calendar-day {
+    background: white;
+    min-height: 140px;
+    padding: 12px;
+    position: relative;
+    transition: all 0.3s ease;
+    border: 2px solid #eee;
+    font-family: 'Courier New', monospace;
+}
+
+.calendar-day.trip-day {
+    cursor: pointer;
+    border: 3px solid #2e2e2e;
+}
+
+.calendar-day.trip-day:hover {
+    transform: scale(1.03);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+    border-color: #ff1493;
+}
+
+/* CALENDAR GRID - BOLD BLOCK STYLE */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+    background: white;
+    border-radius: 0;
+    overflow: hidden;
+    border: 3px solid #9370db;
+}
+
+.calendar-day-header {
+    background: #2e2e2e;
+    color: white;
+    padding: 20px 8px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'Courier New', monospace;
+    border: none;
+}
+
+.calendar-day {
+    background: white;
+    min-height: 140px;
+    padding: 12px;
+    position: relative;
+    transition: all 0.3s ease;
+    border: 2px solid #eee;
+    font-family: 'Courier New', monospace;
+}
+
+.calendar-day.trip-day {
+    cursor: pointer;
+    border: 3px solid #2e2e2e;
+}
+
+.calendar-day.trip-day:hover {
+    transform: scale(1.03);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+    border-color: #ff1493;
+}
+
+/* CLEAN PASTEL WEATHER COLORS */
+.weather-hot { 
+    background: #ffcdd2 !important; 
+    color: #2e2e2e !important;
+    border-color: #f8bbd9 !important;
+}
+
+.weather-mild { 
+    background: #c8e6c9 !important; 
+    color: #2e2e2e !important;
+    border-color: #a5d6a7 !important;
+}
+
+.weather-cool { 
+    background: #b2dfdb !important; 
+    color: #2e2e2e !important;
+    border-color: #80cbc4 !important;
+}
+
+.weather-cold { 
+    background: #c5cae9 !important; 
+    color: #2e2e2e !important;
+    border-color: #9fa8da !important;
+}
+
+.weather-rain { 
+    background: #cfd8dc !important; 
+    color: #2e2e2e !important;
+    border-color: #b0bec5 !important;
+}
