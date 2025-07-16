@@ -32,7 +32,7 @@ class OrderService {
     };
   }
 
-  // Get order status - for polling
+  // Get order status for polling
   getOrderStatus(orderId) {
     const order = this.orders.get(orderId);
     if (!order) {
