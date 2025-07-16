@@ -1,0 +1,24 @@
+name: Demo CI
+on: [pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: CI tests
+        run: echo "Running tests..." && sleep 10
+      
+  lint:
+    runs-on: ubuntu-latest  
+    steps:
+      - uses: actions/checkout@v3
+      - name: Code quality check
+        run: echo "Checking code quality..." && sleep 5
+        
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3  
+      - name: Security scan
+        run: echo "Security scanning..." && sleep 15
