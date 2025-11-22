@@ -1021,7 +1021,7 @@
                     <p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 15px;">Add specific colors that aren't in the suggested palette, or skip the season selection entirely.</p>
                     
                     <div class="custom-color-input">
-                        <input type="text" id="customColorName" placeholder="Color name (e.g., 'Navy Blue')">
+                        <input type="text" id="customColorName" placeholder="Color name">
                         <input type="color" id="customColorValue" value="#000000">
                         <button class="secondary" onclick="addCustomColor()">Add</button>
                     </div>
@@ -1051,7 +1051,7 @@
                 
                 <div class="form-group">
                     <label for="tripName">Trip Name</label>
-                    <input type="text" id="tripName" placeholder="e.g., Caribbean Cruise + Disney World">
+                    <input type="text" id="tripName" placeholder="Birthday Weekend, Spring Break, Convention">
                 </div>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
@@ -1093,9 +1093,9 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="activityLocation">Location(s) / Destination(s)</label>
+                        <label for="activityLocation">Location / Destination</label>
                         <div style="display: flex; gap: 10px;">
-                            <input type="text" id="activityLocation" placeholder="e.g., Disney World, Cozumel" style="flex: 1;">
+                            <input type="text" id="activityLocation" placeholder="Boston, Cup Noodles Museum, Croatia" style="flex: 1;">
                             <button type="button" class="secondary" onclick="addLocationTag()" style="white-space: nowrap;">+ Add</button>
                         </div>
                         <div id="locationTags" class="tag-container"></div>
@@ -1104,7 +1104,7 @@
                     <div class="form-group">
                         <label for="activityName">Activity / Activities</label>
                         <div style="display: flex; gap: 10px;">
-                            <input type="text" id="activityName" placeholder="e.g., Cave Tubing, Hiking, Zip Line" style="flex: 1;">
+                            <input type="text" id="activityName" placeholder="Nature walk, Salsa dancing, Formal dinner" style="flex: 1;">
                             <button type="button" class="secondary" onclick="addActivityTag()" style="white-space: nowrap;">+ Add</button>
                         </div>
                         <div id="activityTags" class="tag-container"></div>
@@ -1154,7 +1154,7 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                         <div class="form-group">
                             <label for="itemName">Item Name</label>
-                            <input type="text" id="itemName" placeholder="e.g., White eyelet tee" required>
+                            <input type="text" id="itemName" placeholder="Graphic tee, Wool sweater" required>
                         </div>
                         
                         <div class="form-group">
@@ -3076,7 +3076,7 @@
                 'bottom': 'Bottoms',
                 'dress': 'Dresses',
                 'jumpsuit': 'Jumpsuits / Rompers',
-                'outerwear': 'Outerwear / Layers',
+                'outerwear': 'Outerwear / Top Layers',
                 'shoes': 'Shoes',
                 'swimwear': 'Swimwear',
                 'activewear-top': 'Activewear Tops',
