@@ -2726,6 +2726,7 @@
             };
             
             // Helper to get random least-used item from multiple types
+            // This one adds MORE randomness - picks randomly from top 3 least-used tiers
             const getLeastUsedFromTypes = (types) => {
                 const candidates = [];
                 types.forEach(type => {
@@ -2734,13 +2735,19 @@
                 });
                 if (candidates.length === 0) return null;
                 
-                // Sort by usage and get least-used tier
+                // Sort by usage
                 candidates.sort((a, b) => (usageCounts[a.id] || 0) - (usageCounts[b.id] || 0));
-                const minUsage = usageCounts[candidates[0].id] || 0;
-                const leastUsed = candidates.filter(item => (usageCounts[item.id] || 0) === minUsage);
                 
-                // Randomly pick from least-used options
-                return leastUsed[Math.floor(Math.random() * leastUsed.length)];
+                // Instead of just picking from minUsage tier, pick from bottom 50% randomly
+                const halfPoint = Math.ceil(candidates.length / 2);
+                const lessUsedHalf = candidates.slice(0, halfPoint);
+                
+                return lessUsedHalf[Math.floor(Math.random() * lessUsedHalf.length)];
+            };
+            
+            // Helper to randomly decide between dress and top+bottom
+            const shouldUseDress = () => {
+                return Math.random() < 0.6; // 60% chance of dress if available
             };
             
             switch(dressCode) {
@@ -2769,7 +2776,7 @@
                     // For formal, prefer dresses over jumpsuits (jumpsuits might be casual overalls)
                     const formalDress = getLeastUsedItem('dress');
                     
-                    if (formalDress) {
+                    if (formalDress && shouldUseDress()) {
                         items.push(formalDress.id);
                     } else {
                         // Try jumpsuit only if no dress available (and avoid ones with "overall" in name)
@@ -2778,7 +2785,9 @@
                             !item.name.toLowerCase().includes('overall')
                         );
                         
-                        if (jumpsuits.length > 0) {
+                        const shouldTryJumpsuit = Math.random() < 0.3; // Only 30% chance
+                        
+                        if (jumpsuits.length > 0 && shouldTryJumpsuit && !formalDress) {
                             jumpsuits.sort((a, b) => (usageCounts[a.id] || 0) - (usageCounts[b.id] || 0));
                             const minUsage = usageCounts[jumpsuits[0].id] || 0;
                             const leastUsed = jumpsuits.filter(item => (usageCounts[item.id] || 0) === minUsage);
@@ -2803,12 +2812,18 @@
                 case 'dressy-casual':
                     // Top + bottom OR dress/jumpsuit + shoes + optional layer
                     // Avoid casual overalls for dressy-casual
+                    const dressyDress = getLeastUsedItem('dress');
                     const dressyOptions = appState.wardrobe.filter(item => 
-                        (item.type === 'dress' || item.type === 'jumpsuit') &&
+                        item.type === 'jumpsuit' &&
                         !item.name.toLowerCase().includes('overall')
                     );
                     
-                    if (dressyOptions.length > 0) {
+                    const useDressyDress = dressyDress && shouldUseDress();
+                    const useDressyJumpsuit = dressyOptions.length > 0 && Math.random() < 0.25; // 25% chance
+                    
+                    if (useDressyDress) {
+                        items.push(dressyDress.id);
+                    } else if (useDressyJumpsuit && !useDressyDress) {
                         dressyOptions.sort((a, b) => (usageCounts[a.id] || 0) - (usageCounts[b.id] || 0));
                         const minUsage = usageCounts[dressyOptions[0].id] || 0;
                         const leastUsed = dressyOptions.filter(item => (usageCounts[item.id] || 0) === minUsage);
@@ -2829,10 +2844,16 @@
                 default:
                     // Top + bottom OR dress/jumpsuit + shoes
                     // Can mix activewear with regular for casual
-                    const everydayMain = getLeastUsedFromTypes(['dress', 'jumpsuit']);
+                    const everydayDress = getLeastUsedItem('dress');
+                    const everydayJumpsuit = getLeastUsedFromTypes(['jumpsuit']);
                     
-                    if (everydayMain) {
-                        items.push(everydayMain.id);
+                    const useEverydayDress = everydayDress && Math.random() < 0.4; // 40% chance
+                    const useEverydayJumpsuit = everydayJumpsuit && Math.random() < 0.3; // 30% chance
+                    
+                    if (useEverydayDress) {
+                        items.push(everydayDress.id);
+                    } else if (useEverydayJumpsuit && !useEverydayDress) {
+                        items.push(everydayJumpsuit.id);
                     } else {
                         const everydayTop = getLeastUsedFromTypes(['top', 'activewear-top']);
                         const everydayBottom = getLeastUsedFromTypes(['bottom', 'activewear-bottom']);
