@@ -66,6 +66,7 @@ function generateSmartPackingCategories(tripData) {
     }
     
     // Add general clothing based on trip length
+    clothingItems.push(`<span class="quantity-highlight">${Math.ceil(tripLength * 0.7)}</span> tops (mix of short & long sleeve)`);
     clothingItems.push(`<span class="quantity-highlight">${Math.ceil(tripLength * 0.5)}</span> pairs of pants/jeans`);
     clothingItems.push(`<span class="quantity-highlight">${tripLength + 1}</span> sets of underwear`);
     
