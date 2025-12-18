@@ -93,11 +93,11 @@ function generateSmartPackingCategories(tripData) {
         categories['Activity Wear'] = { items: activityItems };
     }
     
-    // CORE WARDROBE - Always shown, weather-adjusted essentials
+    // CORE WARDROBE - Always shown, weather-adjusted essentials for CASUAL days
     const coreItems = [];
     
-    // Weather-based clothing
-    if (hotDays > 0) {
+    // Weather-based clothing for casual days
+    if (hotDays > 0 && casualDays > 0) {
         const casualHotTops = Math.min(casualDays, Math.ceil(hotDays * 0.8));
         if (casualHotTops > 0) {
             coreItems.push(`<span class="quantity-highlight">${casualHotTops}</span> lightweight t-shirt${casualHotTops > 1 ? 's' : ''}`);
@@ -139,10 +139,30 @@ function generateSmartPackingCategories(tripData) {
         }
     }
     
-    // Core essentials (always included)
-    const totalTops = Math.ceil(tripLength * 0.7);
-    coreItems.push(`<span class="quantity-highlight">${totalTops}</span> tops total (mix of styles & sleeves)`);
-    coreItems.push(`<span class="quantity-highlight">${Math.ceil(tripLength * 0.5)}</span> pairs of pants/jeans`);
+    // Core essentials - based on casual days, plus special occasion tops if specified
+    // Calculate tops: casual days need ~0.7 coverage, special occasions already counted separately
+    const casualTops = casualDays > 0 ? Math.ceil(casualDays * 0.7) : 0;
+    const specialOccasionTops = semiFormalDays + formalDays + businessDays + Math.ceil(loungeDays * 0.7) + Math.ceil(adventureDays * 1.2);
+    const totalTops = casualTops + specialOccasionTops;
+    
+    if (casualDays > 0) {
+        if (specialDays > 0) {
+            coreItems.push(`<span class="quantity-highlight">${casualTops}</span> casual tops for everyday wear`);
+            coreItems.push(`<em>(${totalTops} tops total including special occasions)</em>`);
+        } else {
+            coreItems.push(`<span class="quantity-highlight">${totalTops}</span> tops (mix of styles & sleeves)`);
+        }
+    } else if (specialDays > 0) {
+        coreItems.push(`<em>See Special Occasions & Activity Wear for all clothing (${totalTops} tops total)</em>`);
+    }
+    
+    // Bottoms - more conservative, most occasions can reuse pants/jeans
+    const casualBottoms = casualDays > 0 ? Math.ceil(casualDays * 0.5) : Math.ceil(tripLength * 0.4);
+    if (casualBottoms > 0) {
+        coreItems.push(`<span class="quantity-highlight">${casualBottoms}</span> pairs of pants/jeans`);
+    }
+    
+    // Underwear and socks - always need for every day regardless of occasion
     coreItems.push(`<span class="quantity-highlight">${tripLength + 1}</span> sets of underwear`);
     coreItems.push(`<span class="quantity-highlight">${Math.ceil(tripLength / 2)}</span> pairs of everyday socks`);
     
