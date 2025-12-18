@@ -40,101 +40,113 @@ function generateSmartPackingCategories(tripData) {
     
     const categories = {};
     
-    // CLOTHING - Smart quantities and specific recommendations based on occasions
-    const clothingItems = [];
-    
-    // Formal occasions
-    if (formalDays > 0) {
-        clothingItems.push(`<span class="quantity-highlight">${formalDays}</span> formal outfit${formalDays > 1 ? 's' : ''} (suit/dress/gown)`);
-        clothingItems.push(`<span class="quantity-highlight">${formalDays}</span> pair${formalDays > 1 ? 's' : ''} of dress shoes`);
+    // Add occasion summary if any occasions specified
+    if (specialDays > 0) {
+        const summaryItems = [];
+        summaryItems.push(`<strong>Trip breakdown:</strong> ${casualDays} casual day${casualDays !== 1 ? 's' : ''}${semiFormalDays > 0 ? `, ${semiFormalDays} semi-formal` : ''}${formalDays > 0 ? `, ${formalDays} formal` : ''}${businessDays > 0 ? `, ${businessDays} business` : ''}${loungeDays > 0 ? `, ${loungeDays} lounge` : ''}${adventureDays > 0 ? `, ${adventureDays} adventure` : ''}${beachDays > 0 ? `, ${beachDays} beach` : ''}`);
+        categories['Trip Overview'] = { items: summaryItems };
     }
     
-    // Semi-formal occasions
-    if (semiFormalDays > 0) {
-        clothingItems.push(`<span class="quantity-highlight">${semiFormalDays}</span> dressy outfit${semiFormalDays > 1 ? 's' : ''} (cocktail attire/blazer)`);
-    }
-    
-    // Business days
-    if (businessDays > 0) {
-        clothingItems.push(`<span class="quantity-highlight">${businessDays}</span> business outfit${businessDays > 1 ? 's' : ''} (business casual/professional)`);
-        if (businessDays >= 3) {
-            clothingItems.push('Professional accessories (belt, watch, etc.)');
+    // SPECIAL OCCASIONS - Only show if any formal/business days specified
+    if (formalDays > 0 || semiFormalDays > 0 || businessDays > 0) {
+        const specialItems = [];
+        
+        if (formalDays > 0) {
+            specialItems.push(`<span class="quantity-highlight">${formalDays}</span> formal outfit${formalDays > 1 ? 's' : ''} (suit/dress/gown)`);
+            specialItems.push(`<span class="quantity-highlight">${formalDays}</span> pair${formalDays > 1 ? 's' : ''} of dress shoes`);
         }
-    }
-    
-    // Lounge days
-    if (loungeDays > 0) {
-        clothingItems.push(`<span class="quantity-highlight">${Math.ceil(loungeDays * 0.7)}</span> comfortable lounge outfit${loungeDays > 1 ? 's' : ''} (sweats, leggings, cozy tops)`);
-        if (loungeDays >= 2) {
-            clothingItems.push('Slippers or cozy socks');
+        
+        if (semiFormalDays > 0) {
+            specialItems.push(`<span class="quantity-highlight">${semiFormalDays}</span> dressy outfit${semiFormalDays > 1 ? 's' : ''} (cocktail attire/blazer)`);
         }
-    }
-    
-    // Adventure/Active days - supplement weather-based activewear
-    if (adventureDays > 0) {
-        clothingItems.push(`<span class="quantity-highlight">${Math.ceil(adventureDays * 1.2)}</span> activewear outfit${adventureDays > 1 ? 's' : ''} (quick-dry, durable)`);
-        clothingItems.push('Sturdy hiking/adventure shoes');
-        if (adventureDays >= 2) {
-            clothingItems.push('Daypack for activities');
-            clothingItems.push('Water bottle');
+        
+        if (businessDays > 0) {
+            specialItems.push(`<span class="quantity-highlight">${businessDays}</span> business outfit${businessDays > 1 ? 's' : ''} (business casual/professional)`);
+            if (businessDays >= 3) {
+                specialItems.push('Professional accessories (belt, watch, etc.)');
+            }
         }
+        
+        categories['Special Occasions'] = { items: specialItems, priority: 'high' };
     }
     
-    // Weather-based additions
+    // ACTIVITY WEAR - Only show if adventure, lounge, or beach days specified
+    if (adventureDays > 0 || loungeDays > 0) {
+        const activityItems = [];
+        
+        if (adventureDays > 0) {
+            activityItems.push(`<span class="quantity-highlight">${Math.ceil(adventureDays * 1.2)}</span> activewear outfit${adventureDays > 1 ? 's' : ''} (quick-dry, durable)`);
+            activityItems.push('Sturdy hiking/adventure shoes');
+            if (adventureDays >= 2) {
+                activityItems.push('Daypack for activities');
+                activityItems.push('Water bottle');
+            }
+        }
+        
+        if (loungeDays > 0) {
+            activityItems.push(`<span class="quantity-highlight">${Math.ceil(loungeDays * 0.7)}</span> comfortable lounge outfit${loungeDays > 1 ? 's' : ''} (sweats, leggings, cozy tops)`);
+            if (loungeDays >= 2) {
+                activityItems.push('Slippers or cozy socks');
+            }
+        }
+        
+        categories['Activity Wear'] = { items: activityItems };
+    }
+    
+    // CORE WARDROBE - Always shown, weather-adjusted essentials
+    const coreItems = [];
+    
+    // Weather-based clothing
     if (hotDays > 0) {
         const casualHotTops = Math.min(casualDays, Math.ceil(hotDays * 0.8));
         if (casualHotTops > 0) {
-            clothingItems.push(`<span class="quantity-highlight">${casualHotTops}</span> lightweight t-shirt${casualHotTops > 1 ? 's' : ''} (casual)`);
+            coreItems.push(`<span class="quantity-highlight">${casualHotTops}</span> lightweight t-shirt${casualHotTops > 1 ? 's' : ''}`);
         }
         const casualShorts = Math.min(casualDays, Math.ceil(hotDays * 0.5));
         if (casualShorts > 0) {
-            clothingItems.push(`<span class="quantity-highlight">${casualShorts}</span> pair${casualShorts > 1 ? 's' : ''} of shorts (casual)`);
+            coreItems.push(`<span class="quantity-highlight">${casualShorts}</span> pair${casualShorts > 1 ? 's' : ''} of shorts`);
         }
         
         if (highHumidityDays > 2) {
-            clothingItems.push(`<span class="quantity-highlight">${Math.ceil(hotDays * 0.5)}</span> moisture-wicking shirt${hotDays > 2 ? 's' : ''}`);
-            clothingItems.push('Quick-dry underwear for humid days');
+            coreItems.push(`<span class="quantity-highlight">${Math.ceil(hotDays * 0.5)}</span> moisture-wicking shirt${hotDays > 2 ? 's' : ''}`);
+            coreItems.push('Quick-dry underwear for humid days');
         }
     }
     
     if (maxTemp >= 20 && minTemp >= 15 && casualDays > 0) {
-        clothingItems.push('1-2 light pants (casual)');
-        clothingItems.push('1 light sweater or cardigan');
+        coreItems.push('1-2 light pants');
+        coreItems.push('1 light sweater or cardigan');
     }
     
     if (coldDays > 0) {
-        clothingItems.push('Warm jacket or coat');
-        clothingItems.push(`<span class="quantity-highlight">${Math.min(coldDays + 1, 4)}</span> warm layer${coldDays > 1 ? 's' : ''}`);
+        coreItems.push('Warm jacket or coat');
+        coreItems.push(`<span class="quantity-highlight">${Math.min(coldDays + 1, 4)}</span> warm layer${coldDays > 1 ? 's' : ''}`);
         if (coldDays > 2) {
-            clothingItems.push('Thermal underwear');
+            coreItems.push('Thermal underwear');
         }
     }
     
     if (snowDays > 0 || freezingDays > 0) {
-        clothingItems.push('Heavy winter coat');
-        clothingItems.push('Insulated gloves or mittens');
-        clothingItems.push('Warm winter hat/beanie');
-        clothingItems.push('Scarf or neck gaiter');
-        clothingItems.push(`<span class="quantity-highlight">${Math.max(snowDays, freezingDays)}</span> pair${Math.max(snowDays, freezingDays) > 1 ? 's' : ''} of wool socks`);
+        coreItems.push('Heavy winter coat');
+        coreItems.push('Insulated gloves or mittens');
+        coreItems.push('Warm winter hat/beanie');
+        coreItems.push('Scarf or neck gaiter');
+        coreItems.push(`<span class="quantity-highlight">${Math.max(snowDays, freezingDays)}</span> pair${Math.max(snowDays, freezingDays) > 1 ? 's' : ''} of wool socks`);
         
         if (freezingDays > 3) {
-            clothingItems.push('Face mask or balaclava');
-            clothingItems.push('Hand/foot warmers');
+            coreItems.push('Face mask or balaclava');
+            coreItems.push('Hand/foot warmers');
         }
     }
     
-    // Add general clothing based on trip length and casual days
+    // Core essentials (always included)
     const totalTops = Math.ceil(tripLength * 0.7);
-    clothingItems.push(`<span class="quantity-highlight">${totalTops}</span> tops total (mix of short & long sleeve)`);
-    clothingItems.push(`<span class="quantity-highlight">${Math.ceil(tripLength * 0.5)}</span> pairs of pants/jeans`);
-    clothingItems.push(`<span class="quantity-highlight">${tripLength + 1}</span> sets of underwear`);
+    coreItems.push(`<span class="quantity-highlight">${totalTops}</span> tops total (mix of styles & sleeves)`);
+    coreItems.push(`<span class="quantity-highlight">${Math.ceil(tripLength * 0.5)}</span> pairs of pants/jeans`);
+    coreItems.push(`<span class="quantity-highlight">${tripLength + 1}</span> sets of underwear`);
+    coreItems.push(`<span class="quantity-highlight">${Math.ceil(tripLength / 2)}</span> pairs of everyday socks`);
     
-    // Add occasion summary if any occasions specified
-    if (specialDays > 0) {
-        clothingItems.unshift(`<strong>Trip breakdown:</strong> ${casualDays} casual day${casualDays !== 1 ? 's' : ''}${semiFormalDays > 0 ? `, ${semiFormalDays} semi-formal` : ''}${formalDays > 0 ? `, ${formalDays} formal` : ''}${businessDays > 0 ? `, ${businessDays} business` : ''}${loungeDays > 0 ? `, ${loungeDays} lounge` : ''}${adventureDays > 0 ? `, ${adventureDays} adventure` : ''}${beachDays > 0 ? `, ${beachDays} beach` : ''}`);
-    }
-    
-    categories['Clothing'] = { items: clothingItems };
+    categories['Core Wardrobe'] = { items: coreItems };
     
     // SWIMWEAR & BEACH GEAR
     const totalBeachDays = Math.max(swimWeatherDays, beachDays); // Use whichever is higher
