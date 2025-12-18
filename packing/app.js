@@ -13,6 +13,53 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeDates();
 });
 
+function toggleAdvancedOptions() {
+    const content = document.getElementById('advancedContent');
+    const toggle = document.getElementById('advancedToggle');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        toggle.classList.add('open');
+    } else {
+        content.style.display = 'none';
+        toggle.classList.remove('open');
+    }
+}
+
+function toggleOccasionInput(occasionType) {
+    const checkbox = document.getElementById(occasionType + 'Check');
+    const input = document.getElementById(occasionType + 'Input');
+    
+    if (checkbox.checked) {
+        input.style.display = 'block';
+        // Set default value to 1
+        const numberInput = document.getElementById(occasionType + 'Days');
+        if (!numberInput.value) {
+            numberInput.value = 1;
+        }
+    } else {
+        input.style.display = 'none';
+        document.getElementById(occasionType + 'Days').value = '';
+    }
+}
+
+function getOccasionData() {
+    const occasions = {};
+    
+    const occasionTypes = ['semiFormal', 'formal', 'lounge', 'adventure', 'beach', 'business'];
+    
+    occasionTypes.forEach(type => {
+        const checkbox = document.getElementById(type + 'Check');
+        const input = document.getElementById(type + 'Days');
+        
+        if (checkbox && checkbox.checked && input && input.value) {
+            occasions[type] = parseInt(input.value) || 0;
+        }
+    });
+    
+    return occasions;
+}
+
 function initializeDates() {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -108,8 +155,10 @@ function getAllSegments() {
 // Main calendar generation
 async function generateCalendar() {
     const segments = getAllSegments();
+    const occasions = getOccasionData();
     
     console.log('DEBUG: segments =', segments);
+    console.log('DEBUG: occasions =', occasions);
 
     if (segments.length === 0) {
         alert('Please fill in at least the main trip details');
@@ -130,6 +179,7 @@ async function generateCalendar() {
     
     try {
         const tripData = await generateTripData(segments);
+        tripData.occasions = occasions; // Add occasions to trip data
         currentTripData = tripData;
 
         renderCalendar(tripData);

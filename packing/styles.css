@@ -523,6 +523,120 @@ body {
     .packing-categories {
         grid-template-columns: 1fr;
     }
+    
+    .occasion-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ADVANCED OPTIONS SECTION */
+.advanced-options {
+    background: #f8f9fa;
+    border: 2px solid #9370db;
+    border-radius: 0;
+    margin: 25px 0;
+    overflow: hidden;
+}
+
+.advanced-header {
+    background: #9370db;
+    color: white;
+    padding: 15px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    transition: background 0.3s ease;
+}
+
+.advanced-header:hover {
+    background: #7d5cb8;
+}
+
+.advanced-title {
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.95rem;
+}
+
+.toggle-icon {
+    font-size: 1rem;
+    transition: transform 0.3s ease;
+}
+
+.toggle-icon.open {
+    transform: rotate(180deg);
+}
+
+.advanced-content {
+    padding: 25px;
+}
+
+.advanced-description {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+    font-style: italic;
+}
+
+.occasion-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 15px;
+}
+
+.occasion-item {
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 0;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.occasion-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.occasion-checkbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #9370db;
+}
+
+.occasion-checkbox label {
+    font-weight: bold;
+    color: #2e2e2e;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.occasion-input {
+    margin-left: 30px;
+}
+
+.occasion-input input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #9370db;
+    border-radius: 0;
+    font-size: 14px;
+    font-family: 'Courier New', monospace;
+    background: white;
+}
+
+.occasion-input input[type="number"]:focus {
+    outline: none;
+    border-color: #ff1493;
 }
 
 /* CALENDAR GRID - BOLD BLOCK STYLE */

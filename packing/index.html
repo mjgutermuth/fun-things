@@ -38,6 +38,79 @@
             
             <button class="btn btn-add" onclick="addTripSegment()">+ Add Trip Segment</button>
             
+            <!-- Advanced Options -->
+            <div class="advanced-options">
+                <div class="advanced-header" onclick="toggleAdvancedOptions()">
+                    <span class="advanced-title">⚙️ ADVANCED OPTIONS</span>
+                    <span class="toggle-icon" id="advancedToggle">▼</span>
+                </div>
+                <div class="advanced-content" id="advancedContent" style="display: none;">
+                    <p class="advanced-description">Specify special occasions during your trip. Days not specified will be considered casual wear days.</p>
+                    
+                    <div class="occasion-grid">
+                        <div class="occasion-item">
+                            <div class="occasion-checkbox">
+                                <input type="checkbox" id="semiFormalCheck" onchange="toggleOccasionInput('semiFormal')">
+                                <label for="semiFormalCheck">Semi-Formal Occasions</label>
+                            </div>
+                            <div class="occasion-input" id="semiFormalInput" style="display: none;">
+                                <input type="number" id="semiFormalDays" min="1" max="99" placeholder="# of days">
+                            </div>
+                        </div>
+                        
+                        <div class="occasion-item">
+                            <div class="occasion-checkbox">
+                                <input type="checkbox" id="formalCheck" onchange="toggleOccasionInput('formal')">
+                                <label for="formalCheck">Formal Occasions</label>
+                            </div>
+                            <div class="occasion-input" id="formalInput" style="display: none;">
+                                <input type="number" id="formalDays" min="1" max="99" placeholder="# of days">
+                            </div>
+                        </div>
+                        
+                        <div class="occasion-item">
+                            <div class="occasion-checkbox">
+                                <input type="checkbox" id="loungeCheck" onchange="toggleOccasionInput('lounge')">
+                                <label for="loungeCheck">Lounge / Relax Days</label>
+                            </div>
+                            <div class="occasion-input" id="loungeInput" style="display: none;">
+                                <input type="number" id="loungeDays" min="1" max="99" placeholder="# of days">
+                            </div>
+                        </div>
+                        
+                        <div class="occasion-item">
+                            <div class="occasion-checkbox">
+                                <input type="checkbox" id="adventureCheck" onchange="toggleOccasionInput('adventure')">
+                                <label for="adventureCheck">Adventure / Active Days</label>
+                            </div>
+                            <div class="occasion-input" id="adventureInput" style="display: none;">
+                                <input type="number" id="adventureDays" min="1" max="99" placeholder="# of days">
+                            </div>
+                        </div>
+                        
+                        <div class="occasion-item">
+                            <div class="occasion-checkbox">
+                                <input type="checkbox" id="beachCheck" onchange="toggleOccasionInput('beach')">
+                                <label for="beachCheck">Beach / Pool Days</label>
+                            </div>
+                            <div class="occasion-input" id="beachInput" style="display: none;">
+                                <input type="number" id="beachDays" min="1" max="99" placeholder="# of days">
+                            </div>
+                        </div>
+                        
+                        <div class="occasion-item">
+                            <div class="occasion-checkbox">
+                                <input type="checkbox" id="businessCheck" onchange="toggleOccasionInput('business')">
+                                <label for="businessCheck">Business / Work Days</label>
+                            </div>
+                            <div class="occasion-input" id="businessInput" style="display: none;">
+                                <input type="number" id="businessDays" min="1" max="99" placeholder="# of days">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="actions">
                 <button class="btn btn-primary" onclick="generateCalendar()">Generate Packing Calendar</button>
             </div>
