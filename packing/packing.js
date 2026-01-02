@@ -240,7 +240,7 @@ function generateSmartPackingCategories(tripData) {
         
         if (heavyRainDays >= 2) {
             weatherItems.push('Waterproof rain jacket');
-            weatherItems.push('Rain pants');
+            weatherItems.push('Quick-dry pants');
             weatherItems.push('Compact umbrella');
         } else if (rainDays >= 2) {
             weatherItems.push('Water-resistant jacket');
@@ -304,6 +304,7 @@ function generateSmartPackingCategories(tripData) {
     
     if (extremeUVDays >= 2) {
         accessoryItems.push('Cooling towel');
+        accessoryItems.push('Sun-protective clothing');
         accessoryItems.push('Insulated water bottle');
     }
     
@@ -324,12 +325,14 @@ function generateSmartPackingCategories(tripData) {
     
     if (avgHumidity < 40 || freezingDays > 1) {
         healthItems.push('Extra moisturizer');
+        healthItems.push('Saline nasal spray');
         healthItems.push('Hydrating lip balm');
     }
     
     if (highHumidityDays > 2) {
         healthItems.push('Anti-chafing balm');
         healthItems.push('Antifungal powder');
+        healthItems.push('Portable fan');
     }
     
     if (extremeUVDays >= 2) {

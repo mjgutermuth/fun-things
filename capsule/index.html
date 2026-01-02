@@ -972,7 +972,7 @@
 <body>
     <header>
         <h1>Capsule Wardrobe Planner</h1>
-        <p class="subtitle">Build Your Perfect Travel Wardrobe</p>
+        <p class="subtitle">Build & organize a tiny-but-mighty wardrobe</p>
     </header>
     
     <div class="container">
@@ -988,7 +988,7 @@
         <div id="color-story" class="step active">
             <div class="card">
                 <h2>Define Your Color Story</h2>
-                <p>Start by selecting a cohesive color palette for your capsule wardrobe. You can choose based on your color season, or create a custom palette.</p>
+                <p>Start with a cohesive color palette for your capsule wardrobe. You can create one from scratch, or start with a color season for inspiration.</p>
                 
                 <div class="form-group">
                     <label for="colorSeason">Color Season (Optional)</label>
@@ -1011,14 +1011,14 @@
                 
                 <div id="seasonPalette" style="display: none;">
                     <div class="info-box">
-                        <strong>Suggested colors for your season:</strong> Select the colors you want to include in your wardrobe.
+                        <strong>Suggested colors for your season:</strong> Select the main colors you want to include in your wardrobe.
                     </div>
                     <div id="seasonColors" class="color-palette"></div>
                 </div>
                 
                 <div class="custom-colors">
                     <h3 style="font-family: 'Crimson Pro', serif; margin-bottom: 15px;">Add Custom Colors</h3>
-                    <p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 15px;">Add specific colors that aren't in the suggested palette, or skip the season selection entirely.</p>
+                    <p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 15px;">Add more colors or create a full custom palette.</p>
                     
                     <div class="custom-color-input">
                         <input type="text" id="customColorName" placeholder="Color name">
@@ -1047,11 +1047,11 @@
         <div id="trip-planning" class="step">
             <div class="card">
                 <h2>Trip Details</h2>
-                <p>Add your trip destinations, dates, and daily activities to plan appropriate outfits.</p>
+                <p>Add trip destinations, dates, and daily activities to plan appropriate outfits.</p>
                 
                 <div class="form-group">
                     <label for="tripName">Trip Name</label>
-                    <input type="text" id="tripName" placeholder="Birthday Weekend, Spring Break, Convention">
+                    <input type="text" id="tripName" placeholder="Enter a name, such as Weekend Road Trip, Holiday Cruise, Convention...">
                 </div>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
@@ -1068,7 +1068,7 @@
                 
                 <div class="form-group">
                     <label for="tripNotes">Trip Notes (Optional)</label>
-                    <textarea id="tripNotes" rows="3" placeholder="Any overall trip details, weather considerations, etc."></textarea>
+                    <textarea id="tripNotes" rows="3" placeholder="Add any extra details about your trip"></textarea>
                 </div>
                 
                 <div class="button-group">
@@ -1078,11 +1078,11 @@
             
             <div class="card">
                 <h2>Daily Activities</h2>
-                <p>Add each day of your trip with activities and outfit requirements.</p>
+                <p>Add each day of your trip with potential activities and outfit requirements.</p>
                 
                 <form id="activityForm" onsubmit="addActivity(event)">
                     <div class="form-group">
-                        <label for="activityDates">Date(s)</label>
+                        <label for="activityDates">Dates</label>
                         <div style="font-size: 0.8rem; color: var(--gray); margin-bottom: 8px;">
                             Hold Ctrl/Cmd to select multiple dates
                         </div>
@@ -1093,38 +1093,38 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="activityLocation">Location / Destination</label>
+                        <label for="activityLocation">Destination</label>
                         <div style="display: flex; gap: 10px;">
-                            <input type="text" id="activityLocation" placeholder="Boston, Cup Noodles Museum, Croatia" style="flex: 1;">
+                            <input type="text" id="activityLocation" placeholder="Geographic location or point of interest, such as Boston or the Grand Canyon" style="flex: 1;">
                             <button type="button" class="secondary" onclick="addLocationTag()" style="white-space: nowrap;">+ Add</button>
                         </div>
                         <div id="locationTags" class="tag-container"></div>
                     </div>
                     
                     <div class="form-group">
-                        <label for="activityName">Activity / Activities</label>
+                        <label for="activityName">Activities</label>
                         <div style="display: flex; gap: 10px;">
-                            <input type="text" id="activityName" placeholder="Nature walk, Salsa dancing, Formal dinner" style="flex: 1;">
+                            <input type="text" id="activityName" placeholder="Planned activities, such as city walks, brunch with friends, surfing, lounging..." style="flex: 1;">
                             <button type="button" class="secondary" onclick="addActivityTag()" style="white-space: nowrap;">+ Add</button>
                         </div>
                         <div id="activityTags" class="tag-container"></div>
                     </div>
                     
                     <div class="form-group">
-                        <label for="activityDressCode">Dress Code / Requirements</label>
+                        <label for="activityDressCode">Dress Code</label>
                         <select id="activityDressCode">
-                            <option value="activewear">Activewear</option>
+                            <option value="activewear">Activewear / Athleisure</option>
                             <option value="everyday-casual">Everyday Casual</option>
                             <option value="dressy-casual">Dressy Casual</option>
                             <option value="formal">Formal / Semi-Formal</option>
-                            <option value="beach">Beach / Pool</option>
+                            <option value="beach">Swimwear</option>
                             <option value="custom">Custom (specify in notes)</option>
                         </select>
                     </div>
                     
                     <div class="form-group">
                         <label for="activityNotes">Activity Notes</label>
-                        <textarea id="activityNotes" rows="2" placeholder="Weather considerations, walking distance, special requirements, themes, etc."></textarea>
+                        <textarea id="activityNotes" rows="2" placeholder="Weather considerations, walking distance, required gear..."></textarea>
                     </div>
                     
                     <div class="button-group">
@@ -1148,7 +1148,7 @@
         <div id="wardrobe" class="step">
             <div class="card">
                 <h2>Add Wardrobe Items</h2>
-                <p>Build your wardrobe inventory with photos and details. Items will be filtered by your color story.</p>
+                <p>Build your wardrobe inventory with photos and details. Items are filtered by your color story.</p>
                 
                 <form id="wardrobeForm" onsubmit="addWardrobeItem(event)">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
@@ -1162,10 +1162,11 @@
                             <select id="itemType" required>
                                 <option value="">-- Select type --</option>
                                 <option value="top">Top</option>
+                                <option value="top-layer">Layer</option>
                                 <option value="bottom">Bottom</option>
                                 <option value="dress">Dress</option>
                                 <option value="jumpsuit">Jumpsuit / Romper</option>
-                                <option value="outerwear">Outerwear / Layer</option>
+                                <option value="outerwear">Outerwear</option>
                                 <option value="shoes">Shoes</option>
                                 <option value="swimwear">Swimwear</option>
                                 <option value="activewear-top">Activewear - Top</option>
@@ -1176,7 +1177,7 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="itemColor">Color(s)</label>
+                        <label for="itemColor">Colors</label>
                         <div style="font-size: 0.8rem; color: var(--gray); margin-bottom: 8px;">
                             Select from your color story or add custom colors
                         </div>
@@ -1202,7 +1203,7 @@
                     
                     <div class="form-group">
                         <label for="itemNotes">Notes (Optional)</label>
-                        <textarea id="itemNotes" rows="2" placeholder="Pattern, fabric, fit notes, etc."></textarea>
+                        <textarea id="itemNotes" rows="2" placeholder="Pattern, fabric, aesthetic, fit notes..."></textarea>
                     </div>
                     
                     <div class="button-group">
@@ -1220,6 +1221,7 @@
                         <select id="filterType" onchange="renderWardrobeList()" style="width: auto; padding: 8px;">
                             <option value="all">All Items</option>
                             <option value="top">Tops</option>
+                            <option value="top-layer">Layers</option>
                             <option value="bottom">Bottoms</option>
                             <option value="dress">Dresses</option>
                             <option value="jumpsuit">Jumpsuits</option>
@@ -1275,6 +1277,7 @@
                             <select id="outfitWardrobeFilter" onchange="renderOutfitWardrobe()" style="width: auto; padding: 8px;">
                                 <option value="all">All Items</option>
                                 <option value="top">Tops</option>
+                                <option value="top-layer">Layers</option>
                                 <option value="bottom">Bottoms</option>
                                 <option value="dress">Dresses</option>
                                 <option value="jumpsuit">Jumpsuits</option>
