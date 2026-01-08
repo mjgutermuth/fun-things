@@ -413,16 +413,16 @@
         <div class="controls">
             <div class="filter-grid">
                 <div class="filter-group">
-                    <label>Show Type</label>
+                    <label>Type</label>
                     <select id="filterShowType">
-                        <option value="">All Shows</option>
+                        <option value="">All Types</option>
                     </select>
                 </div>
                 
                 <div class="filter-group">
-                    <label>Campaign</label>
+                    <label>Series</label>
                     <select id="filterCampaign">
-                        <option value="">All Campaigns</option>
+                        <option value="">All Series</option>
                     </select>
                 </div>
                 
@@ -572,33 +572,76 @@ parseCSV();
         }
         
         function populateFilters() {
-            // Show Types
-            const showTypes = [...new Set(allEpisodes.map(e => e.show_type))].filter(Boolean).sort();
-            const showTypeSelect = document.getElementById('filterShowType');
-            showTypes.forEach(type => {
+            // Type (formerly Show Type)
+            const types = [...new Set(allEpisodes.map(e => e.show_type))].filter(Boolean).sort();
+            const typeSelect = document.getElementById('filterShowType');
+            types.forEach(type => {
                 const option = document.createElement('option');
                 option.value = type;
                 option.textContent = type;
-                showTypeSelect.appendChild(option);
+                typeSelect.appendChild(option);
             });
-            
-            // Campaigns
-            const campaigns = [...new Set(allEpisodes.map(e => (e.campaign_bucket || e.campaign)))].filter(Boolean).sort();
-            const campaignSelect = document.getElementById('filterCampaign');
-            campaigns.forEach(campaign => {
+
+            // Series options depend on the selected type (cascading filters)
+            populateSeriesOptions(typeSelect.value);
+        }
+
+        function populateSeriesOptions(selectedType) {
+            const seriesSelect = document.getElementById('filterCampaign');
+
+            // Preserve current selection if still valid
+            const previousValue = seriesSelect.value;
+
+            // Clear all options except the first ("All Series")
+            while (seriesSelect.options.length > 1) seriesSelect.remove(1);
+
+            let seriesList = [];
+            if (!selectedType) {
+                // When no type is selected, keep Series list compact by bucketing Miniseries together
+                seriesList = [...new Set(allEpisodes.map(ep => {
+                    return (ep.show_type === 'Miniseries') ? 'Miniseries' : (ep.campaign_bucket || ep.campaign);
+                }))].filter(Boolean).sort();
+            } else if (selectedType === 'Miniseries') {
+                // When Type=Miniseries, show the actual miniseries names
+                seriesList = [...new Set(allEpisodes
+                    .filter(ep => ep.show_type === 'Miniseries')
+                    .map(ep => ep.campaign)
+                )].filter(Boolean).sort();
+            } else {
+                // For other types, show the normal campaign/series values within that type
+                seriesList = [...new Set(allEpisodes
+                    .filter(ep => ep.show_type === selectedType)
+                    .map(ep => ep.campaign_bucket || ep.campaign)
+                )].filter(Boolean).sort();
+            }
+
+            seriesList.forEach(series => {
                 const option = document.createElement('option');
-                option.value = campaign;
-                option.textContent = campaign;
-                campaignSelect.appendChild(option);
+                option.value = series;
+                option.textContent = series;
+                seriesSelect.appendChild(option);
             });
+
+            // Restore previous selection if possible; otherwise reset to All Series
+            const values = new Set([...seriesSelect.options].map(o => o.value));
+            seriesSelect.value = values.has(previousValue) ? previousValue : '';
         }
         
         function setupEventListeners() {
-            document.getElementById('filterShowType').addEventListener('change', applyFiltersAndRender);
-            document.getElementById('filterCampaign').addEventListener('change', applyFiltersAndRender);
+            const typeSelect = document.getElementById('filterShowType');
+            const seriesSelect = document.getElementById('filterCampaign');
+
+            typeSelect.addEventListener('change', () => {
+                // When the type changes, rebuild Series options and reset selection
+                seriesSelect.value = '';
+                populateSeriesOptions(typeSelect.value);
+                applyFiltersAndRender();
+            });
+
+            seriesSelect.addEventListener('change', applyFiltersAndRender);
             document.getElementById('filterWatched').addEventListener('change', applyFiltersAndRender);
             document.getElementById('searchInput').addEventListener('input', applyFiltersAndRender);
-            
+
             // Sortable headers
             document.querySelectorAll('th.sortable').forEach(th => {
                 th.addEventListener('click', () => {
@@ -609,6 +652,10 @@ parseCSV();
                         sortColumn = column;
                         sortDirection = 'asc';
                     }
+                    applyFiltersAndRender();
+                });
+            });
+        }
                     applyFiltersAndRender();
                 });
             });
