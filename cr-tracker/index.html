@@ -515,6 +515,31 @@ parseCSV();
         function saveWatchedStatus() {
             localStorage.setItem('crWatchedStatus', JSON.stringify(watchedStatus));
         }
+
+
+
+        function classifySpecial(ep) {
+            const text = `${ep.title || ''} ${ep.notes || ''}`.toLowerCase();
+
+            const hasAny = (arr) => arr.some(s => text.includes(s));
+
+            // Behind-the-scenes / backstage content
+            if (hasAny(['backstage', 'behind the scenes', 'behind-the-scenes', 'bts', 'watch party', 'behind'])) return 'Behind-the-Scenes';
+
+            // Interviews / panels / Q&A / talk formats
+            if (hasAny(['interview', 'fireside', 'q&a', 'ama', 'panel', 'roundtable', 'comic con', 'convention', 'q & a'])) return 'Interview/Panel';
+
+            // Explicit one-shot marker
+            if (hasAny(['one-shot', 'one shot', 'one–shot', 'one—shot'])) return 'One-Shot';
+
+            // Runtime heuristic (expects H:MM:SS)
+            let minutes = 0;
+            const parts = (ep.runtime || '').split(':').map(p => parseInt(p, 10));
+            if (parts.length === 3 && parts.every(n => Number.isFinite(n))) {
+                minutes = (parts[0] * 60) + parts[1] + (parts[2] / 60);
+            }
+
+
         
         function parseCSV() {
             const lines = CSV_DATA.trim().split('\n');
@@ -575,29 +600,6 @@ parseCSV();
                 } else {
                     current += char;
                 }
-
-
-        function classifySpecial(ep) {
-            const text = `${ep.title || ''} ${ep.notes || ''}`.toLowerCase();
-
-            const hasAny = (arr) => arr.some(s => text.includes(s));
-
-            // Behind-the-scenes / backstage content
-            if (hasAny(['backstage', 'behind the scenes', 'behind-the-scenes', 'bts', 'watch party', 'behind'])) return 'Behind-the-Scenes';
-
-            // Interviews / panels / Q&A / talk formats
-            if (hasAny(['interview', 'fireside', 'q&a', 'ama', 'panel', 'roundtable', 'comic con', 'convention', 'q & a'])) return 'Interview/Panel';
-
-            // Explicit one-shot marker
-            if (hasAny(['one-shot', 'one shot', 'one–shot', 'one—shot'])) return 'One-Shot';
-
-            // Runtime heuristic (expects H:MM:SS)
-            let minutes = 0;
-            const parts = (ep.runtime || '').split(':').map(p => parseInt(p, 10));
-            if (parts.length === 3 && parts.every(n => Number.isFinite(n))) {
-                minutes = (parts[0] * 60) + parts[1] + (parts[2] / 60);
-            }
-
             if (minutes >= 90) return 'One-Shot';
 
             return 'Other';
