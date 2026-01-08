@@ -8,7 +8,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Crimson+Pro:wght@300;400;600&display=swap');
         
         :root {
-            /* Deep purple theme */
+            /* Deep purple Beacon theme */
             --beacon-purple: #6B46C1;
             --beacon-purple-dark: #553C9A;
             --beacon-purple-light: #9F7AEA;
@@ -378,7 +378,9 @@
                 padding: 8px 5px;
             }
         }
-    </style>
+    .subtle { opacity: 0.75; font-size: 0.85em; margin-top: 2px; }
+
+</style>
 </head>
 <body>
     <div class="container">
@@ -536,6 +538,13 @@ parseCSV();
                     episode.watched = episode.watched === 'TRUE' || episode.watched === 'true';
                 }
                 
+
+                // Derived fields for cleaner filtering + display
+                // For Miniseries, "campaign" holds the series name (e.g., Exandria Unlimited, Candela Obscura).
+                // We keep a separate bucket field so the Campaign dropdown doesn't explode.
+                episode.series = (episode.show_type === 'Miniseries') ? episode.campaign : '';
+                episode.campaign_bucket = (episode.show_type === 'Miniseries') ? 'Miniseries' : episode.campaign;
+
                 allEpisodes.push(episode);
             }
         }
@@ -574,7 +583,7 @@ parseCSV();
             });
             
             // Campaigns
-            const campaigns = [...new Set(allEpisodes.map(e => e.campaign))].filter(Boolean).sort();
+            const campaigns = [...new Set(allEpisodes.map(e => (e.campaign_bucket || e.campaign)))].filter(Boolean).sort();
             const campaignSelect = document.getElementById('filterCampaign');
             campaigns.forEach(campaign => {
                 const option = document.createElement('option');
@@ -613,7 +622,7 @@ parseCSV();
             
             filteredEpisodes = allEpisodes.filter(ep => {
                 if (showType && ep.show_type !== showType) return false;
-                if (campaign && ep.campaign !== campaign) return false;
+                if (campaign && (ep.campaign_bucket || ep.campaign) !== campaign) return false;
                 if (watched === 'watched' && !ep.watched) return false;
                 if (watched === 'unwatched' && ep.watched) return false;
                 if (search && !ep.title.toLowerCase().includes(search)) return false;
@@ -669,7 +678,10 @@ parseCSV();
                                    onchange="toggleWatched('${ep.id}')">
                         </td>
                         <td><span class="show-badge ${showBadgeClass}">${ep.show_type}</span></td>
-                        <td>${ep.campaign || '—'}</td>
+                        <td>
+                    ${ep.campaign_bucket || ep.campaign || '—'}
+                    ${ep.series ? `<div class="subtle">${ep.series}</div>` : ''}
+                </td>
                         <td><span class="episode-number">${ep.episode_number || '—'}</span></td>
                         <td class="episode-title">
                             ${ep.vod_url ? `<a href="${ep.vod_url}" target="_blank">${ep.title}</a>` : ep.title}
