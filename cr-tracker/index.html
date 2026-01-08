@@ -536,16 +536,15 @@ parseCSV();
                     episode.watched = watchedStatus[episode.id];
                 } else {
                     episode.watched = episode.watched === 'TRUE' || episode.watched === 'true';
-                }
 
-                // Normalize Backstage Pass into Specials
+
+                // Normalize Backstage Pass into Specials (do not create a separate series)
                 if (episode.show_type === 'Backstage Pass') {
                     episode.show_type = 'Special';
-                    episode.campaign = 'Backstage Pass';
                 }
 
-                allEpisodes.push(episode);
-
+                }
+                
 
                 // Derived fields for cleaner filtering + display
                 // For Miniseries, "campaign" holds the series name (e.g., Exandria Unlimited, Candela Obscura).
@@ -553,6 +552,9 @@ parseCSV();
                 episode.series = (episode.show_type === 'Miniseries') ? episode.campaign : '';
                 episode.campaign_bucket = (episode.show_type === 'Miniseries') ? 'Miniseries' : episode.campaign;
 
+
+                // Derived field for Specials categorization
+                episode.special_category = (episode.show_type === 'Special') ? classifySpecial(episode) : '';
                 allEpisodes.push(episode);
             }
         }
@@ -573,6 +575,34 @@ parseCSV();
                 } else {
                     current += char;
                 }
+
+
+        function classifySpecial(ep) {
+            const text = `${ep.title || ''} ${ep.notes || ''}`.toLowerCase();
+
+            const hasAny = (arr) => arr.some(s => text.includes(s));
+
+            // Behind-the-scenes / backstage content
+            if (hasAny(['backstage', 'behind the scenes', 'behind-the-scenes', 'bts', 'watch party', 'behind'])) return 'Behind-the-Scenes';
+
+            // Interviews / panels / Q&A / talk formats
+            if (hasAny(['interview', 'fireside', 'q&a', 'ama', 'panel', 'roundtable', 'comic con', 'convention', 'q & a'])) return 'Interview/Panel';
+
+            // Explicit one-shot marker
+            if (hasAny(['one-shot', 'one shot', 'one–shot', 'one—shot'])) return 'One-Shot';
+
+            // Runtime heuristic (expects H:MM:SS)
+            let minutes = 0;
+            const parts = (ep.runtime || '').split(':').map(p => parseInt(p, 10));
+            if (parts.length === 3 && parts.every(n => Number.isFinite(n))) {
+                minutes = (parts[0] * 60) + parts[1] + (parts[2] / 60);
+            }
+
+            if (minutes >= 90) return 'One-Shot';
+
+            return 'Other';
+        }
+
             }
             result.push(current);
             
@@ -615,11 +645,17 @@ parseCSV();
                     .filter(ep => ep.show_type === 'Miniseries')
                     .map(ep => ep.campaign)
                 )].filter(Boolean).sort();
+            } else if (selectedType === 'Special') {
+                // When Type=Special, show derived special categories (keeps Series dropdown compact)
+                seriesList = [...new Set(allEpisodes
+                    .filter(ep => ep.show_type === 'Special')
+                    .map(ep => ep.special_category)
+                )].filter(Boolean).sort();
             } else {
-                // For other types, show the normal campaign/series values within that type
+                // For other types, show the normal campaign/series values
                 seriesList = [...new Set(allEpisodes
                     .filter(ep => ep.show_type === selectedType)
-                    .map(ep => ep.campaign_bucket || ep.campaign)
+                    .map(ep => (ep.campaign_bucket || ep.campaign))
                 )].filter(Boolean).sort();
             }
 
@@ -673,7 +709,11 @@ parseCSV();
             
             filteredEpisodes = allEpisodes.filter(ep => {
                 if (showType && ep.show_type !== showType) return false;
-                const seriesKey = (showType === 'Miniseries') ? ep.campaign : (ep.campaign_bucket || ep.campaign);
+                const seriesKey = (showType === 'Miniseries')
+                    ? ep.campaign
+                    : (showType === 'Special')
+                        ? (ep.special_category || '')
+                        : (ep.campaign_bucket || ep.campaign);
                 if (campaign && seriesKey !== campaign) return false;
                 if (watched === 'watched' && !ep.watched) return false;
                 if (watched === 'unwatched' && ep.watched) return false;
@@ -733,8 +773,10 @@ parseCSV();
                         <td>
                             ${ep.show_type === 'Miniseries'
                                 ? (ep.campaign || '—')
-                                : (ep.campaign_bucket || ep.campaign || '—')}
-                            ${ep.show_type !== 'Miniseries' && ep.series ? `<div class="subtle">${ep.series}</div>` : ''}
+                                : (ep.show_type === 'Special'
+                                    ? (ep.special_category || '—')
+                                    : (ep.campaign_bucket || ep.campaign || '—'))}
+                            ${ep.show_type !== 'Miniseries' && ep.show_type !== 'Special' && ep.series ? `<div class="subtle">${ep.series}</div>` : ''}
                         </td>
                         <td><span class="episode-number">${ep.episode_number || '—'}</span></td>
                         <td class="episode-title">
