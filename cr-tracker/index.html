@@ -537,7 +537,15 @@ parseCSV();
                 } else {
                     episode.watched = episode.watched === 'TRUE' || episode.watched === 'true';
                 }
-                
+
+                // Normalize Backstage Pass into Specials
+                if (episode.show_type === 'Backstage Pass') {
+                    episode.show_type = 'Special';
+                    episode.campaign = 'Backstage Pass';
+                }
+
+                allEpisodes.push(episode);
+
 
                 // Derived fields for cleaner filtering + display
                 // For Miniseries, "campaign" holds the series name (e.g., Exandria Unlimited, Candela Obscura).
