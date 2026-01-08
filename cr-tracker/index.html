@@ -723,9 +723,11 @@ parseCSV();
                         </td>
                         <td><span class="show-badge ${showBadgeClass}">${ep.show_type}</span></td>
                         <td>
-                    ${ep.campaign_bucket || ep.campaign || '—'}
-                    ${ep.series ? `<div class="subtle">${ep.series}</div>` : ''}
-                </td>
+                            ${ep.show_type === 'Miniseries'
+                                ? (ep.campaign || '—')
+                                : (ep.campaign_bucket || ep.campaign || '—')}
+                            ${ep.show_type !== 'Miniseries' && ep.series ? `<div class="subtle">${ep.series}</div>` : ''}
+                        </td>
                         <td><span class="episode-number">${ep.episode_number || '—'}</span></td>
                         <td class="episode-title">
                             ${ep.vod_url ? `<a href="${ep.vod_url}" target="_blank">${ep.title}</a>` : ep.title}
