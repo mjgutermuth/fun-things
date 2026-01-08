@@ -665,7 +665,8 @@ parseCSV();
             
             filteredEpisodes = allEpisodes.filter(ep => {
                 if (showType && ep.show_type !== showType) return false;
-                if (campaign && (ep.campaign_bucket || ep.campaign) !== campaign) return false;
+                const seriesKey = (showType === 'Miniseries') ? ep.campaign : (ep.campaign_bucket || ep.campaign);
+                if (campaign && seriesKey !== campaign) return false;
                 if (watched === 'watched' && !ep.watched) return false;
                 if (watched === 'unwatched' && ep.watched) return false;
                 if (search && !ep.title.toLowerCase().includes(search)) return false;
