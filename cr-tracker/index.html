@@ -365,24 +365,162 @@
             h1 {
                 font-size: 2rem;
             }
-            
+
             .filter-grid {
                 grid-template-columns: 1fr;
             }
-            
-            table {
-                font-size: 0.75rem;
+
+            .episode-table-container {
+                overflow-x: auto;
             }
-            
-            td, th {
-                padding: 8px 5px;
+
+            /* Hide table on mobile, show cards instead */
+            table {
+                display: none;
+            }
+
+            .episode-cards {
+                display: block;
             }
         }
-    .subtle { opacity: 0.75; font-size: 0.85em; margin-top: 2px; }
+
+        /* Episode Cards (Mobile) */
+        .episode-cards {
+            display: none;
+        }
+
+        .episode-card {
+            background: rgba(26, 26, 46, 0.6);
+            border: 2px solid var(--beacon-purple);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: background 0.2s ease;
+        }
+
+        .episode-card:hover {
+            background: rgba(107, 70, 193, 0.1);
+        }
+
+        .episode-card.watched {
+            opacity: 0.6;
+        }
+
+        .episode-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .episode-card-title {
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        .episode-card-checkbox {
+            margin-left: 10px;
+        }
+
+        .episode-card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: var(--gray);
+        }
+
+        .episode-card-meta > span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .episode-card-links {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: rgba(26, 26, 46, 0.95);
+            border: 2px solid var(--beacon-purple);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            min-width: 300px;
+            pointer-events: all;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .toast.success {
+            border-color: var(--watched-green);
+        }
+
+        .toast.error {
+            border-color: var(--beacon-accent);
+        }
+
+        .toast.info {
+            border-color: var(--beacon-teal);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast-title {
+            font-weight: 700;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .toast-message {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--beacon-purple-light);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
 
 </style>
 </head>
 <body>
+    <!-- Toast notifications container -->
+    <div class="toast-container" id="toastContainer"></div>
+
     <div class="container">
         <header>
             <h1>Critical Role Episode Tracker</h1>
@@ -442,14 +580,14 @@
             </div>
             
             <div class="button-row">
-                <button onclick="markAllFiltered(true)">✓ Mark All Filtered as Watched</button>
-                <button onclick="markAllFiltered(false)">✗ Mark All Filtered as Unwatched</button>
-                <button class="secondary" onclick="exportProgress()">📊 Export Progress</button>
+                <button onclick="markAllFiltered(true)" aria-label="Mark all filtered episodes as watched">✓ Mark All Filtered as Watched</button>
+                <button onclick="markAllFiltered(false)" aria-label="Mark all filtered episodes as unwatched">✗ Mark All Filtered as Unwatched</button>
+                <button class="secondary" onclick="exportProgress()" aria-label="Export your watch progress to CSV">📊 Export Progress</button>
 
-                <button class="secondary" onclick="copySyncLink()">🔗 Copy Sync Link</button>
-                <button class="secondary" onclick="useSyncLink()">📥 Use Sync Link</button>
+                <button class="secondary" onclick="copySyncLink()" aria-label="Copy sync link to share across devices">🔗 Copy Sync Link</button>
+                <button class="secondary" onclick="useSyncLink()" aria-label="Import sync link from another device">📥 Use Sync Link</button>
 
-                <button class="secondary" onclick="showInstructions()">❓ How to Use</button>
+                <button class="secondary" onclick="showInstructions()" aria-label="Show usage instructions">❓ How to Use</button>
             </div>
         </div>
         
@@ -474,6 +612,11 @@
                     </tr>
                 </tbody>
             </table>
+
+            <!-- Mobile card view -->
+            <div class="episode-cards" id="episodeCards">
+                <div class="loading">Loading episodes...</div>
+            </div>
         </div>
     </div>
     
@@ -482,22 +625,48 @@
         let allEpisodes = [];
         let filteredEpisodes = [];
         let watchedStatus = {}; // Store in localStorage
+        let lastSyncTimestamp = 0; // Track last sync time for conflict resolution
         let sortColumn = 'airdate';
         let sortDirection = 'asc';
+        let renderDebounceTimer = null; // For performance optimization
 
         // Supabase (Sync Link mode)
         const SUPABASE_URL = 'https://wkqjgakouqjvfoyseaui.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_SjeQmp9d-N8gqZAO_16znw_IylMNfzO';
+
+        // Toast notification system
+        function showToast(message, title = '', type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                ${title ? `<div class="toast-title">${title}</div>` : ''}
+                <div class="toast-message">${message}</div>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
         
         // Load CSV data (embedded)
         // Load CSV data (external file)
 let CSV_DATA = '';
 
 async function loadCSV() {
-    // Update this filename if you rename the CSV
-    const res = await fetch('./cr_episodes_series_airdates.csv', { cache: 'no-store' });
-    if (!res.ok) throw new Error(`Failed to load CSV: ${res.status} ${res.statusText}`);
-    return await res.text();
+    try {
+        // Update this filename if you rename the CSV
+        const res = await fetch('./cr_episodes_series_airdates.csv', { cache: 'no-store' });
+        if (!res.ok) {
+            throw new Error(`Failed to load CSV: ${res.status} ${res.statusText}`);
+        }
+        return await res.text();
+    } catch (error) {
+        showToast('Could not load episode data. Please check that cr_episodes_series_airdates.csv exists.', 'Error Loading Data', 'error');
+        throw error;
+    }
 }
 
 // =========================
@@ -526,73 +695,128 @@ function applySyncFromUrl() {
     }
 }
 
-function copySyncLink() {
-    const link = `${location.origin}${location.pathname}#sync=${getSyncId()}`;
-    navigator.clipboard.writeText(link);
-    alert('Sync link copied! Open it on another device.');
+async function copySyncLink() {
+    try {
+        const link = `${location.origin}${location.pathname}#sync=${getSyncId()}`;
+        await navigator.clipboard.writeText(link);
+        showToast('Link copied to clipboard! Open it on another device to sync.', 'Sync Link Copied', 'success');
+    } catch (error) {
+        showToast('Failed to copy link. Please try again.', 'Copy Failed', 'error');
+    }
 }
 
-function useSyncLink() {
+async function useSyncLink() {
     const input = prompt('Paste a sync link (or just the sync ID):');
     if (!input) return;
 
     const match = input.match(/sync=([A-Za-z0-9\-]+)/);
     const id = match ? match[1] : input.trim();
 
-    if (!id) return;
+    if (!id) {
+        showToast('Invalid sync link or ID.', 'Error', 'error');
+        return;
+    }
+
     setSyncId(id);
-    alert('Sync ID saved. Reloading…');
-    location.reload();
+    showToast('Sync ID saved. Loading data...', 'Sync Updated', 'info');
+
+    try {
+        await remoteLoadWatchedStatus();
+        applyFiltersAndRender();
+        showToast('Successfully loaded watch history from sync.', 'Sync Complete', 'success');
+    } catch (error) {
+        showToast('Failed to load data from sync. Please try again.', 'Sync Failed', 'error');
+    }
 }
 
 
         async function remoteLoadWatchedStatus() {
             const syncId = getSyncId();
-            const url = `${SUPABASE_URL}/rest/v1/cr_sync?sync_id=eq.${encodeURIComponent(syncId)}&select=watched_status`;
+            const url = `${SUPABASE_URL}/rest/v1/cr_sync?sync_id=eq.${encodeURIComponent(syncId)}&select=watched_status,updated_at`;
 
-            const res = await fetch(url, {
-                headers: {
-                    apikey: SUPABASE_ANON_KEY,
-                    authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-                },
-                cache: 'no-store',
-            });
+            try {
+                const res = await fetch(url, {
+                    headers: {
+                        apikey: SUPABASE_ANON_KEY,
+                        authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+                    },
+                    cache: 'no-store',
+                });
 
-            if (!res.ok) {
-                console.error('Failed to load sync data', res.status);
-                return;
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+
+                const rows = await res.json();
+                const remoteData = rows?.[0];
+
+                if (!remoteData) {
+                    // No remote data yet
+                    return;
+                }
+
+                const remote = remoteData.watched_status || {};
+                const remoteTimestamp = new Date(remoteData.updated_at || 0).getTime();
+
+                // Merge strategy: Use timestamp-based conflict resolution
+                // If remote is newer, prefer remote values
+                // If local is newer, keep local values
+                // If timestamps are equal, merge with remote taking precedence
+                const localTimestamp = lastSyncTimestamp || 0;
+
+                if (remoteTimestamp > localTimestamp) {
+                    // Remote is newer - merge with remote taking precedence
+                    watchedStatus = { ...watchedStatus, ...remote };
+                    lastSyncTimestamp = remoteTimestamp;
+                    localStorage.setItem('crLastSyncTimestamp', remoteTimestamp.toString());
+                    saveWatchedStatus();
+                } else {
+                    // Local is newer or same - keep local but merge any new episodes from remote
+                    Object.keys(remote).forEach(key => {
+                        if (watchedStatus[key] === undefined) {
+                            watchedStatus[key] = remote[key];
+                        }
+                    });
+                    saveWatchedStatus();
+                }
+            } catch (error) {
+                console.error('Failed to load sync data:', error);
+                throw error;
             }
-
-            const rows = await res.json();
-            const remote = rows?.[0]?.watched_status || {};
-
-            // Remote wins on conflicts
-            watchedStatus = { ...watchedStatus, ...remote };
-            saveWatchedStatus();
         }
 
         async function remoteSaveWatchedStatus() {
             const syncId = getSyncId();
+            const timestamp = new Date().toISOString();
 
             const body = {
                 sync_id: syncId,
                 watched_status: watchedStatus,
-                updated_at: new Date().toISOString(),
+                updated_at: timestamp,
             };
 
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/cr_sync`, {
-                method: 'POST',
-                headers: {
-                    'content-type': 'application/json',
-                    apikey: SUPABASE_ANON_KEY,
-                    authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-                    prefer: 'resolution=merge-duplicates',
-                },
-                body: JSON.stringify(body),
-            });
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/cr_sync`, {
+                    method: 'POST',
+                    headers: {
+                        'content-type': 'application/json',
+                        apikey: SUPABASE_ANON_KEY,
+                        authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+                        prefer: 'resolution=merge-duplicates',
+                    },
+                    body: JSON.stringify(body),
+                });
 
-            if (!res.ok) {
-                console.error('Failed to save sync data', res.status);
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+
+                // Update local timestamp after successful save
+                lastSyncTimestamp = new Date(timestamp).getTime();
+                localStorage.setItem('crLastSyncTimestamp', lastSyncTimestamp.toString());
+            } catch (error) {
+                console.error('Failed to save sync data:', error);
+                showToast('Failed to sync with cloud. Your changes are saved locally.', 'Sync Warning', 'error');
             }
         }
 
@@ -600,23 +824,46 @@ function useSyncLink() {
         document.addEventListener('DOMContentLoaded', () => { init().catch(console.error); });
         
         async function init() {
-    applySyncFromUrl();
+            try {
+                applySyncFromUrl();
+                loadWatchedStatus();
 
-            loadWatchedStatus();
-            
-    
-    await remoteLoadWatchedStatus();
-CSV_DATA = await loadCSV();
-parseCSV();
-            populateFilters();
-            setupEventListeners();
-            applyFiltersAndRender();
+                // Load remote data with user feedback
+                try {
+                    await remoteLoadWatchedStatus();
+                } catch (error) {
+                    // Remote sync is optional, continue with local data
+                    console.warn('Remote sync unavailable, using local data only');
+                }
+
+                CSV_DATA = await loadCSV();
+                parseCSV();
+                populateFilters();
+                setupEventListeners();
+                applyFiltersAndRender();
+
+                showToast('Episode tracker loaded successfully!', 'Welcome', 'success');
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showToast('Failed to initialize tracker. Please refresh the page.', 'Initialization Error', 'error');
+            }
         }
         
         function loadWatchedStatus() {
             const saved = localStorage.getItem('crWatchedStatus');
             if (saved) {
-                watchedStatus = JSON.parse(saved);
+                try {
+                    watchedStatus = JSON.parse(saved);
+                } catch (error) {
+                    console.error('Failed to parse saved watch status:', error);
+                    watchedStatus = {};
+                }
+            }
+
+            // Load last sync timestamp
+            const savedTimestamp = localStorage.getItem('crLastSyncTimestamp');
+            if (savedTimestamp) {
+                lastSyncTimestamp = parseInt(savedTimestamp, 10) || 0;
             }
         }
         
@@ -805,28 +1052,36 @@ parseCSV();
         }
         
         function applyFiltersAndRender() {
-            const showType = document.getElementById('filterShowType').value;
-            const campaign = document.getElementById('filterCampaign').value;
-            const watched = document.getElementById('filterWatched').value;
-            const search = document.getElementById('searchInput').value.toLowerCase();
-            
-            filteredEpisodes = allEpisodes.filter(ep => {
-                if (showType && ep.show_type !== showType) return false;
-                const seriesKey = (showType === 'Miniseries')
-                    ? ep.campaign
-                    : (showType === 'Special')
-                        ? (ep.special_category || '')
-                        : (ep.campaign_bucket || ep.campaign);
-                if (campaign && seriesKey !== campaign) return false;
-                if (watched === 'watched' && !ep.watched) return false;
-                if (watched === 'unwatched' && ep.watched) return false;
-                if (search && !ep.title.toLowerCase().includes(search)) return false;
-                return true;
-            });
-            
-            sortEpisodes();
-            renderTable();
-            updateStats();
+            // Debounce rendering for better performance
+            if (renderDebounceTimer) {
+                clearTimeout(renderDebounceTimer);
+            }
+
+            renderDebounceTimer = setTimeout(() => {
+                const showType = document.getElementById('filterShowType').value;
+                const campaign = document.getElementById('filterCampaign').value;
+                const watched = document.getElementById('filterWatched').value;
+                const search = document.getElementById('searchInput').value.toLowerCase();
+
+                filteredEpisodes = allEpisodes.filter(ep => {
+                    if (showType && ep.show_type !== showType) return false;
+                    const seriesKey = (showType === 'Miniseries')
+                        ? ep.campaign
+                        : (showType === 'Special')
+                            ? (ep.special_category || '')
+                            : (ep.campaign_bucket || ep.campaign);
+                    if (campaign && seriesKey !== campaign) return false;
+                    if (watched === 'watched' && !ep.watched) return false;
+                    if (watched === 'unwatched' && ep.watched) return false;
+                    if (search && !ep.title.toLowerCase().includes(search)) return false;
+                    return true;
+                });
+
+                sortEpisodes();
+                renderTable();
+                renderCards();
+                updateStats();
+            }, 100); // 100ms debounce
         }
         
         function sortEpisodes() {
@@ -856,46 +1111,116 @@ parseCSV();
         
         function renderTable() {
             const tbody = document.getElementById('episodeTableBody');
-            
+
             if (filteredEpisodes.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No episodes match your filters</td></tr>';
                 return;
             }
-            
-            tbody.innerHTML = filteredEpisodes.map(ep => {
+
+            // Use DocumentFragment for better performance
+            const fragment = document.createDocumentFragment();
+
+            filteredEpisodes.forEach(ep => {
+                const tr = document.createElement('tr');
+                tr.className = ep.watched ? 'watched' : '';
+
                 const showBadgeClass = ep.show_type.toLowerCase().replace(/\s+/g, '-');
                 const cooldownBadge = ep.has_cooldown === 'TRUE' ? '<span class="cooldown-badge">COOLDOWN</span>' : '';
-                
-                return `
-                    <tr class="${ep.watched ? 'watched' : ''}">
-                        <td class="checkbox-cell">
-                            <input type="checkbox" ${ep.watched ? 'checked' : ''} 
-                                   onchange="toggleWatched('${ep.id}')">
-                        </td>
-                        <td><span class="show-badge ${showBadgeClass}">${ep.show_type}</span></td>
-                        <td>
-                            ${ep.show_type === 'Miniseries'
-                                ? (ep.campaign || '—')
-                                : (ep.show_type === 'Special'
-                                    ? (ep.special_category || '—')
-                                    : (ep.campaign_bucket || ep.campaign || '—'))}
-                        </td>
-                        <td><span class="episode-number">${ep.episode_number || '—'}</span></td>
-                        <td class="episode-title">
-                            ${ep.vod_url ? `<a href="${ep.vod_url}" target="_blank">${ep.title}</a>` : ep.title}
-                            ${cooldownBadge}
-                        </td>
-                        <td class="airdate">${ep.airdate || '—'}</td>
-                        <td class="runtime">${ep.runtime || '—'}</td>
-                        <td>
-                            ${ep.vod_url ? `<a href="${ep.vod_url}" target="_blank" style="color: var(--beacon-teal);">▶</a>` : ''}
-                            ${ep.wiki_url ? `<a href="${ep.wiki_url}" target="_blank" style="color: var(--beacon-accent); margin-left: 8px;">📖</a>` : ''}
-                        </td>
-                    </tr>
+                const campaignDisplay = ep.show_type === 'Miniseries'
+                    ? (ep.campaign || '—')
+                    : (ep.show_type === 'Special'
+                        ? (ep.special_category || '—')
+                        : (ep.campaign_bucket || ep.campaign || '—'));
+
+                tr.innerHTML = `
+                    <td class="checkbox-cell">
+                        <input type="checkbox"
+                               ${ep.watched ? 'checked' : ''}
+                               onchange="toggleWatched('${ep.id}')"
+                               aria-label="Mark ${ep.title} as ${ep.watched ? 'unwatched' : 'watched'}">
+                    </td>
+                    <td><span class="show-badge ${showBadgeClass}">${ep.show_type}</span></td>
+                    <td>${campaignDisplay}</td>
+                    <td><span class="episode-number">${ep.episode_number || '—'}</span></td>
+                    <td class="episode-title">
+                        ${ep.vod_url ? `<a href="${ep.vod_url}" target="_blank" rel="noopener noreferrer" aria-label="Watch ${ep.title}">${ep.title}</a>` : ep.title}
+                        ${cooldownBadge}
+                    </td>
+                    <td class="airdate">${ep.airdate || '—'}</td>
+                    <td class="runtime">${ep.runtime || '—'}</td>
+                    <td>
+                        ${ep.vod_url ? `<a href="${ep.vod_url}" target="_blank" rel="noopener noreferrer" style="color: var(--beacon-teal);" aria-label="Watch episode">▶</a>` : ''}
+                        ${ep.wiki_url ? `<a href="${ep.wiki_url}" target="_blank" rel="noopener noreferrer" style="color: var(--beacon-accent); margin-left: 8px;" aria-label="Read wiki">📖</a>` : ''}
+                    </td>
                 `;
-            }).join('');
+
+                fragment.appendChild(tr);
+            });
+
+            tbody.innerHTML = '';
+            tbody.appendChild(fragment);
         }
-        
+
+        function renderCards() {
+            const cardsContainer = document.getElementById('episodeCards');
+
+            if (filteredEpisodes.length === 0) {
+                cardsContainer.innerHTML = '<div class="empty-state">No episodes match your filters</div>';
+                return;
+            }
+
+            // Use DocumentFragment for better performance
+            const fragment = document.createDocumentFragment();
+
+            filteredEpisodes.forEach(ep => {
+                const card = document.createElement('div');
+                card.className = `episode-card ${ep.watched ? 'watched' : ''}`;
+
+                const showBadgeClass = ep.show_type.toLowerCase().replace(/\s+/g, '-');
+                const cooldownBadge = ep.has_cooldown === 'TRUE' ? '<span class="cooldown-badge">COOLDOWN</span>' : '';
+                const campaignDisplay = ep.show_type === 'Miniseries'
+                    ? (ep.campaign || '—')
+                    : (ep.show_type === 'Special'
+                        ? (ep.special_category || '—')
+                        : (ep.campaign_bucket || ep.campaign || '—'));
+
+                card.innerHTML = `
+                    <div class="episode-card-header">
+                        <div class="episode-card-title">
+                            <div><span class="show-badge ${showBadgeClass}">${ep.show_type}</span></div>
+                            <div class="episode-title" style="margin-top: 8px;">
+                                ${ep.vod_url ? `<a href="${ep.vod_url}" target="_blank" rel="noopener noreferrer" aria-label="Watch ${ep.title}">${ep.title}</a>` : ep.title}
+                                ${cooldownBadge}
+                            </div>
+                        </div>
+                        <div class="episode-card-checkbox">
+                            <input type="checkbox"
+                                   ${ep.watched ? 'checked' : ''}
+                                   onchange="toggleWatched('${ep.id}')"
+                                   aria-label="Mark ${ep.title} as ${ep.watched ? 'unwatched' : 'watched'}">
+                        </div>
+                    </div>
+                    <div class="episode-card-meta">
+                        <span><strong>Campaign:</strong> ${campaignDisplay}</span>
+                        <span><strong>Episode:</strong> ${ep.episode_number || '—'}</span>
+                        <span><strong>Air Date:</strong> ${ep.airdate || '—'}</span>
+                        <span><strong>Runtime:</strong> ${ep.runtime || '—'}</span>
+                    </div>
+                    ${ep.vod_url || ep.wiki_url ? `
+                        <div class="episode-card-links">
+                            ${ep.vod_url ? `<a href="${ep.vod_url}" target="_blank" rel="noopener noreferrer" aria-label="Watch episode" style="color: var(--beacon-teal);">▶ Watch</a>` : ''}
+                            ${ep.wiki_url ? `<a href="${ep.wiki_url}" target="_blank" rel="noopener noreferrer" aria-label="Read wiki" style="color: var(--beacon-accent);">📖 Wiki</a>` : ''}
+                        </div>
+                    ` : ''}
+                `;
+
+                fragment.appendChild(card);
+            });
+
+            cardsContainer.innerHTML = '';
+            cardsContainer.appendChild(fragment);
+        }
+
         function toggleWatched(id) {
             const episode = allEpisodes.find(e => e.id === id);
             if (episode) {
@@ -954,20 +1279,22 @@ parseCSV();
         function showInstructions() {
             alert(`Critical Role Episode Tracker
 
-HOW TO USE:
-• Click checkboxes to mark episodes as watched
-• Use filters to narrow down episodes
+BASICS:
+• Check boxes to mark episodes watched
 • Click column headers to sort
-• Use bulk actions to mark campaigns/shows as watched
-• Your progress is saved automatically in your browser
+• Use filters to narrow results
+• Progress auto-saves
+
+SYNC DEVICES:
+• "Copy Sync Link" → share to other devices
+• "Use Sync Link" → paste link to sync
+• Works across phones/tablets/computers
 
 TIPS:
-• Filter by Campaign to focus on one story arc
-• Search for specific episode titles
-• Export your progress to track across devices
-• Cooldown badge shows Beacon-exclusive content
-
-Your progress is stored locally - clearing browser data will reset it!`);
+• Filter Type first, then Series
+• Export creates CSV backup
+• Mobile shows card view
+• Cooldown = Beacon exclusive`);
         }
     </script>
 </body>
