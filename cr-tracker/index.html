@@ -445,6 +445,10 @@
                 <button onclick="markAllFiltered(true)">✓ Mark All Filtered as Watched</button>
                 <button onclick="markAllFiltered(false)">✗ Mark All Filtered as Unwatched</button>
                 <button class="secondary" onclick="exportProgress()">📊 Export Progress</button>
+
+                <button class="secondary" onclick="copySyncLink()">🔗 Copy Sync Link</button>
+                <button class="secondary" onclick="useSyncLink()">📥 Use Sync Link</button>
+
                 <button class="secondary" onclick="showInstructions()">❓ How to Use</button>
             </div>
         </div>
@@ -496,13 +500,113 @@ async function loadCSV() {
     return await res.text();
 }
 
+// =========================
+// Sync link helpers
+// =========================
+function getSyncId() {
+    let id = localStorage.getItem('crSyncId');
+    if (!id) {
+        id = crypto.randomUUID();
+        localStorage.setItem('crSyncId', id);
+    }
+    return id;
+}
+
+function setSyncId(id) {
+    if (!id) return;
+    localStorage.setItem('crSyncId', id);
+}
+
+function applySyncFromUrl() {
+    const params = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+    const incoming = params.get('sync');
+    if (incoming) {
+        setSyncId(incoming);
+        history.replaceState(null, '', location.pathname + location.search);
+    }
+}
+
+function copySyncLink() {
+    const link = `${location.origin}${location.pathname}#sync=${getSyncId()}`;
+    navigator.clipboard.writeText(link);
+    alert('Sync link copied! Open it on another device.');
+}
+
+function useSyncLink() {
+    const input = prompt('Paste a sync link (or just the sync ID):');
+    if (!input) return;
+
+    const match = input.match(/sync=([A-Za-z0-9\-]+)/);
+    const id = match ? match[1] : input.trim();
+
+    if (!id) return;
+    setSyncId(id);
+    alert('Sync ID saved. Reloading…');
+    location.reload();
+}
+
+
+        async function remoteLoadWatchedStatus() {
+            const syncId = getSyncId();
+            const url = `${SUPABASE_URL}/rest/v1/cr_sync?sync_id=eq.${encodeURIComponent(syncId)}&select=watched_status`;
+
+            const res = await fetch(url, {
+                headers: {
+                    apikey: SUPABASE_ANON_KEY,
+                    authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+                },
+                cache: 'no-store',
+            });
+
+            if (!res.ok) {
+                console.error('Failed to load sync data', res.status);
+                return;
+            }
+
+            const rows = await res.json();
+            const remote = rows?.[0]?.watched_status || {};
+
+            // Remote wins on conflicts
+            watchedStatus = { ...watchedStatus, ...remote };
+            saveWatchedStatus();
+        }
+
+        async function remoteSaveWatchedStatus() {
+            const syncId = getSyncId();
+
+            const body = {
+                sync_id: syncId,
+                watched_status: watchedStatus,
+                updated_at: new Date().toISOString(),
+            };
+
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/cr_sync`, {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json',
+                    apikey: SUPABASE_ANON_KEY,
+                    authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+                    prefer: 'resolution=merge-duplicates',
+                },
+                body: JSON.stringify(body),
+            });
+
+            if (!res.ok) {
+                console.error('Failed to save sync data', res.status);
+            }
+        }
+
 // Initialize
         document.addEventListener('DOMContentLoaded', () => { init().catch(console.error); });
         
         async function init() {
+    applySyncFromUrl();
+
             loadWatchedStatus();
             
-    CSV_DATA = await loadCSV();
+    
+    await remoteLoadWatchedStatus();
+CSV_DATA = await loadCSV();
 parseCSV();
             populateFilters();
             setupEventListeners();
@@ -559,9 +663,8 @@ parseCSV();
                 });
                 
                 // Generate unique ID
-                episode.id = `${episode.show_type}-${episode.campaign}-${episode.episode_number}-${i}`;
-                
-                // Set watched status
+                episode.id = [episode.show_type, episode.campaign, episode.episode_number, episode.title].join('|');
+// Set watched status
                 if (watchedStatus[episode.id] !== undefined) {
                     episode.watched = watchedStatus[episode.id];
                 } else {
@@ -800,7 +903,9 @@ parseCSV();
                 watchedStatus[id] = episode.watched;
                 saveWatchedStatus();
                 applyFiltersAndRender();
-            }
+            
+        remoteSaveWatchedStatus();
+}
         }
         
         function markAllFiltered(watched) {
@@ -815,7 +920,9 @@ parseCSV();
             
             saveWatchedStatus();
             applyFiltersAndRender();
-        }
+        
+        remoteSaveWatchedStatus();
+}
         
         function updateStats() {
             const total = allEpisodes.length;
