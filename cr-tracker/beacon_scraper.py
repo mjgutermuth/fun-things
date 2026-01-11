@@ -201,38 +201,125 @@ def save_to_csv(content, filename='beacon_exclusives.csv'):
     if not content:
         print("\nNo content to save!")
         return
-    
+
     fieldnames = ['week_date', 'show_type', 'series', 'campaign', 'episode_number', 'title', 'release_date', 'notes']
-    
+
     with open(filename, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(content)
-    
+
     print(f"\n✓ Saved {len(content)} items to {filename}")
-    
+
     # Print summary
     series_counts = {}
     for item in content:
         series = item['series']
         series_counts[series] = series_counts.get(series, 0) + 1
-    
+
     print("\nSummary by series:")
     for series, count in sorted(series_counts.items()):
         print(f"  {series}: {count}")
 
+def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.csv'):
+    """
+    Merge scraped Beacon content into the main episodes CSV
+    Returns number of new episodes added
+    """
+    if not scraped_content:
+        print("\nNo new content to merge")
+        return 0
+
+    # Read existing CSV
+    try:
+        with open(main_csv, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            existing_rows = list(reader)
+            fieldnames = reader.fieldnames
+    except FileNotFoundError:
+        print(f"Error: {main_csv} not found")
+        return 0
+
+    # Build set of existing episode IDs
+    existing_ids = {row['episode_id'] for row in existing_rows if row['episode_id']}
+
+    # Convert scraped content to main CSV format and check for duplicates
+    new_rows = []
+    skipped = []
+
+    for item in scraped_content:
+        # Map series to proper format
+        show_type = 'Webseries'
+        campaign = item['series']
+
+        # Generate episode_id
+        episode_id = f"{show_type}|{campaign}|{item['episode_number']}|{item['title']}"
+
+        # Skip if already exists
+        if episode_id in existing_ids:
+            skipped.append(item['title'])
+            continue
+
+        # Create new row
+        new_row = {
+            'episode_id': episode_id,
+            'show_type': show_type,
+            'campaign': campaign,
+            'arc': '',
+            'episode_number': item['episode_number'],
+            'title': item['title'],
+            'airdate': item['release_date'],
+            'vod_url': 'https://www.beacon.tv',
+            'wiki_url': '',
+            'runtime': '',
+            'watched': 'False',
+            'notes': item['notes'],
+            'has_cooldown': 'False',
+            'cooldown_date': ''
+        }
+
+        new_rows.append(new_row)
+        existing_ids.add(episode_id)
+
+    if skipped:
+        print(f"\nSkipped {len(skipped)} existing episodes:")
+        for title in skipped[:5]:
+            print(f"  - {title}")
+        if len(skipped) > 5:
+            print(f"  ... and {len(skipped) - 5} more")
+
+    if not new_rows:
+        print("\nNo new episodes to add")
+        return 0
+
+    # Add new rows and sort by airdate
+    all_rows = existing_rows + new_rows
+    all_rows.sort(key=lambda x: x['airdate'] if x['airdate'] else '9999-99-99')
+
+    # Write back to CSV
+    with open(main_csv, 'w', encoding='utf-8', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(all_rows)
+
+    print(f"\n✓ Added {len(new_rows)} new episodes to {main_csv}")
+    for row in new_rows:
+        print(f"  + {row['campaign']} #{row['episode_number']}: {row['title']}")
+
+    return len(new_rows)
+
 if __name__ == '__main__':
     # Beacon launched May 9, 2024
     start_date = '2024-05-06'  # Monday of that week
-    
+
     # Default to today
     end_date = None
-    
+
     if len(sys.argv) > 1:
         start_date = sys.argv[1]
     if len(sys.argv) > 2:
         end_date = sys.argv[2]
-    
+
     print("=" * 80)
     print("BEACON EXCLUSIVE CONTENT SCRAPER")
     print("=" * 80)
@@ -240,6 +327,19 @@ if __name__ == '__main__':
     print(f"Start date: {start_date}")
     print(f"End date: {end_date or 'today'}")
     print("=" * 80 + "\n")
-    
+
     content = scrape_beacon_exclusives(start_date, end_date)
+
+    # Save raw scrape results
     save_to_csv(content)
+
+    # Merge new episodes into main CSV
+    print("\n" + "=" * 80)
+    print("MERGING INTO MAIN CSV")
+    print("=" * 80)
+    new_count = merge_into_main_csv(content)
+
+    if new_count > 0:
+        print(f"\n✓ Successfully added {new_count} new episode(s) to the tracker!")
+    else:
+        print("\n✓ No new episodes found - CSV is up to date!")

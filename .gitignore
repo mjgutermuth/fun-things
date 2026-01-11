@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+
+# Scraper output files (keep main CSV only)
+cr-tracker/beacon_exclusives.csv
+cr-tracker/scraper_output.log
+cr-tracker/*.html
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

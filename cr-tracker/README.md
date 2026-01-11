@@ -1,73 +1,82 @@
 # Critical Role Episode Tracker
 
-Scrapes all Critical Role episodes from the wiki and creates a Google Sheets-compatible CSV for tracking what you've watched.
+A web-based tracker for all Critical Role content with automatic weekly updates.
 
-## Quick Start
+## Files
 
-### 1. Fetch the wiki page
+- **index.html** - Main tracker web app (open in browser to use)
+- **cr_episodes_series_airdates.csv** - Episode database (1000+ episodes)
+- **beacon_scraper.py** - Scrapes CritRole.com for new Beacon-exclusive content
+- **cr_complete_scraper.py** - Scrapes CR wiki for all episodes
+
+## Automated Updates
+
+### GitHub Actions (Enabled)
+A GitHub Actions workflow runs **every Monday at 10 AM UTC** to:
+1. Scrape CritRole.com programming schedules for new Beacon content
+2. Add any new episodes to the CSV
+3. Automatically commit and push changes
+
+**Workflow file:** `.github/workflows/scrape-episodes.yml`
+
+**Manual trigger:** Go to Actions tab in GitHub and run "Scrape Critical Role Episodes" workflow
+
+## Usage
+
+### Using the Tracker
+1. Open `index.html` in a web browser
+2. Filter by show type and series
+3. Check episodes as you watch them
+4. Your progress is saved in browser localStorage
+
+### Manual Scraping
+
+**Beacon-exclusive content:**
 ```bash
-curl "https://criticalrole.fandom.com/wiki/List_of_episodes" > cr_wiki.html
+cd cr-tracker
+python3 beacon_scraper.py
 ```
 
-### 2. Run the scraper
+This will:
+- Scrape all programming schedules from May 2024 to today
+- Find Cooldown episodes, Fireside Chats, etc.
+- Merge new episodes into the main CSV
+
+**Full wiki scrape:**
 ```bash
-python3 cr_complete_scraper.py cr_wiki.html
+cd cr-tracker
+# First, save the CR wiki episodes page as HTML
+python3 cr_complete_scraper.py episodes.html
 ```
 
-This creates `cr_episodes.csv` with 450+ episodes.
+## CSV Format
 
-### 3. Import to Google Sheets
-1. Create a new Google Sheet
-2. File → Import → Upload
-3. Select `cr_episodes.csv`
-4. Import!
+The main CSV includes:
+- **episode_id** - Unique ID: `{show_type}|{campaign}|{episode_number}|{title}`
+- **show_type** - Main Campaign, Miniseries, Webseries, Special, etc.
+- **campaign** - Campaign name or series name
+- **arc** - Sub-series or story arc (for Exandria Unlimited, etc.)
+- **episode_number** - Episode number
+- **title** - Episode title
+- **airdate** - Air date (YYYY-MM-DD)
+- **vod_url** - YouTube or Beacon.tv URL
+- **wiki_url** - Critical Role wiki URL
+- **runtime** - Episode length (H:MM:SS)
+- **watched** - True/False (synced with localStorage)
+- **notes** - Special notes
+- **has_cooldown** - Whether episode has a Cooldown
+- **cooldown_date** - Date of Cooldown episode
 
-## What Gets Scraped
+## Current Content
 
-- **All Campaign Episodes** (C1: 115, C2: 141, C3: 120+, C4: ongoing)
-- **Specials** (50+ one-shots and special events)
-- **Miniseries** (Exandria Unlimited, Candela Obscura, etc.)
-- **Talk Shows** (4-Sided Dive, Talks Machina)
-- **Animated Series** (Legend of Vox Machina, Mighty Nein)
-
-## CSV Structure
-
-| Column | Description |
-|--------|-------------|
-| show_type | Main Campaign, Special, Miniseries, Talk Show, etc. |
-| campaign | Campaign One, Campaign Two, Specials, etc. |
-| arc | Story arc (e.g., "Arc 1: Kraghammer and Vasselheim") |
-| episode_number | Episode number (1, 2, 3, etc.) |
-| title | Episode title |
-| airdate | Air date (YYYY-MM-DD format) |
-| vod_url | YouTube/streaming link |
-| wiki_url | Link to wiki page for more details |
-| runtime | Episode length (H:MM:SS) |
-| guests | Guest stars (if any) |
-| dm_gm | DM/GM name (if not Matt Mercer) |
-| watched | Checkbox column (☐ = unwatched, ☑ = watched) |
-| notes | Your personal notes |
-
-## Usage Tips
-
-### Filter by campaign
-Sort/filter the `campaign` column to focus on one campaign at a time.
-
-### Track progress
-Change ☐ to ☑ in the `watched` column as you watch episodes.
-
-### Find episodes with guests
-Filter the `guests` column to find special episodes.
-
-### Chronological order
-Sort by `airdate` to watch in release order across all shows.
-
-## Updating
-
-To get new episodes (run weekly):
-```bash
-curl "https://criticalrole.fandom.com/wiki/List_of_episodes" > cr_wiki.html
-python3 cr_complete_scraper.py cr_wiki.html
-```
-
-Then compare the new CSV with your existing sheet and append new rows.
+1000+ episodes including:
+- Campaign 1, 2, 3 main episodes
+- Exandria Unlimited (Prime, Kymal, Calamity, Divergence, Thresher)
+- Candela Obscura (all chapters)
+- 4-Sided Dive
+- Talks Machina
+- Narrative Telephone
+- Between the Sheets
+- Critical Role Cooldown
+- Fireside Chat
+- And more!

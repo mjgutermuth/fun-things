@@ -1,0 +1,59 @@
+name: Scrape Critical Role Episodes
+
+on:
+  schedule:
+    # Run every Monday at 9:00 PM UTC (1 PM PST / 4 PM EST)
+    - cron: '0 21 * * 1'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install beautifulsoup4 requests
+
+      - name: Run Beacon scraper
+        run: |
+          cd cr-tracker
+          python3 beacon_scraper.py 2024-05-06 > scraper_output.log 2>&1 || true
+          cat scraper_output.log
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          cd cr-tracker
+          if git diff --quiet cr_episodes_series_airdates.csv; then
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "No changes detected"
+          else
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "Changes detected in CSV"
+          fi
+
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add cr-tracker/cr_episodes_series_airdates.csv
+          git add cr-tracker/beacon_exclusives.csv || true
+          git commit -m "Auto-update: Weekly episode scrape $(date +%Y-%m-%d)"
+          git push
+
+      - name: No changes summary
+        if: steps.check_changes.outputs.changes == 'false'
+        run: |
+          echo "✓ Scraper ran successfully but found no new episodes to add"
