@@ -853,7 +853,17 @@ async function useSyncLink() {
             const saved = localStorage.getItem('crWatchedStatus');
             if (saved) {
                 try {
-                    watchedStatus = JSON.parse(saved);
+                    const oldStatus = JSON.parse(saved);
+
+                    // Migrate old IDs to new format if needed
+                    // Old format: "Show Type|Campaign|Episode|Title"
+                    // New format: uses episode_id from CSV directly
+                    watchedStatus = {};
+
+                    for (const [key, value] of Object.entries(oldStatus)) {
+                        // Keep the key as-is since we're now using episode_id from CSV
+                        watchedStatus[key] = value;
+                    }
                 } catch (error) {
                     console.error('Failed to parse saved watch status:', error);
                     watchedStatus = {};
@@ -1136,8 +1146,8 @@ async function useSyncLink() {
                     <td class="checkbox-cell">
                         <input type="checkbox"
                                ${ep.watched ? 'checked' : ''}
-                               onchange="toggleWatched('${ep.id}')"
-                               aria-label="Mark ${ep.title} as ${ep.watched ? 'unwatched' : 'watched'}">
+                               onchange="toggleWatched('${ep.id.replace(/'/g, "\\'")}')"
+                               aria-label="Mark ${ep.title.replace(/'/g, "\\'")} as ${ep.watched ? 'unwatched' : 'watched'}">
                     </td>
                     <td><span class="show-badge ${showBadgeClass}">${ep.show_type}</span></td>
                     <td>${campaignDisplay}</td>
@@ -1196,8 +1206,8 @@ async function useSyncLink() {
                         <div class="episode-card-checkbox">
                             <input type="checkbox"
                                    ${ep.watched ? 'checked' : ''}
-                                   onchange="toggleWatched('${ep.id}')"
-                                   aria-label="Mark ${ep.title} as ${ep.watched ? 'unwatched' : 'watched'}">
+                                   onchange="toggleWatched('${ep.id.replace(/'/g, "\\'")}')"
+                                   aria-label="Mark ${ep.title.replace(/'/g, "\\'")} as ${ep.watched ? 'unwatched' : 'watched'}">
                         </div>
                     </div>
                     <div class="episode-card-meta">
