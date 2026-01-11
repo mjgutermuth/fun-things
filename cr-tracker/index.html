@@ -1083,7 +1083,15 @@ async function useSyncLink() {
                     if (campaign && seriesKey !== campaign) return false;
                     if (watched === 'watched' && !ep.watched) return false;
                     if (watched === 'unwatched' && ep.watched) return false;
-                    if (search && !ep.title.toLowerCase().includes(search)) return false;
+                    if (search) {
+                        const searchableText = [
+                            ep.title,
+                            ep.campaign,
+                            ep.arc,
+                            ep.episode_number
+                        ].filter(Boolean).join(' ').toLowerCase();
+                        if (!searchableText.includes(search)) return false;
+                    }
                     return true;
                 });
 
