@@ -117,13 +117,37 @@
             color: var(--light);
         }
         
+        .actions-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .action-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .action-group-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--beacon-teal);
+            font-weight: 700;
+            margin-right: 10px;
+            min-width: 80px;
+        }
+
         .button-row {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
-            margin-top: 15px;
+            flex: 1;
         }
-        
+
         button {
             padding: 10px 20px;
             background: var(--beacon-purple);
@@ -138,23 +162,47 @@
             transition: all 0.3s ease;
             border-radius: 4px;
         }
-        
+
         button:hover {
             background: var(--beacon-purple-light);
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(159, 122, 234, 0.4);
         }
-        
+
+        button.primary {
+            background: var(--beacon-accent);
+            border-color: var(--beacon-accent);
+        }
+
+        button.primary:hover {
+            background: #ED64A6;
+            border-color: #ED64A6;
+        }
+
         button.secondary {
             background: transparent;
             border-color: var(--beacon-teal);
             color: var(--beacon-teal);
         }
-        
+
         button.secondary:hover {
             background: rgba(79, 209, 197, 0.1);
             border-color: var(--beacon-accent);
             color: var(--beacon-accent);
+        }
+
+        button.tertiary {
+            background: transparent;
+            border-color: rgba(159, 122, 234, 0.4);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.75rem;
+            padding: 8px 16px;
+        }
+
+        button.tertiary:hover {
+            background: rgba(107, 70, 193, 0.2);
+            border-color: var(--beacon-purple-light);
+            color: var(--light);
         }
         
         /* Stats */
@@ -705,16 +753,34 @@
                 </div>
             </div>
             
-            <div class="button-row">
-                <button onclick="getRandomRecommendation()" aria-label="Get a random recommendation for something to watch">🎲 Random Recommendation</button>
-                <button onclick="markAllFiltered(true)" aria-label="Mark all filtered episodes as watched">✓ Mark All Filtered as Watched</button>
-                <button onclick="markAllFiltered(false)" aria-label="Mark all filtered episodes as unwatched">✗ Mark All Filtered as Unwatched</button>
-                <button class="secondary" onclick="exportProgress()" aria-label="Export your watch progress to CSV">📊 Export Progress</button>
+            <div class="actions-container">
+                <!-- Primary Actions -->
+                <div class="action-group">
+                    <span class="action-group-label">Watch:</span>
+                    <div class="button-row">
+                        <button class="primary" onclick="getRandomRecommendation()" aria-label="Get a random recommendation for something to watch">🎲 Random Pick</button>
+                    </div>
+                </div>
 
-                <button class="secondary" onclick="copySyncLink()" aria-label="Copy sync link to share across devices">🔗 Copy Sync Link</button>
-                <button class="secondary" onclick="useSyncLink()" aria-label="Import sync link from another device">📥 Use Sync Link</button>
+                <!-- Bulk Actions -->
+                <div class="action-group">
+                    <span class="action-group-label">Bulk Edit:</span>
+                    <div class="button-row">
+                        <button onclick="markAllFiltered(true)" aria-label="Mark all filtered episodes as watched">✓ Mark All Watched</button>
+                        <button onclick="markAllFiltered(false)" aria-label="Mark all filtered episodes as unwatched">✗ Mark All Unwatched</button>
+                    </div>
+                </div>
 
-                <button class="secondary" onclick="showInstructions()" aria-label="Show usage instructions">❓ How to Use</button>
+                <!-- Data Management -->
+                <div class="action-group">
+                    <span class="action-group-label">Data:</span>
+                    <div class="button-row">
+                        <button class="secondary" onclick="exportProgress()" aria-label="Export your watch progress to CSV">📊 Export</button>
+                        <button class="secondary" onclick="copySyncLink()" aria-label="Copy sync link to share across devices">🔗 Copy Sync</button>
+                        <button class="secondary" onclick="useSyncLink()" aria-label="Import sync link from another device">📥 Load Sync</button>
+                        <button class="tertiary" onclick="showInstructions()" aria-label="Show usage instructions">❓ Help</button>
+                    </div>
+                </div>
             </div>
         </div>
         
