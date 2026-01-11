@@ -908,9 +908,9 @@ async function useSyncLink() {
                 headers.forEach((header, index) => {
                     episode[header.trim()] = values[index] ? values[index].trim() : '';
                 });
-                
-                // Generate unique ID
-                episode.id = [episode.show_type, episode.campaign, episode.episode_number, episode.title].join('|');
+
+                // Use episode_id from CSV as the unique ID
+                episode.id = episode.episode_id || [episode.show_type, episode.campaign, episode.episode_number, episode.title].join('|');
 // Set watched status
                 if (watchedStatus[episode.id] !== undefined) {
                     episode.watched = watchedStatus[episode.id];
