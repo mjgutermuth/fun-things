@@ -1432,16 +1432,45 @@ async function useSyncLink() {
             cardsContainer.appendChild(fragment);
         }
 
-        function toggleWatched(id) {
+        async function toggleWatched(id) {
             const episode = allEpisodes.find(e => e.id === id);
-            if (episode) {
-                episode.watched = !episode.watched;
-                watchedStatus[id] = episode.watched;
-                saveWatchedStatus();
-                applyFiltersAndRender();
-            
-        remoteSaveWatchedStatus();
-}
+            if (!episode) return;
+
+            const wasWatched = episode.watched;
+            episode.watched = !episode.watched;
+
+            // If marking as watched and it's a main campaign episode, offer to mark previous episodes
+            if (episode.watched && !wasWatched && episode.show_type === 'Main Campaign') {
+                const epNum = parseInt(episode.episode_number);
+                if (epNum && epNum > 1) {
+                    // Find all previous unwatched episodes in the same campaign
+                    const previousUnwatched = allEpisodes.filter(ep =>
+                        ep.show_type === 'Main Campaign' &&
+                        ep.campaign === episode.campaign &&
+                        parseInt(ep.episode_number) < epNum &&
+                        !ep.watched
+                    );
+
+                    if (previousUnwatched.length > 0) {
+                        const shouldMarkPrevious = confirm(
+                            `You're marking Episode ${epNum} as watched.\n\n` +
+                            `Mark all ${previousUnwatched.length} previous unwatched episode(s) as watched too?`
+                        );
+
+                        if (shouldMarkPrevious) {
+                            previousUnwatched.forEach(ep => {
+                                ep.watched = true;
+                                watchedStatus[ep.id] = true;
+                            });
+                        }
+                    }
+                }
+            }
+
+            watchedStatus[id] = episode.watched;
+            saveWatchedStatus();
+            applyFiltersAndRender();
+            remoteSaveWatchedStatus();
         }
         
         function markAllFiltered(watched) {
