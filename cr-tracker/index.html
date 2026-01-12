@@ -408,6 +408,88 @@
             font-style: italic;
         }
         
+        /* Series Progress Bars */
+        .series-progress {
+            background: rgba(26, 26, 46, 0.8);
+            border: 2px solid var(--beacon-purple);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .series-progress-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--beacon-teal);
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .progress-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .progress-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .progress-series-name {
+            color: var(--beacon-purple-light);
+            font-weight: 600;
+        }
+
+        .progress-stats {
+            color: var(--gray);
+            font-size: 0.75rem;
+        }
+
+        .progress-bar-container {
+            background: rgba(107, 70, 193, 0.2);
+            border: 1px solid var(--beacon-purple);
+            border-radius: 4px;
+            height: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            background: linear-gradient(90deg, var(--beacon-purple), var(--beacon-purple-light));
+            height: 100%;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .progress-bar-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .progress-bar-fill.complete {
+            background: linear-gradient(90deg, var(--watched-green), #68D391);
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             h1 {
@@ -719,6 +801,22 @@
                 <div class="stat-number" id="statPercent">0%</div>
                 <div class="stat-label">Progress</div>
             </div>
+            <div class="stat-card">
+                <div class="stat-number" id="statHoursWatched">0h</div>
+                <div class="stat-label">Hours Watched</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="statHoursRemaining">0h</div>
+                <div class="stat-label">Hours Remaining</div>
+            </div>
+        </div>
+
+        <!-- Series Progress -->
+        <div class="series-progress">
+            <div class="series-progress-title">Series Progress</div>
+            <div class="progress-list" id="seriesProgressList">
+                <div class="loading" style="padding: 20px;">Loading...</div>
+            </div>
         </div>
         
         <!-- Filters & Controls -->
@@ -914,9 +1012,14 @@ async function useSyncLink() {
     showToast('Sync ID saved. Loading data...', 'Sync Updated', 'info');
 
     try {
-        await remoteLoadWatchedStatus();
+        const syncResult = await remoteLoadWatchedStatus();
         applyFiltersAndRender();
-        showToast('Successfully loaded watch history from sync.', 'Sync Complete', 'success');
+
+        if (syncResult.changes > 0) {
+            showToast(`Successfully synced ${syncResult.changes} change${syncResult.changes > 1 ? 's' : ''} from sync link.`, 'Sync Complete', 'success');
+        } else {
+            showToast('Successfully loaded watch history from sync.', 'Sync Complete', 'success');
+        }
     } catch (error) {
         showToast('Failed to load data from sync. Please try again.', 'Sync Failed', 'error');
     }
@@ -945,7 +1048,7 @@ async function useSyncLink() {
 
                 if (!remoteData) {
                     // No remote data yet
-                    return;
+                    return { changes: 0, source: 'none' };
                 }
 
                 const remote = remoteData.watched_status || {};
@@ -957,21 +1060,36 @@ async function useSyncLink() {
                 // If timestamps are equal, merge with remote taking precedence
                 const localTimestamp = lastSyncTimestamp || 0;
 
+                let changesApplied = 0;
+                let source = 'none';
+
                 if (remoteTimestamp > localTimestamp) {
                     // Remote is newer - merge with remote taking precedence
+                    // Count changes
+                    Object.keys(remote).forEach(key => {
+                        if (watchedStatus[key] !== remote[key]) {
+                            changesApplied++;
+                        }
+                    });
+
                     watchedStatus = { ...watchedStatus, ...remote };
                     lastSyncTimestamp = remoteTimestamp;
                     localStorage.setItem('crLastSyncTimestamp', remoteTimestamp.toString());
                     saveWatchedStatus();
+                    source = 'remote';
                 } else {
                     // Local is newer or same - keep local but merge any new episodes from remote
                     Object.keys(remote).forEach(key => {
                         if (watchedStatus[key] === undefined) {
                             watchedStatus[key] = remote[key];
+                            changesApplied++;
                         }
                     });
                     saveWatchedStatus();
+                    source = 'local';
                 }
+
+                return { changes: changesApplied, source };
             } catch (error) {
                 console.error('Failed to load sync data:', error);
                 throw error;
@@ -1023,7 +1141,14 @@ async function useSyncLink() {
 
                 // Load remote data with user feedback
                 try {
-                    await remoteLoadWatchedStatus();
+                    const syncResult = await remoteLoadWatchedStatus();
+                    if (syncResult.changes > 0) {
+                        if (syncResult.source === 'remote') {
+                            showToast(`Synced ${syncResult.changes} change${syncResult.changes > 1 ? 's' : ''} from another device`, 'Sync Complete', 'success');
+                        } else if (syncResult.source === 'local') {
+                            showToast(`Merged ${syncResult.changes} new episode${syncResult.changes > 1 ? 's' : ''} from sync`, 'Sync Updated', 'info');
+                        }
+                    }
                 } catch (error) {
                     // Remote sync is optional, continue with local data
                     console.warn('Remote sync unavailable, using local data only');
@@ -1489,31 +1614,154 @@ async function useSyncLink() {
         remoteSaveWatchedStatus();
 }
         
+        function parseRuntimeToMinutes(runtime) {
+            if (!runtime) return 0;
+            const parts = runtime.split(':').map(p => parseInt(p, 10) || 0);
+            if (parts.length === 3) {
+                // H:MM:SS
+                return (parts[0] * 60) + parts[1] + (parts[2] / 60);
+            } else if (parts.length === 2) {
+                // MM:SS
+                return parts[0] + (parts[1] / 60);
+            }
+            return 0;
+        }
+
+        function formatHours(minutes) {
+            const hours = Math.round(minutes / 60);
+            if (hours >= 1000) {
+                return `${(hours / 1000).toFixed(1)}k`;
+            }
+            return `${hours}h`;
+        }
+
         function updateStats() {
             const total = allEpisodes.length;
             const watched = allEpisodes.filter(e => e.watched).length;
             const remaining = total - watched;
             const percent = total > 0 ? Math.round((watched / total) * 100) : 0;
-            
+
+            // Calculate hours
+            let watchedMinutes = 0;
+            let remainingMinutes = 0;
+
+            allEpisodes.forEach(ep => {
+                const minutes = parseRuntimeToMinutes(ep.runtime);
+                if (ep.watched) {
+                    watchedMinutes += minutes;
+                } else {
+                    remainingMinutes += minutes;
+                }
+            });
+
             document.getElementById('statTotal').textContent = total;
             document.getElementById('statWatched').textContent = watched;
             document.getElementById('statRemaining').textContent = remaining;
             document.getElementById('statPercent').textContent = percent + '%';
+            document.getElementById('statHoursWatched').textContent = formatHours(watchedMinutes);
+            document.getElementById('statHoursRemaining').textContent = formatHours(remainingMinutes);
+
+            updateSeriesProgress();
+        }
+
+        function updateSeriesProgress() {
+            const seriesList = document.getElementById('seriesProgressList');
+
+            // Group episodes by series (Main Campaigns and major miniseries)
+            const seriesGroups = {};
+
+            allEpisodes.forEach(ep => {
+                let key = '';
+                let displayName = '';
+
+                if (ep.show_type === 'Main Campaign') {
+                    key = `${ep.show_type}|${ep.campaign}`;
+                    displayName = ep.campaign;
+                } else if (ep.show_type === 'Miniseries') {
+                    key = `${ep.show_type}|${ep.campaign}`;
+                    displayName = ep.campaign;
+                } else if (ep.show_type === 'Talk Show') {
+                    key = `${ep.show_type}|${ep.campaign}`;
+                    displayName = ep.campaign;
+                } else {
+                    // Skip specials and other content for progress bars
+                    return;
+                }
+
+                if (!seriesGroups[key]) {
+                    seriesGroups[key] = {
+                        name: displayName,
+                        episodes: [],
+                        showType: ep.show_type
+                    };
+                }
+
+                seriesGroups[key].episodes.push(ep);
+            });
+
+            // Sort series groups (Main Campaigns first, then chronologically)
+            const sortedSeries = Object.entries(seriesGroups).sort((a, b) => {
+                const [keyA, dataA] = a;
+                const [keyB, dataB] = b;
+
+                // Main campaigns first
+                if (dataA.showType === 'Main Campaign' && dataB.showType !== 'Main Campaign') return -1;
+                if (dataA.showType !== 'Main Campaign' && dataB.showType === 'Main Campaign') return 1;
+
+                // Then by earliest air date
+                const minDateA = Math.min(...dataA.episodes.map(e => new Date(e.airdate || '9999').getTime()));
+                const minDateB = Math.min(...dataB.episodes.map(e => new Date(e.airdate || '9999').getTime()));
+
+                return minDateA - minDateB;
+            });
+
+            // Render progress bars
+            const fragment = document.createDocumentFragment();
+
+            sortedSeries.forEach(([key, data]) => {
+                const total = data.episodes.length;
+                const watched = data.episodes.filter(e => e.watched).length;
+                const percent = total > 0 ? Math.round((watched / total) * 100) : 0;
+
+                const item = document.createElement('div');
+                item.className = 'progress-item';
+                item.innerHTML = `
+                    <div class="progress-header">
+                        <span class="progress-series-name">${data.name}</span>
+                        <span class="progress-stats">${watched}/${total} (${percent}%)</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill ${percent === 100 ? 'complete' : ''}" style="width: ${percent}%"></div>
+                    </div>
+                `;
+
+                fragment.appendChild(item);
+            });
+
+            if (sortedSeries.length === 0) {
+                seriesList.innerHTML = '<div class="empty-state" style="padding: 20px;">No series data available</div>';
+            } else {
+                seriesList.innerHTML = '';
+                seriesList.appendChild(fragment);
+            }
         }
         
         function exportProgress() {
-            const csv = ['Show Type,Campaign,Episode,Title,Watched'].concat(
-                allEpisodes
-                    .filter(e => e.watched)
-                    .map(e => `"${e.show_type}","${e.campaign}","${e.episode_number}","${e.title}","TRUE"`)
+            // Export all episodes with watched status for complete backup
+            const csv = ['Show Type,Campaign,Episode,Title,Runtime,Air Date,Watched'].concat(
+                allEpisodes.map(e =>
+                    `"${e.show_type}","${e.campaign}","${e.episode_number}","${e.title}","${e.runtime || ''}","${e.airdate || ''}","${e.watched ? 'TRUE' : 'FALSE'}"`
+                )
             ).join('\n');
-            
+
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `cr-progress-${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
+
+            showToast(`Exported ${allEpisodes.length} episodes (${allEpisodes.filter(e => e.watched).length} watched)`, 'Export Complete', 'success');
         }
         
         function showInstructions() {
@@ -1665,7 +1913,7 @@ TIPS:
             const epNumber = episode.episode_number ? `Episode ${episode.episode_number}` : '';
             const runtime = episode.runtime ? `Runtime: ${episode.runtime}` : '';
             const airdate = episode.airdate ? `Aired: ${episode.airdate}` : '';
-            const cooldownBadge = episode.has_cooldown === 'True' ? '<span class="cooldown-badge">COOLDOWN</span>' : '';
+            const cooldownBadge = episode.has_cooldown === 'TRUE' ? '<span class="cooldown-badge">COOLDOWN</span>' : '';
 
             content.innerHTML = `
                 <div class="episode-type">${episode.show_type}</div>
