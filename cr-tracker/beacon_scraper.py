@@ -418,8 +418,11 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
     return len(new_rows)
 
 if __name__ == '__main__':
-    # Beacon launched May 9, 2024
-    start_date = '2024-05-06'  # Monday of that week
+    # Default to only check the last 4 weeks (current + 3 prior)
+    # This makes the scraper much faster for regular updates
+    today = datetime.now()
+    four_weeks_ago = today - timedelta(days=28)
+    start_date = four_weeks_ago.strftime('%Y-%m-%d')
 
     # Default to today
     end_date = None
