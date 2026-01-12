@@ -799,11 +799,41 @@
             display: flex;
             gap: 10px;
             justify-content: center;
+            flex-wrap: wrap;
         }
 
         .modal-buttons button {
             flex: 1;
             max-width: 200px;
+            min-width: 150px;
+        }
+
+        .modal-buttons a.button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: var(--beacon-teal);
+            border: 2px solid var(--beacon-teal);
+            color: var(--dark);
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+            text-decoration: none;
+            text-align: center;
+            flex: 1;
+            max-width: 200px;
+            min-width: 150px;
+        }
+
+        .modal-buttons a.button:hover {
+            background: #38B2AC;
+            border-color: #38B2AC;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 209, 197, 0.4);
         }
 
 </style>
@@ -819,7 +849,7 @@
             <div class="recommendation-content" id="recommendationContent">
                 <!-- Content filled by JavaScript -->
             </div>
-            <div class="modal-buttons">
+            <div class="modal-buttons" id="recommendationButtons">
                 <button onclick="closeRecommendationModal()">Close</button>
                 <button onclick="getRandomRecommendation()">🎲 Get Another</button>
             </div>
@@ -2056,6 +2086,7 @@ TIPS:
         function showRecommendationModal(episode, reason) {
             const modal = document.getElementById('recommendationModal');
             const content = document.getElementById('recommendationContent');
+            const buttons = document.getElementById('recommendationButtons');
 
             const epNumber = episode.episode_number ? `Episode ${episode.episode_number}` : '';
             const runtime = episode.runtime ? `Runtime: ${episode.runtime}` : '';
@@ -2071,6 +2102,20 @@ TIPS:
                 </div>
                 <div class="recommendation-reason">${reason}</div>
             `;
+
+            // Update buttons to include watch link if available
+            if (episode.vod_url) {
+                buttons.innerHTML = `
+                    <a href="${episode.vod_url}" target="_blank" rel="noopener noreferrer" class="button" aria-label="Watch episode">▶ Watch</a>
+                    <button onclick="getRandomRecommendation()">🎲 Get Another</button>
+                    <button onclick="closeRecommendationModal()">Close</button>
+                `;
+            } else {
+                buttons.innerHTML = `
+                    <button onclick="closeRecommendationModal()">Close</button>
+                    <button onclick="getRandomRecommendation()">🎲 Get Another</button>
+                `;
+            }
 
             modal.classList.add('active');
         }
