@@ -1823,17 +1823,29 @@ async function useSyncLink() {
 
                 // Calculate time stats if needed
                 let timeStats = '';
+                let timePercent = 0;
                 if (isTimeView) {
-                    let minutes = 0;
+                    let targetMinutes = 0;
+                    let totalMinutes = 0;
+
                     data.episodes.forEach(ep => {
                         const epMinutes = parseRuntimeToMinutes(ep.runtime);
+                        totalMinutes += epMinutes;
                         if (currentProgressView === 'time-watched' && ep.watched) {
-                            minutes += epMinutes;
+                            targetMinutes += epMinutes;
                         } else if (currentProgressView === 'time-remaining' && !ep.watched) {
-                            minutes += epMinutes;
+                            targetMinutes += epMinutes;
                         }
                     });
-                    timeStats = formatHours(minutes);
+
+                    timeStats = formatHours(targetMinutes);
+                    // For time-watched, show percentage of total watched
+                    // For time-remaining, show percentage of total remaining
+                    if (currentProgressView === 'time-watched') {
+                        timePercent = totalMinutes > 0 ? Math.round((targetMinutes / totalMinutes) * 100) : 0;
+                    } else {
+                        timePercent = totalMinutes > 0 ? Math.round((targetMinutes / totalMinutes) * 100) : 0;
+                    }
                 }
 
                 // Find next unwatched episode for collapsed view
@@ -1857,16 +1869,16 @@ async function useSyncLink() {
                     ? timeStats
                     : `${watched}/${total} (${percent}%)`;
 
+                const barPercent = isTimeView ? timePercent : percent;
+
                 item.innerHTML = `
                     <div class="progress-header${isCollapsed ? ' compact' : ''}">
                         <span class="progress-series-name">${data.name}</span>
                         <span class="progress-stats">${statsDisplay}</span>
                     </div>
-                    ${!isTimeView ? `
                     <div class="progress-bar-container${isCollapsed ? ' compact' : ''}">
-                        <div class="progress-bar-fill ${percent === 100 ? 'complete' : ''}" style="width: ${percent}%"></div>
+                        <div class="progress-bar-fill ${barPercent === 100 ? 'complete' : ''}" style="width: ${barPercent}%"></div>
                     </div>
-                    ` : ''}
                     ${nextEpisode}
                 `;
 
