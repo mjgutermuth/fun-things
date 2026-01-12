@@ -15,31 +15,36 @@ def generate_schedule_urls(start_date, end_date):
     """
     Generate all weekly programming schedule URLs between two dates.
     Schedules are posted on Mondays.
+    Returns both critrole.com and beacon.tv URLs.
     """
     urls = []
     current = start_date
-    
+
     # Find the first Monday
     while current.weekday() != 0:  # 0 = Monday
         current += timedelta(days=1)
-    
+
     while current <= end_date:
         # Format: programming-schedule-week-of-may-13th-2024
         month = current.strftime('%B').lower()
         day = current.day
         year = current.year
-        
+
         # Add ordinal suffix (1st, 2nd, 3rd, 4th, etc.)
         if 10 <= day <= 20:
             suffix = 'th'
         else:
             suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
-        
-        url = f"https://critrole.com/programming-schedule-week-of-{month}-{day}{suffix}-{year}/"
-        urls.append((current, url))
-        
+
+        # Generate both critrole.com and beacon.tv URLs
+        critrole_url = f"https://critrole.com/programming-schedule-week-of-{month}-{day}{suffix}-{year}/"
+        beacon_url = f"https://beacon.tv/content/programming-schedule-week-of-{month}-{day}{suffix}-{year}"
+
+        urls.append((current, critrole_url, 'critrole'))
+        urls.append((current, beacon_url, 'beacon'))
+
         current += timedelta(days=7)  # Next Monday
-    
+
     return urls
 
 def extract_beacon_content(html, week_date):
@@ -73,20 +78,28 @@ def extract_beacon_content(html, week_date):
         })
     
     # Pattern 2: Fireside Chat (simplified)
-    # Matches: "Fireside Chat" anywhere near "Beacon"
-    fireside_pattern = r'Fireside\s+Chat(?:\s+LIVE)?(?:\s+with\s+([\w\s]+?))?(?=\s)'
+    # Matches: "Fireside Chat LIVE Oops All Crew | Jan 2026" or "Fireside Chat with [guest]"
+    fireside_pattern = r'Fireside\s+Chat(?:\s+LIVE)?(?:\s+Oops\s+All\s+Crew\s*\|\s*(\w+\s+\d+)|\s+with\s+([\w\s&,]+?))?(?=\s|$)'
     fireside_matches = list(re.finditer(fireside_pattern, text, re.IGNORECASE))
-    
+
     for match in fireside_matches:
-        guest = match.group(1).strip() if match.group(1) else 'Unknown'
-        
+        # Check if this is an "Oops All Crew" special
+        if match.group(1):
+            month_year = match.group(1)
+            title = f'Fireside Chat LIVE Oops All Crew | {month_year}'
+        elif match.group(2):
+            guest = match.group(2).strip()
+            title = f'Fireside Chat with {guest}'
+        else:
+            title = 'Fireside Chat'
+
         content.append({
             'week_date': week_date.strftime('%Y-%m-%d'),
             'show_type': 'Beacon Exclusive',
             'series': 'Fireside Chat',
             'campaign': '',
             'episode_number': '',
-            'title': f'Fireside Chat with {guest}',
+            'title': title,
             'release_date': week_date.strftime('%Y-%m-%d'),
             'notes': 'Monthly AMA/Q&A'
         })
@@ -112,16 +125,16 @@ def extract_beacon_content(html, week_date):
     # Pattern 4: Backstage Pass
     backstage_pattern = r'(Backstage Pass|backstage tour).*?(LIVE|Airs).*?only on Beacon'
     backstage_matches = re.finditer(backstage_pattern, text, re.DOTALL | re.IGNORECASE)
-    
+
     for match in backstage_matches:
         context_start = max(0, match.start() - 200)
         context_end = min(len(text), match.end() + 50)
         context = text[context_start:context_end]
-        
+
         # Try to find the event name
         event_match = re.search(r'(Sydney|Melbourne|Chicago|Indianapolis|New York|Radio City|Daggerheart Critmas)', context, re.IGNORECASE)
         event = event_match.group(1) if event_match else 'Live Show'
-        
+
         content.append({
             'week_date': week_date.strftime('%Y-%m-%d'),
             'show_type': 'Beacon Exclusive',
@@ -132,7 +145,89 @@ def extract_beacon_content(html, week_date):
             'release_date': '',
             'notes': 'Behind-the-scenes live stream'
         })
-    
+
+    # Pattern 5: The Long Rest
+    # Matches: "The Long Rest | Story Title" or "The Long Rest" followed by story details
+    long_rest_pattern = r'The\s+Long\s+Rest\s*\|?\s*([^\n\r]+?)(?=\s*(?:releases|airs|available|only on Beacon|\d+\s+minutes?|$))'
+    long_rest_matches = re.finditer(long_rest_pattern, text, re.IGNORECASE)
+
+    for match in long_rest_matches:
+        story_title = match.group(1).strip()
+        # Clean up any trailing punctuation or extra text
+        story_title = re.sub(r'\s*\|?\s*$', '', story_title)
+
+        if story_title and len(story_title) > 3:  # Make sure we got a real title
+            full_title = f'The Long Rest | {story_title}' if story_title else 'The Long Rest'
+
+            content.append({
+                'week_date': week_date.strftime('%Y-%m-%d'),
+                'show_type': 'Beacon Exclusive',
+                'series': 'The Long Rest',
+                'campaign': '',
+                'episode_number': '',  # No episode numbers for this series
+                'title': full_title,
+                'release_date': week_date.strftime('%Y-%m-%d'),
+                'notes': 'Bedtime stories read by CR cast'
+            })
+
+    # Pattern 6: Inside The Mighty Nein
+    # Matches: "Inside The Mighty Nein | Episodes 6-8" or "Inside The Mighty Nein: Episodes 1-5"
+    mighty_nein_pattern = r'Inside\s+The\s+Mighty\s+Nein.*?Episodes?\s+([\d\-]+)'
+    mighty_nein_matches = re.finditer(mighty_nein_pattern, text, re.IGNORECASE)
+
+    for match in mighty_nein_matches:
+        episode_range = match.group(1)
+
+        content.append({
+            'week_date': week_date.strftime('%Y-%m-%d'),
+            'show_type': 'Beacon Exclusive',
+            'series': 'Inside The Mighty Nein',
+            'campaign': '',
+            'episode_number': episode_range,
+            'title': f'Inside The Mighty Nein: Episodes {episode_range}',
+            'release_date': week_date.strftime('%Y-%m-%d'),
+            'notes': 'Talk show series'
+        })
+
+    # Pattern 7: Get Your Sheet Together
+    gyst_pattern = r'Get\s+Your\s+Sheet\s+Together.*?Episode\s+(\d+)'
+    gyst_matches = re.finditer(gyst_pattern, text, re.IGNORECASE)
+
+    for match in gyst_matches:
+        episode = match.group(1)
+
+        content.append({
+            'week_date': week_date.strftime('%Y-%m-%d'),
+            'show_type': 'Beacon Exclusive',
+            'series': 'Get Your Sheet Together',
+            'campaign': '',
+            'episode_number': episode,
+            'title': f'Get Your Sheet Together Episode {episode}',
+            'release_date': week_date.strftime('%Y-%m-%d'),
+            'notes': 'Beacon exclusive series'
+        })
+
+    # Pattern 8: Previously On...
+    # Matches: "Meet The Characters of Campaign 4 | Ep 1-4 Recap" or similar
+    previously_on_pattern = r'(Meet\s+The\s+Characters\s+of\s+Campaign\s+\d+)\s*\|\s*Ep(?:isode)?s?\s+([\d\-]+)\s+Recap'
+    previously_on_matches = re.finditer(previously_on_pattern, text, re.IGNORECASE)
+
+    for match in previously_on_matches:
+        title_part = match.group(1).strip()
+        episode_range = match.group(2)
+        full_title = f'{title_part} | Ep {episode_range} Recap'
+
+        content.append({
+            'week_date': week_date.strftime('%Y-%m-%d'),
+            'show_type': 'Beacon Exclusive',
+            'series': 'Previously On...',
+            'campaign': 'Campaign 4',
+            'episode_number': episode_range,
+            'title': full_title,
+            'release_date': week_date.strftime('%Y-%m-%d'),
+            'notes': 'Campaign 4 talkback show'
+        })
+
     return content
 
 def scrape_beacon_exclusives(start_date_str, end_date_str=None):
@@ -144,10 +239,10 @@ def scrape_beacon_exclusives(start_date_str, end_date_str=None):
     
     print(f"Generating schedule URLs from {start_date.date()} to {end_date.date()}...")
     urls = generate_schedule_urls(start_date, end_date)
-    print(f"Found {len(urls)} weekly schedules to check\n")
-    
+    print(f"Found {len(urls)} weekly schedules to check (both critrole.com and beacon.tv)\n")
+
     all_content = []
-    
+
     # Use proper headers to avoid being blocked
     headers = {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -157,22 +252,22 @@ def scrape_beacon_exclusives(start_date_str, end_date_str=None):
         'Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': '1'
     }
-    
-    for week_date, url in urls:
+
+    for week_date, url, source in urls:
         # Try both URL formats - with and without ordinal suffix
         url_without_suffix = url.replace('st-', '-').replace('nd-', '-').replace('rd-', '-').replace('th-', '-')
-        
+
         success = False
-        
+
         for attempt_url in [url, url_without_suffix]:
             if success:
                 break
-                
-            print(f"Fetching {week_date.strftime('%Y-%m-%d')}: {attempt_url}")
-            
+
+            print(f"Fetching {week_date.strftime('%Y-%m-%d')} [{source}]: {attempt_url}")
+
             try:
                 response = requests.get(attempt_url, headers=headers, timeout=10)
-                
+
                 if response.status_code == 200:
                     content = extract_beacon_content(response.text, week_date)
                     if content:
@@ -185,10 +280,10 @@ def scrape_beacon_exclusives(start_date_str, end_date_str=None):
                     print(f"  ✗ HTTP 404 (trying alternate URL format...)")
                 else:
                     print(f"  ✗ HTTP {response.status_code}")
-            
+
             except Exception as e:
                 print(f"  ✗ Error: {e}")
-        
+
         # Be nice to the server - wait longer between requests
         time.sleep(2)
     
@@ -249,8 +344,22 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
 
     for item in scraped_content:
         # Map series to proper format
-        show_type = 'Webseries'
-        campaign = item['series']
+        series_name = item['series']
+
+        # Map each series to its correct show_type
+        show_type_mapping = {
+            'Critical Role Cooldown': 'Talk Show',
+            'Fireside Chat': 'Fireside Chat',
+            'Weird Kids': 'Webseries',
+            'Backstage Pass': 'Backstage Pass',
+            'The Long Rest': 'Webseries',
+            'Inside The Mighty Nein': 'Talk Show',
+            'Get Your Sheet Together': 'Webseries',
+            'Previously On...': 'Talk Show'
+        }
+
+        show_type = show_type_mapping.get(series_name, 'Webseries')
+        campaign = series_name
 
         # Generate episode_id
         episode_id = f"{show_type}|{campaign}|{item['episode_number']}|{item['title']}"
