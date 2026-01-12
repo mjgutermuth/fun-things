@@ -1972,6 +1972,67 @@ TIPS:
 
             const candidates = [];
 
+            // Helper: Check if a campaign/series is complete
+            function isCampaignComplete(campaignName) {
+                const campaignEps = allEpisodes.filter(ep =>
+                    ep.show_type === 'Main Campaign' && ep.campaign === campaignName
+                );
+                return campaignEps.length > 0 && campaignEps.every(ep => ep.watched);
+            }
+
+            // Helper: Check if a backstage pass's corresponding show is watched
+            function isBackstageShowWatched(backstageTitle) {
+                // Extract location from "Backstage Pass - Location"
+                const locationMatch = backstageTitle.match(/Backstage Pass - (.+)/);
+                if (!locationMatch) return false;
+
+                const location = locationMatch[1];
+
+                // Find the corresponding live show
+                const liveShow = allEpisodes.find(ep =>
+                    ep.show_type === 'Special' &&
+                    ep.campaign === 'Specials' &&
+                    ep.title.includes(location) &&
+                    ep.title.toLowerCase().includes('live')
+                );
+
+                return liveShow && liveShow.watched;
+            }
+
+            // Helper: Check if wrap-up prerequisites are met
+            function isWrapUpReady(wrapUpTitle) {
+                // Campaign wrap-ups
+                if (wrapUpTitle.includes('Campaign 1') || wrapUpTitle.includes('Campaign Wrap-up')) {
+                    return isCampaignComplete('Campaign One: Vox Machina');
+                }
+                if (wrapUpTitle.includes('Campaign 2')) {
+                    return isCampaignComplete('Campaign Two: The Mighty Nein');
+                }
+                if (wrapUpTitle.includes('Campaign 3')) {
+                    return isCampaignComplete('Campaign Three: Bells Hells');
+                }
+
+                // Miniseries wrap-ups
+                if (wrapUpTitle.includes('Exandria Unlimited') && !wrapUpTitle.includes('Calamity')) {
+                    const euEps = allEpisodes.filter(ep =>
+                        ep.show_type === 'Miniseries' &&
+                        ep.campaign === 'Exandria Unlimited' &&
+                        !ep.campaign.includes('Calamity')
+                    );
+                    return euEps.length > 0 && euEps.every(ep => ep.watched);
+                }
+                if (wrapUpTitle.includes('Calamity')) {
+                    const calamityEps = allEpisodes.filter(ep =>
+                        ep.show_type === 'Miniseries' &&
+                        ep.campaign.includes('Calamity')
+                    );
+                    return calamityEps.length > 0 && calamityEps.every(ep => ep.watched);
+                }
+
+                // Default: allow wrap-ups
+                return true;
+            }
+
             // Group episodes by series for sequential content
             const bySeries = {};
             unwatched.forEach(ep => {
@@ -2060,11 +2121,50 @@ TIPS:
                     // Talks Machina: Episode numbers don't align with campaigns (e.g., TM #1 = C1E75)
                     // Treat as a regular sequential show - recommend next unwatched episode
                 } else if (showType === 'Special') {
-                    // Specials can be watched in any order
+                    // Specials - but filter based on prerequisites
                     episodes.forEach(ep => {
+                        // Check for Backstage Pass content
+                        if (campaign === 'Backstage Pass') {
+                            if (isBackstageShowWatched(ep.title)) {
+                                candidates.push({
+                                    episode: ep,
+                                    reason: 'Behind-the-scenes for a show you watched!'
+                                });
+                            }
+                            // Skip if corresponding show not watched
+                            return;
+                        }
+
+                        // Check for wrap-up episodes
+                        if (ep.title.toLowerCase().includes('wrap') && ep.title.toLowerCase().includes('up')) {
+                            if (isWrapUpReady(ep.title)) {
+                                candidates.push({
+                                    episode: ep,
+                                    reason: 'Wrap-up discussion for content you completed!'
+                                });
+                            }
+                            // Skip if prerequisites not met
+                            return;
+                        }
+
+                        // Check for behind-the-scenes content
+                        if (ep.special_category === 'Behind-the-Scenes') {
+                            // Only recommend BTS if it's generic or part of something watched
+                            // For now, skip auto-recommending these
+                            return;
+                        }
+
+                        // Other specials can be watched anytime
+                        let reason = 'One-shot special - watch anytime!';
+                        if (ep.special_category === 'One-Shot') {
+                            reason = 'Standalone one-shot adventure!';
+                        } else if (ep.special_category === 'Interview/Panel') {
+                            reason = 'Interview or panel discussion!';
+                        }
+
                         candidates.push({
                             episode: ep,
-                            reason: 'One-shot special - watch anytime!'
+                            reason: reason
                         });
                     });
                 }
