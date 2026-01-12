@@ -219,6 +219,19 @@
             padding: 15px;
             text-align: center;
             border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            background: rgba(107, 70, 193, 0.3);
+            border-color: var(--beacon-purple-light);
+            transform: translateY(-2px);
+        }
+
+        .stat-card.active {
+            background: rgba(107, 70, 193, 0.4);
+            border-color: var(--beacon-accent);
         }
         
         .stat-number {
@@ -415,6 +428,19 @@
             padding: 20px;
             margin-bottom: 20px;
             border-radius: 8px;
+            display: none;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease, padding 0.3s ease;
+        }
+
+        .series-progress.visible {
+            display: block;
+            max-height: 2000px;
+        }
+
+        .series-progress.collapsed {
+            padding: 15px 20px;
         }
 
         .series-progress-title {
@@ -431,10 +457,18 @@
             gap: 15px;
         }
 
+        .progress-list.compact {
+            gap: 10px;
+        }
+
         .progress-item {
             display: flex;
             flex-direction: column;
             gap: 8px;
+        }
+
+        .progress-item.compact {
+            gap: 5px;
         }
 
         .progress-header {
@@ -442,6 +476,10 @@
             justify-content: space-between;
             align-items: center;
             font-size: 0.85rem;
+        }
+
+        .progress-header.compact {
+            font-size: 0.8rem;
         }
 
         .progress-series-name {
@@ -454,6 +492,13 @@
             font-size: 0.75rem;
         }
 
+        .progress-next-episode {
+            font-size: 0.75rem;
+            color: var(--beacon-accent);
+            font-style: italic;
+            margin-top: 2px;
+        }
+
         .progress-bar-container {
             background: rgba(107, 70, 193, 0.2);
             border: 1px solid var(--beacon-purple);
@@ -461,6 +506,10 @@
             height: 8px;
             overflow: hidden;
             position: relative;
+        }
+
+        .progress-bar-container.compact {
+            height: 6px;
         }
 
         .progress-bar-fill {
@@ -785,27 +834,27 @@
         
         <!-- Stats -->
         <div class="stats">
-            <div class="stat-card">
+            <div class="stat-card" onclick="toggleSeriesProgress('collapsed')" data-view="collapsed">
                 <div class="stat-number" id="statTotal">0</div>
                 <div class="stat-label">Total Episodes</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" onclick="toggleSeriesProgress('collapsed')" data-view="collapsed">
                 <div class="stat-number" id="statWatched">0</div>
                 <div class="stat-label">Watched</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" onclick="toggleSeriesProgress('collapsed')" data-view="collapsed">
                 <div class="stat-number" id="statRemaining">0</div>
                 <div class="stat-label">Remaining</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" onclick="toggleSeriesProgress('expanded')" data-view="expanded">
                 <div class="stat-number" id="statPercent">0%</div>
                 <div class="stat-label">Progress</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" onclick="toggleSeriesProgress('time-watched')" data-view="time-watched">
                 <div class="stat-number" id="statHoursWatched">0h</div>
                 <div class="stat-label">Hours Watched</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" onclick="toggleSeriesProgress('time-remaining')" data-view="time-remaining">
                 <div class="stat-number" id="statHoursRemaining">0h</div>
                 <div class="stat-label">Hours Remaining</div>
             </div>
@@ -920,6 +969,7 @@
         let sortColumn = 'airdate';
         let sortDirection = 'asc';
         let renderDebounceTimer = null; // For performance optimization
+        let currentProgressView = null; // Track current progress view state
 
         // Supabase (Sync Link mode)
         const SUPABASE_URL = 'https://wkqjgakouqjvfoyseaui.supabase.co';
@@ -1664,8 +1714,47 @@ async function useSyncLink() {
             updateSeriesProgress();
         }
 
+        function toggleSeriesProgress(view) {
+            const progressSection = document.querySelector('.series-progress');
+            const progressList = document.getElementById('seriesProgressList');
+
+            // Remove active class from all stat cards
+            document.querySelectorAll('.stat-card').forEach(card => card.classList.remove('active'));
+
+            // If clicking the same view, close it
+            if (currentProgressView === view) {
+                progressSection.classList.remove('visible', 'collapsed');
+                currentProgressView = null;
+                return;
+            }
+
+            // Set new view and mark card as active
+            currentProgressView = view;
+            document.querySelectorAll(`.stat-card[data-view="${view}"]`).forEach(card => {
+                card.classList.add('active');
+            });
+
+            // Show and render the view
+            progressSection.classList.add('visible');
+            progressSection.classList.toggle('collapsed', view === 'collapsed');
+
+            updateSeriesProgress();
+        }
+
         function updateSeriesProgress() {
+            if (!currentProgressView) return;
+
             const seriesList = document.getElementById('seriesProgressList');
+            const progressTitle = document.querySelector('.series-progress-title');
+
+            // Update title based on view
+            const titles = {
+                'collapsed': 'Next Episodes to Watch',
+                'expanded': 'Series Progress',
+                'time-watched': 'Hours Watched by Series',
+                'time-remaining': 'Hours Remaining by Series'
+            };
+            progressTitle.textContent = titles[currentProgressView] || 'Series Progress';
 
             // Group episodes by series (Main Campaigns and major miniseries)
             const seriesGroups = {};
@@ -1717,29 +1806,75 @@ async function useSyncLink() {
 
             // Render progress bars
             const fragment = document.createDocumentFragment();
+            const isCollapsed = currentProgressView === 'collapsed';
+            const isTimeView = currentProgressView.startsWith('time-');
+
+            // Set list classes
+            seriesList.className = 'progress-list';
+            if (isCollapsed) seriesList.classList.add('compact');
 
             sortedSeries.forEach(([key, data]) => {
                 const total = data.episodes.length;
                 const watched = data.episodes.filter(e => e.watched).length;
                 const percent = total > 0 ? Math.round((watched / total) * 100) : 0;
 
+                // Skip completed series in collapsed view
+                if (isCollapsed && percent === 100) return;
+
+                // Calculate time stats if needed
+                let timeStats = '';
+                if (isTimeView) {
+                    let minutes = 0;
+                    data.episodes.forEach(ep => {
+                        const epMinutes = parseRuntimeToMinutes(ep.runtime);
+                        if (currentProgressView === 'time-watched' && ep.watched) {
+                            minutes += epMinutes;
+                        } else if (currentProgressView === 'time-remaining' && !ep.watched) {
+                            minutes += epMinutes;
+                        }
+                    });
+                    timeStats = formatHours(minutes);
+                }
+
+                // Find next unwatched episode for collapsed view
+                let nextEpisode = '';
+                if (isCollapsed) {
+                    const sorted = [...data.episodes].sort((a, b) => {
+                        const aNum = parseInt(a.episode_number) || 0;
+                        const bNum = parseInt(b.episode_number) || 0;
+                        return aNum - bNum;
+                    });
+                    const next = sorted.find(ep => !ep.watched);
+                    if (next) {
+                        nextEpisode = `<div class="progress-next-episode">Next: Episode ${next.episode_number} - ${next.title}</div>`;
+                    }
+                }
+
                 const item = document.createElement('div');
-                item.className = 'progress-item';
+                item.className = `progress-item${isCollapsed ? ' compact' : ''}`;
+
+                const statsDisplay = isTimeView
+                    ? timeStats
+                    : `${watched}/${total} (${percent}%)`;
+
                 item.innerHTML = `
-                    <div class="progress-header">
+                    <div class="progress-header${isCollapsed ? ' compact' : ''}">
                         <span class="progress-series-name">${data.name}</span>
-                        <span class="progress-stats">${watched}/${total} (${percent}%)</span>
+                        <span class="progress-stats">${statsDisplay}</span>
                     </div>
-                    <div class="progress-bar-container">
+                    ${!isTimeView ? `
+                    <div class="progress-bar-container${isCollapsed ? ' compact' : ''}">
                         <div class="progress-bar-fill ${percent === 100 ? 'complete' : ''}" style="width: ${percent}%"></div>
                     </div>
+                    ` : ''}
+                    ${nextEpisode}
                 `;
 
                 fragment.appendChild(item);
             });
 
-            if (sortedSeries.length === 0) {
-                seriesList.innerHTML = '<div class="empty-state" style="padding: 20px;">No series data available</div>';
+            if (fragment.childNodes.length === 0) {
+                seriesList.innerHTML = '<div class="empty-state" style="padding: 20px;">No data available</div>';
             } else {
                 seriesList.innerHTML = '';
                 seriesList.appendChild(fragment);
