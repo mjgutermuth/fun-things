@@ -925,6 +925,15 @@
                 </div>
                 
                 <div class="filter-group">
+                    <label>Canon Status</label>
+                    <select id="filterCanon">
+                        <option value="">All Content</option>
+                        <option value="canon">Canon Only</option>
+                        <option value="non-canon">Non-Canon Only</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
                     <label>Search</label>
                     <input type="text" id="searchInput" placeholder="Search titles...">
                 </div>
@@ -1442,6 +1451,7 @@ async function useSyncLink() {
 
             seriesSelect.addEventListener('change', applyFiltersAndRender);
             document.getElementById('filterWatched').addEventListener('change', applyFiltersAndRender);
+            document.getElementById('filterCanon').addEventListener('change', applyFiltersAndRender);
             document.getElementById('searchInput').addEventListener('input', applyFiltersAndRender);
 
             // Sortable headers
@@ -1469,6 +1479,7 @@ async function useSyncLink() {
                 const showType = document.getElementById('filterShowType').value;
                 const campaign = document.getElementById('filterCampaign').value;
                 const watched = document.getElementById('filterWatched').value;
+                const canonFilter = document.getElementById('filterCanon').value;
                 const search = document.getElementById('searchInput').value.toLowerCase();
 
                 filteredEpisodes = allEpisodes.filter(ep => {
@@ -1481,6 +1492,8 @@ async function useSyncLink() {
                     if (campaign && seriesKey !== campaign) return false;
                     if (watched === 'watched' && !ep.watched) return false;
                     if (watched === 'unwatched' && ep.watched) return false;
+                    if (canonFilter === 'canon' && ep.is_canon !== 'TRUE') return false;
+                    if (canonFilter === 'non-canon' && ep.is_canon === 'TRUE') return false;
                     if (search) {
                         const searchableText = [
                             ep.title,
@@ -2033,6 +2046,54 @@ TIPS:
                 return true;
             }
 
+            // Helper: Check if canon episode prerequisites are met
+            function isCanonPrerequisiteMet(episode) {
+                // Non-canon episodes can always be watched
+                if (episode.is_canon !== 'TRUE') return true;
+
+                // No prerequisite needed
+                if (!episode.prerequisite_episode || episode.prerequisite_episode === 'None') return true;
+
+                const prereqId = episode.prerequisite_episode;
+
+                // Check for campaign episode prerequisites (e.g., "C1E115")
+                const campaignMatch = prereqId.match(/^C(\d+)E(\d+)$/);
+                if (campaignMatch) {
+                    const campaignNum = campaignMatch[1];
+                    const episodeNum = parseInt(campaignMatch[2]);
+                    const campaignName = campaignNum === '1' ? 'Campaign One: Vox Machina' :
+                                        campaignNum === '2' ? 'Campaign Two: The Mighty Nein' :
+                                        campaignNum === '3' ? 'Campaign Three: Bells Hells' : null;
+
+                    if (campaignName) {
+                        const prereqEp = allEpisodes.find(ep =>
+                            ep.show_type === 'Main Campaign' &&
+                            ep.campaign === campaignName &&
+                            parseInt(ep.episode_number) === episodeNum
+                        );
+                        return prereqEp && prereqEp.watched;
+                    }
+                }
+
+                // Check for EXU episode prerequisites (e.g., "EXU1", "EXU11")
+                const exuMatch = prereqId.match(/^EXU(\d+)$/);
+                if (exuMatch) {
+                    const exuNum = parseInt(exuMatch[1]);
+                    const prereqEp = allEpisodes.find(ep =>
+                        ep.show_type === 'Miniseries' &&
+                        ep.campaign === 'Exandria Unlimited' &&
+                        parseInt(ep.episode_number) === exuNum
+                    );
+                    return prereqEp && prereqEp.watched;
+                }
+
+                // Check for special episode prerequisites (episode codes like "C2E52a")
+                const prereqEp = allEpisodes.find(ep =>
+                    ep.episode_number === prereqId || ep.episode_id.includes(prereqId)
+                );
+                return prereqEp ? prereqEp.watched : true;
+            }
+
             // Group episodes by series for sequential content
             const bySeries = {};
             unwatched.forEach(ep => {
@@ -2062,6 +2123,12 @@ TIPS:
                     // For sequential content, only recommend the first unwatched episode
                     const firstUnwatched = episodes[0];
 
+                    // Check canon prerequisites first
+                    if (!isCanonPrerequisiteMet(firstUnwatched)) {
+                        // Skip if prerequisites aren't met
+                        return;
+                    }
+
                     // Check if this is the actual next episode (not skipping any)
                     const watchedInSeries = allEpisodes.filter(ep =>
                         ep.show_type === showType &&
@@ -2072,7 +2139,11 @@ TIPS:
                     let reason = '';
                     if (watchedInSeries.length === 0) {
                         // First episode of the series
-                        reason = 'Start a new series!';
+                        if (firstUnwatched.is_canon === 'TRUE' && firstUnwatched.prerequisite_notes) {
+                            reason = `Start a new series! (${firstUnwatched.prerequisite_notes})`;
+                        } else {
+                            reason = 'Start a new series!';
+                        }
                         candidates.push({ episode: firstUnwatched, reason });
                     } else {
                         // Find the highest watched episode number
@@ -2123,6 +2194,12 @@ TIPS:
                 } else if (showType === 'Special') {
                     // Specials - but filter based on prerequisites
                     episodes.forEach(ep => {
+                        // FIRST: Check canon prerequisites for ALL specials
+                        if (!isCanonPrerequisiteMet(ep)) {
+                            // Skip this episode if canon prerequisites aren't met
+                            return;
+                        }
+
                         // Check for Backstage Pass content
                         if (campaign === 'Backstage Pass') {
                             if (isBackstageShowWatched(ep.title)) {
@@ -2154,9 +2231,11 @@ TIPS:
                             return;
                         }
 
-                        // Other specials can be watched anytime
+                        // For canon specials, use prerequisite notes as reason
                         let reason = 'One-shot special - watch anytime!';
-                        if (ep.special_category === 'One-Shot') {
+                        if (ep.is_canon === 'TRUE' && ep.prerequisite_notes) {
+                            reason = `Canon content: ${ep.prerequisite_notes}`;
+                        } else if (ep.special_category === 'One-Shot') {
                             reason = 'Standalone one-shot adventure!';
                         } else if (ep.special_category === 'Interview/Panel') {
                             reason = 'Interview or panel discussion!';
