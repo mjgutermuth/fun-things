@@ -123,11 +123,65 @@ CANON_EPISODES = {
         'prerequisite_notes': 'After EXU Calamity E3'
     },
 
+    # Divergence series (EXU Season 4)
+    'Miniseries|Exandria Unlimited|15|Give and Take': {
+        'is_canon': 'TRUE',
+        'prerequisite_episode': 'EXU14',
+        'prerequisite_notes': 'After EXU Calamity - post-Calamity era'
+    },
+    'Miniseries|Exandria Unlimited|16|Seven of Them': {
+        'is_canon': 'TRUE',
+        'prerequisite_episode': 'EXU15',
+        'prerequisite_notes': 'After EXU Divergence E1'
+    },
+    'Miniseries|Exandria Unlimited|17|Mirror and Key': {
+        'is_canon': 'TRUE',
+        'prerequisite_episode': 'EXU16',
+        'prerequisite_notes': 'After EXU Divergence E2'
+    },
+    'Miniseries|Exandria Unlimited|18|By Heart Alone': {
+        'is_canon': 'TRUE',
+        'prerequisite_episode': 'EXU17',
+        'prerequisite_notes': 'After EXU Divergence E3'
+    },
+
+    # Campaign 3 Canon Specials
+    'Special|Specials|C3E076a|The Mighty Nein Reunion: Echoes of the Solstice': {
+        'is_canon': 'TRUE',
+        'prerequisite_episode': 'C2E141',
+        'prerequisite_notes': 'After Campaign 2 finale (post-Apogee Solstice)'
+    },
+    'Special|Specials|AU1E08a|Tag Team at the Teeth – The Misty Ascent': {
+        'is_canon': 'TRUE',
+        'prerequisite_episode': 'C3E1',
+        'prerequisite_notes': 'Mighty Nein + Bells Hells crossover'
+    },
+    'Special|Specials|AU1E08b|Tag Team at the Teeth – Beyond the Shroud': {
+        'is_canon': 'TRUE',
+        'prerequisite_episode': 'AU1E08a',
+        'prerequisite_notes': 'After Tag Team Part 1'
+    },
+    'Special|Specials|AU1E08d|Oaths & Ash – Indianapolis Live Show 2025': {
+        'is_canon': 'TRUE',
+        'prerequisite_episode': 'C3E1',
+        'prerequisite_notes': 'Bells Hells live show'
+    },
+    'Special|Specials|C4E04b|Jester and Fjord\'s Wedding - Live from Radio City Music Hall': {
+        'is_canon': 'TRUE',
+        'prerequisite_episode': 'C2E141',
+        'prerequisite_notes': 'After Campaign 2 finale'
+    },
+
     # Lore specials
-    'Special|Specials|C2E141c|Exandria: An Intimate History': {
+    'Special|Specials|C2E141f|Exandria: An Intimate History': {
         'is_canon': 'TRUE',
         'prerequisite_episode': 'None',
         'prerequisite_notes': 'World lore - watch anytime'
+    },
+    'Special|Specials|C3E051a|Exandria: An Intimate Appendix - Ruidus and the Gods': {
+        'is_canon': 'TRUE',
+        'prerequisite_episode': 'None',
+        'prerequisite_notes': 'Lore about Ruidus - watch anytime'
     },
 }
 
