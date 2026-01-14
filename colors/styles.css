@@ -64,6 +64,19 @@ button {
     padding: 0 20px;
 }
 
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.retry-button {
+    height: auto;
+    padding: 5px 15px;
+    font-size: 14px;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
 #colorInfoDisplay {
     font-size: 36px;
     margin-bottom: 20px;
