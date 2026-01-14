@@ -3,7 +3,12 @@ function getColorNameByHex(hexColor) {
     const apiUrl = `https://www.thecolorapi.com/id?hex=${hex}`;
 
     fetch(apiUrl)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Color API request failed');
+            }
+            return response.json();
+        })
         .then(data => {
             const colorName = data.name.value;
             const colorDescription = getColorDescription(hexColor, colorName);
@@ -14,18 +19,9 @@ function getColorNameByHex(hexColor) {
             // Change text color based on brightness of hex color
             document.body.style.color = chroma.contrast(hexColor, 'white') > 4.5 ? 'white' : 'black';
         })
-        .catch(error => console.error('Error fetching color name:', error));
-}
-
-function isLight(hexColor) {
-    // Convert hex color to RGB
-    let { r, g, b } = hexToRgb(hexColor);
-
-    // Calculate perceived brightness using YIQ color space
-    let brightness = (r * 299 + g * 587 + b * 114) / 1000;
-
-    // Return true if brightness is greater than 128, indicating a light color
-    return brightness > 128;
+        .catch(() => {
+            document.getElementById('colorInfoDisplay').innerText = 'Error: Could not fetch color information. Please try again.';
+        });
 }
 
 function hexToRgb(hex) {
@@ -45,17 +41,17 @@ function deriveColorName(h, s, l) {
         derivedColor = "black";
     } else if (l > 0.9) {
         derivedColor = "white";
-    } else if (s < 0.15 && l >= 0.1 && l < 0.7) {
+    } else if (s < 0.15 && l >= 0.1 && l <= 0.9) {
         derivedColor = "gray";
     } else {
         if (h >= 0 && h < 20) {
             derivedColor = "red";
         } else if (h >= 20 && h < 47) {
             derivedColor = "orange";
-        } else if (h >= 47 && h < 60) {
+        } else if (h >= 47 && h < 65) {
             derivedColor = "yellow";
-        } else if (h >= 60 && h < 82) {
-            derivedColor = "yellow";
+        } else if (h >= 65 && h < 82) {
+            derivedColor = "lime";
         } else if (h >= 82 && h < 165) {
             derivedColor = "green";
         } else if (h >= 165 && h < 185) {
@@ -71,14 +67,10 @@ function deriveColorName(h, s, l) {
         }
     }
 
-    console.log("Derived color:", derivedColor); // Log the derived color before returning it
-
     return derivedColor;
 }
 
 function determineUndertone(r, g, b, derivedColor) {
-    console.log("Input RGB values:", r, g, b);
-
     // Define undertone rules based on the derived color name
     const undertoneRules = {
         "red": (g > b) ? "warm" : "cool",
@@ -97,14 +89,9 @@ function determineUndertone(r, g, b, derivedColor) {
                   "warm") : "neutral" // Warm if red is dominant, cool if blue is dominant, neutral otherwise
     };
 
-    // Check if the derived color has a specific undertone rule
     if (undertoneRules.hasOwnProperty(derivedColor)) {
-        const undertone = undertoneRules[derivedColor];
-        console.log("Undertone:", undertone);
-        return undertone;
+        return undertoneRules[derivedColor];
     } else {
-        // Default to neutral if no specific undertone rule is defined
-        console.log("Undertone: neutral");
         return "neutral";
     }
 }
@@ -126,10 +113,39 @@ function getColorDescription(hexColor, colorName) {
 }
 
 
+function isValidHex(hex) {
+    const cleanHex = hex.startsWith('#') ? hex.slice(1) : hex;
+    return /^[0-9A-Fa-f]{6}$|^[0-9A-Fa-f]{3}$/.test(cleanHex);
+}
+
 function displayColorDescription() {
-    let hexColor = document.getElementById('hexColorInput').value;
+    let hexColor = document.getElementById('hexColorInput').value.trim();
+    if (!hexColor) {
+        document.getElementById('colorInfoDisplay').innerText = 'Please enter a hex color.';
+        return;
+    }
     if (!hexColor.startsWith('#')) {
         hexColor = `#${hexColor}`;
     }
+    if (!isValidHex(hexColor)) {
+        document.getElementById('colorInfoDisplay').innerText = 'Invalid hex color. Please enter a valid hex (e.g., #FF5733 or FF5733).';
+        return;
+    }
     getColorNameByHex(hexColor);
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const hexInput = document.getElementById('hexColorInput');
+    const colorPicker = document.getElementById('colorPicker');
+
+    hexInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            displayColorDescription();
+        }
+    });
+
+    colorPicker.addEventListener('input', (e) => {
+        hexInput.value = e.target.value;
+        displayColorDescription();
+    });
+});
