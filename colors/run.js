@@ -37,22 +37,23 @@ function hexToRgb(hex) {
 function deriveColorName(h, s, l) {
     let derivedColor = "";
 
-    if (l < 0.1) {
+    if (l < 0.07) {
         derivedColor = "black";
-    } else if (l > 0.9) {
+    } else if (l > 0.97) {
         derivedColor = "white";
-    } else if (s < 0.15 && l >= 0.1 && l <= 0.9) {
+    } else if (s < 0.15) {
         derivedColor = "gray";
     } else {
-        if (h >= 0 && h < 20) {
+        // Check for brown: dark to medium-dark, not too saturated, in the red/orange/yellow hue range
+        if (l < 0.35 && s < 0.55 && ((h >= 0 && h < 50) || h >= 350)) {
+            derivedColor = "brown";
+        } else if (h >= 0 && h < 20) {
             derivedColor = "red";
         } else if (h >= 20 && h < 47) {
             derivedColor = "orange";
         } else if (h >= 47 && h < 65) {
             derivedColor = "yellow";
-        } else if (h >= 65 && h < 82) {
-            derivedColor = "lime";
-        } else if (h >= 82 && h < 165) {
+        } else if (h >= 65 && h < 165) {
             derivedColor = "green";
         } else if (h >= 165 && h < 185) {
             derivedColor = "teal";
@@ -60,7 +61,7 @@ function deriveColorName(h, s, l) {
             derivedColor = "blue";
         } else if (h >= 240 && h < 300) {
             derivedColor = "purple";
-        } else if (h >= 300 && h < 330) {
+        } else if (h >= 300 && h < 350) {
             derivedColor = "pink";
         } else {
             derivedColor = "red";
@@ -76,9 +77,9 @@ function determineUndertone(r, g, b, derivedColor) {
         "red": (g > b) ? "warm" : "cool",
         "orange": "warm",
         "yellow": (b >= 0.4 * g) ? "cool" : "warm",
-        "green": (b > r && b > g) ? "cool" : "warm",
+        "green": (b > 0.4 * g) ? "cool" : "warm",
         "teal": (g > 1.3 * b) ? "warm" : "cool",
-        "blue": (r >= 0.4 * b) ? "warm" : "cool",
+        "blue": (r >= 0.6 * b) ? "warm" : "cool",
         "purple": (b > r) ? "cool" : "warm",
         "pink": (b > r) ? "cool" : "warm",
         "brown": (r > g && r > b) ? "warm" : "cool",
