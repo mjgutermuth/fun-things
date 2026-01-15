@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>fun things, made by meli</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Mono', monospace;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #fef6e4 0%, #fff1f8 50%, #e8f4f8 100%);
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-top: 2rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff6b9d, #a78bfa, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .apps {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 600px) {
+            .apps {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+
+        .app-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .app-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .app-card.pink::before { background: linear-gradient(90deg, #ff6b9d, #ff8fab); }
+        .app-card.teal::before { background: linear-gradient(90deg, #4ecdc4, #45b7aa); }
+        .app-card.purple::before { background: linear-gradient(90deg, #a78bfa, #8b5cf6); }
+        .app-card.orange::before { background: linear-gradient(90deg, #f59e0b, #fb923c); }
+
+        .app-card:hover.pink { border-color: #ff6b9d; }
+        .app-card:hover.teal { border-color: #4ecdc4; }
+        .app-card:hover.purple { border-color: #a78bfa; }
+        .app-card:hover.orange { border-color: #f59e0b; }
+
+        .app-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .app-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #1a1a2e;
+        }
+
+        .app-desc {
+            font-size: 0.85rem;
+            color: #6c757d;
+            line-height: 1.5;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 4rem;
+            padding-bottom: 2rem;
+            color: #9ca3af;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>fun things</h1>
+            <p class="subtitle">made by meli</p>
+        </header>
+
+        <div class="apps">
+            <a href="colors/" class="app-card orange">
+                <div class="app-icon">&#x1F3A8;</div>
+                <div class="app-name">Color Investigator</div>
+                <div class="app-desc">Describe a color using seasonal color language</div>
+            </a>
+
+            <a href="packing/" class="app-card teal">
+                <div class="app-icon">&#x1F9F3;</div>
+                <div class="app-name">Travel Packing Assistant</div>
+                <div class="app-desc">Smart, weather-based packing suggestions for your trips</div>
+            </a>
+
+            <a href="capsule/" class="app-card pink">
+                <div class="app-icon">&#x1F457;</div>
+                <div class="app-name">Capsule Wardrobe Planner</div>
+                <div class="app-desc">Plan and organize a minimal wardrobe, for travel or life</div>
+            </a>
+
+            <a href="cr-tracker/" class="app-card purple">
+                <div class="app-icon">&#x1F3B2;</div>
+                <div class="app-name">Critical Role Tracker</div>
+                <div class="app-desc">Track your progress through Critical Role content</div>
+            </a>
+        </div>
+
+        <footer>
+            a collection of small, potentially useful tools
+        </footer>
+    </div>
+</body>
+</html>
