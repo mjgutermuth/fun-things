@@ -170,7 +170,7 @@ function determineUndertone(r, g, b, derivedColor) {
         "teal": (gNorm > 1.3 * bNorm) ? "warm" : "cool",
         "blue": (rNorm >= 0.6 * bNorm) ? "warm" : "cool",
         "purple": (bNorm > rNorm) ? "cool" : "warm",
-        "pink": (bNorm > rNorm) ? "cool" : "warm",
+        "pink": (bNorm > 0.6 * rNorm) ? "cool" : "warm",
         "brown": (rNorm > gNorm && rNorm > bNorm) ? "warm" : "cool",
         "white": (r > RGB_WHITE_MIN && g > RGB_WHITE_MIN && b > RGB_WHITE_MIN) ?
                   ((r > g && r > b) ? "warm" :
