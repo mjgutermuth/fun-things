@@ -18,3 +18,7 @@ cr-tracker/*.html
 # IDE
 .vscode/
 .idea/
+
+# Beacon scheduler secrets (never commit these!)
+beacon-scheduler/token.json
+beacon-scheduler/credentials.json

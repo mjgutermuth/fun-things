@@ -1,0 +1,33 @@
+name: Beacon Schedule Sync
+
+on:
+  schedule:
+    # Run every Monday at 1pm Pacific (21:00 UTC)
+    - cron: '0 21 * * 1'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  sync-schedule:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 google-auth google-auth-oauthlib google-api-python-client
+
+      - name: Set up Google credentials
+        run: |
+          echo "${{ secrets.GOOGLE_CREDENTIALS }}" | base64 -d > beacon-scheduler/credentials.json
+          echo "${{ secrets.GOOGLE_TOKEN }}" | base64 -d > beacon-scheduler/token.json
+
+      - name: Run scheduler
+        working-directory: beacon-scheduler
+        run: python beacon_scheduler.py
