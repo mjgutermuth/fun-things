@@ -208,24 +208,90 @@ def extract_beacon_content(html, week_date):
         })
 
     # Pattern 8: Previously On...
-    # Matches: "Meet The Characters of Campaign 4 | Ep 1-4 Recap" or similar
-    previously_on_pattern = r'(Meet\s+The\s+Characters\s+of\s+Campaign\s+\d+)\s*\|\s*Ep(?:isode)?s?\s+([\d\-]+)\s+Recap'
-    previously_on_matches = re.finditer(previously_on_pattern, text, re.IGNORECASE)
+    # Matches: "Previously On… | The Soldier's Table" or "Meet The Characters of Campaign 4 | Ep 1-4 Recap"
+    # Arc names typically end with "Table" so we capture up to that
+    previously_on_patterns = [
+        # "Previously On... | Arc Name" - capture arc name ending in Table
+        r'Previously\s+On[…\.]+\s*\|\s*(.+?Table)(?:We|[A-Z])',
+        r'(Meet\s+The\s+Characters\s+of\s+Campaign\s+\d+)\s*\|\s*Ep(?:isode)?s?\s+([\d\-]+)\s+Recap'
+    ]
 
-    for match in previously_on_matches:
-        title_part = match.group(1).strip()
-        episode_range = match.group(2)
-        full_title = f'{title_part} | Ep {episode_range} Recap'
+    for pattern in previously_on_patterns:
+        previously_on_matches = re.finditer(pattern, text, re.IGNORECASE)
+
+        for match in previously_on_matches:
+            if match.lastindex == 2:
+                # "Meet The Characters" format
+                title_part = match.group(1).strip()
+                episode_range = match.group(2)
+                full_title = f'{title_part} | Ep {episode_range} Recap'
+            else:
+                # "Previously On... | Arc Name" format
+                arc_name = match.group(1).strip()
+                full_title = f'Previously On... | {arc_name}'
+                episode_range = ''
+
+            content.append({
+                'week_date': week_date.strftime('%Y-%m-%d'),
+                'show_type': 'Beacon Exclusive',
+                'series': 'Previously On...',
+                'campaign': 'Campaign 4',
+                'episode_number': episode_range,
+                'title': full_title,
+                'release_date': week_date.strftime('%Y-%m-%d'),
+                'notes': 'Campaign 4 recap show'
+            })
+
+    # Pattern 9: Tale Gate (Campaign 4 talkback show)
+    # Matches: "Tale Gate | The Soldier's Table" followed by description text
+    # Arc names typically end with "Table" so we capture up to that, stopping at the next word
+    tale_gate_pattern = r'Tale\s+Gate\s*\|\s*(.+?Table)(?:The\s+gate|[A-Z])'
+    tale_gate_matches = re.finditer(tale_gate_pattern, text, re.IGNORECASE)
+
+    for match in tale_gate_matches:
+        arc_name = match.group(1).strip()
+        full_title = f'Tale Gate | {arc_name}'
 
         content.append({
             'week_date': week_date.strftime('%Y-%m-%d'),
             'show_type': 'Beacon Exclusive',
-            'series': 'Previously On...',
+            'series': 'Tale Gate',
             'campaign': 'Campaign 4',
-            'episode_number': episode_range,
+            'episode_number': '',
             'title': full_title,
             'release_date': week_date.strftime('%Y-%m-%d'),
-            'notes': 'Campaign 4 talkback show'
+            'notes': 'Campaign 4 live talkback show'
+        })
+
+    # Pattern 10: Main Campaign 4 Episodes (for when wiki isn't updated yet)
+    # Matches: "Critical Role | Campaign 4 | Episode 12" or similar
+    c4_episode_pattern = r'Critical\s+Role\s*\|\s*Campaign\s+4\s*\|\s*Episode\s+(\d+)'
+    c4_matches = re.finditer(c4_episode_pattern, text, re.IGNORECASE)
+
+    for match in c4_matches:
+        episode_num = match.group(1)
+
+        # Try to extract episode title from surrounding text
+        # Look for title patterns like "Title: ..." or just text after the episode number
+        context_start = match.end()
+        context_end = min(len(text), match.end() + 500)
+        context = text[context_start:context_end]
+
+        # Try to find a title - look for quoted text or descriptive text
+        title = ''
+        title_match = re.search(r'"([^"]+)"', context)
+        if title_match:
+            title = title_match.group(1)
+
+        content.append({
+            'week_date': week_date.strftime('%Y-%m-%d'),
+            'show_type': 'Main Campaign',
+            'series': 'Campaign Four',
+            'campaign': 'Campaign Four',
+            'episode_number': episode_num,
+            'title': title if title else f'Campaign 4 Episode {episode_num}',
+            'release_date': week_date.strftime('%Y-%m-%d'),
+            'notes': 'Added from Beacon schedule (wiki pending)'
         })
 
     return content
@@ -338,6 +404,64 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
     # Build set of existing episode IDs
     existing_ids = {row['episode_id'] for row in existing_rows if row['episode_id']}
 
+    # Build additional lookup sets for smarter duplicate detection
+    # For Cooldowns: check if we already have a cooldown for that episode number
+    existing_cooldowns = set()
+    existing_fireside_chats = set()
+    existing_weird_kids = set()
+    existing_tale_gates = set()  # Track by arc name
+    existing_previously_on = set()  # Track by arc name
+    existing_c4_episodes = set()  # Track Campaign 4 episodes by number
+    existing_backstage_pass = set()  # Track by event name
+
+    for row in existing_rows:
+        title = row.get('title', '').lower()
+        ep_num = row.get('episode_number', '')
+        campaign = row.get('campaign', '')
+        show_type = row.get('show_type', '')
+
+        # Track Cooldowns by episode number (handles C3x95 vs 95 mismatch)
+        if 'cooldown' in campaign.lower() or 'cooldown' in title:
+            # Extract episode number from various formats
+            match = re.search(r'(?:C\d+[xE])?(\d+)', ep_num)
+            if match:
+                existing_cooldowns.add(match.group(1))
+
+        # Track Fireside Chats by guest name (normalized)
+        if 'fireside' in campaign.lower() or 'fireside' in title:
+            # Extract guest name
+            guest_match = re.search(r'with\s+(\w+)', title, re.IGNORECASE)
+            if guest_match:
+                existing_fireside_chats.add(guest_match.group(1).lower())
+
+        # Track Weird Kids by episode number
+        if 'weird kids' in campaign.lower() or 'weird kids' in title:
+            if ep_num:
+                existing_weird_kids.add(ep_num)
+
+        # Track Tale Gate by arc name
+        if 'tale gate' in campaign.lower() or 'tale gate' in title:
+            arc_match = re.search(r'tale gate\s*\|\s*(.+)', title, re.IGNORECASE)
+            if arc_match:
+                existing_tale_gates.add(arc_match.group(1).strip().lower())
+
+        # Track Previously On... by arc name
+        if 'previously on' in campaign.lower() or 'previously on' in title:
+            arc_match = re.search(r'previously on[…\.]+\s*\|\s*(.+)', title, re.IGNORECASE)
+            if arc_match:
+                existing_previously_on.add(arc_match.group(1).strip().lower())
+
+        # Track Campaign 4 main episodes by episode number
+        if show_type == 'Main Campaign' and ('campaign four' in campaign.lower() or 'campaign 4' in campaign.lower()):
+            if ep_num:
+                existing_c4_episodes.add(ep_num)
+
+        # Track Backstage Pass by event name
+        if 'backstage pass' in campaign.lower() or 'backstage pass' in title:
+            event_match = re.search(r'backstage pass\s*-\s*(.+)', title, re.IGNORECASE)
+            if event_match:
+                existing_backstage_pass.add(event_match.group(1).strip().lower())
+
     # Convert scraped content to main CSV format and check for duplicates
     new_rows = []
     skipped = []
@@ -355,19 +479,83 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
             'The Long Rest': 'Webseries',
             'Inside The Mighty Nein': 'Talk Show',
             'Get Your Sheet Together': 'Webseries',
-            'Previously On...': 'Talk Show'
+            'Previously On...': 'Talk Show',
+            'Tale Gate': 'Talk Show',
+            'Campaign Four': 'Main Campaign'
         }
 
-        show_type = show_type_mapping.get(series_name, 'Webseries')
-        campaign = series_name
+        # Handle Campaign 4 main episodes differently
+        if series_name == 'Campaign Four':
+            show_type = 'Main Campaign'
+            campaign = 'Campaign Four'
+        else:
+            show_type = show_type_mapping.get(series_name, 'Webseries')
+            campaign = series_name
 
         # Generate episode_id
         episode_id = f"{show_type}|{campaign}|{item['episode_number']}|{item['title']}"
 
-        # Skip if already exists
+        # Skip if already exists (exact match)
         if episode_id in existing_ids:
             skipped.append(item['title'])
             continue
+
+        # Smart duplicate detection for specific series
+        ep_num = item['episode_number']
+
+        # Check Cooldowns - skip if we already have a cooldown for this episode
+        if series_name == 'Critical Role Cooldown' and ep_num:
+            if ep_num in existing_cooldowns:
+                skipped.append(f"{item['title']} (cooldown already exists for ep {ep_num})")
+                continue
+
+        # Check Fireside Chats - skip if we already have one with this guest
+        if series_name == 'Fireside Chat':
+            guest_match = re.search(r'with\s+(\w+)', item['title'], re.IGNORECASE)
+            if guest_match:
+                guest_name = guest_match.group(1).lower()
+                if guest_name in existing_fireside_chats:
+                    skipped.append(f"{item['title']} (fireside chat with {guest_name} already exists)")
+                    continue
+
+        # Check Weird Kids - skip if we already have this episode
+        if series_name == 'Weird Kids' and ep_num:
+            if ep_num in existing_weird_kids:
+                skipped.append(f"{item['title']} (weird kids ep {ep_num} already exists)")
+                continue
+
+        # Check Tale Gate - skip if we already have this arc
+        if series_name == 'Tale Gate':
+            arc_match = re.search(r'tale gate\s*\|\s*(.+)', item['title'], re.IGNORECASE)
+            if arc_match:
+                arc_name = arc_match.group(1).strip().lower()
+                if arc_name in existing_tale_gates:
+                    skipped.append(f"{item['title']} (tale gate for {arc_name} already exists)")
+                    continue
+
+        # Check Previously On... - skip if we already have this arc
+        if series_name == 'Previously On...':
+            arc_match = re.search(r'previously on[…\.]+\s*\|\s*(.+)', item['title'], re.IGNORECASE)
+            if arc_match:
+                arc_name = arc_match.group(1).strip().lower()
+                if arc_name in existing_previously_on:
+                    skipped.append(f"{item['title']} (previously on for {arc_name} already exists)")
+                    continue
+
+        # Check Campaign 4 main episodes - skip if wiki already has it
+        if series_name == 'Campaign Four' and ep_num:
+            if ep_num in existing_c4_episodes:
+                skipped.append(f"{item['title']} (C4 episode {ep_num} already exists from wiki)")
+                continue
+
+        # Check Backstage Pass - skip if we already have this event
+        if series_name == 'Backstage Pass':
+            event_match = re.search(r'backstage pass\s*-\s*(.+)', item['title'], re.IGNORECASE)
+            if event_match:
+                event_name = event_match.group(1).strip().lower()
+                if event_name in existing_backstage_pass:
+                    skipped.append(f"{item['title']} (backstage pass for {event_name} already exists)")
+                    continue
 
         # Create new row
         new_row = {
@@ -389,6 +577,30 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
 
         new_rows.append(new_row)
         existing_ids.add(episode_id)
+
+        # Update tracking sets to prevent duplicates within the same scrape
+        if series_name == 'Critical Role Cooldown' and ep_num:
+            existing_cooldowns.add(ep_num)
+        if series_name == 'Fireside Chat':
+            guest_match = re.search(r'with\s+(\w+)', item['title'], re.IGNORECASE)
+            if guest_match:
+                existing_fireside_chats.add(guest_match.group(1).lower())
+        if series_name == 'Weird Kids' and ep_num:
+            existing_weird_kids.add(ep_num)
+        if series_name == 'Tale Gate':
+            arc_match = re.search(r'tale gate\s*\|\s*(.+)', item['title'], re.IGNORECASE)
+            if arc_match:
+                existing_tale_gates.add(arc_match.group(1).strip().lower())
+        if series_name == 'Previously On...':
+            arc_match = re.search(r'previously on[…\.]+\s*\|\s*(.+)', item['title'], re.IGNORECASE)
+            if arc_match:
+                existing_previously_on.add(arc_match.group(1).strip().lower())
+        if series_name == 'Campaign Four' and ep_num:
+            existing_c4_episodes.add(ep_num)
+        if series_name == 'Backstage Pass':
+            event_match = re.search(r'backstage pass\s*-\s*(.+)', item['title'], re.IGNORECASE)
+            if event_match:
+                existing_backstage_pass.add(event_match.group(1).strip().lower())
 
     if skipped:
         print(f"\nSkipped {len(skipped)} existing episodes:")
