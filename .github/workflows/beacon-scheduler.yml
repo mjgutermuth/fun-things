@@ -24,9 +24,24 @@ jobs:
           pip install requests beautifulsoup4 google-auth google-auth-oauthlib google-api-python-client
 
       - name: Set up Google credentials
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          GOOGLE_TOKEN: ${{ secrets.GOOGLE_TOKEN }}
         run: |
-          echo "${{ secrets.GOOGLE_CREDENTIALS }}" | base64 -d > beacon-scheduler/credentials.json
-          echo "${{ secrets.GOOGLE_TOKEN }}" | base64 -d > beacon-scheduler/token.json
+          echo "$GOOGLE_CREDENTIALS" | base64 -d > beacon-scheduler/credentials.json
+          echo "$GOOGLE_TOKEN" | base64 -d > beacon-scheduler/token.json
+
+          # Validate files are not empty
+          if [ ! -s beacon-scheduler/credentials.json ]; then
+            echo "Error: credentials.json is empty - check GOOGLE_CREDENTIALS secret"
+            exit 1
+          fi
+          if [ ! -s beacon-scheduler/token.json ]; then
+            echo "Error: token.json is empty - check GOOGLE_TOKEN secret"
+            exit 1
+          fi
+
+          echo "Google credentials set up successfully"
 
       - name: Run scheduler
         working-directory: beacon-scheduler
