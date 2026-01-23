@@ -265,18 +265,19 @@ def validate_chronological_order(rows):
     """Check that episodes within a series are in chronological order"""
     issues = []
 
-    # Group episodes by show_type and campaign
+    # Group episodes by show_type, campaign, and arc (for seasons)
     series_episodes = {}
     for i, row in enumerate(rows, 1):
         show_type = row.get('show_type', '')
         campaign = row.get('campaign', '')
-        key = (show_type, campaign)
+        arc = row.get('arc', '')  # Include arc/season to handle series with multiple seasons
+        key = (show_type, campaign, arc)
 
         if key not in series_episodes:
             series_episodes[key] = []
         series_episodes[key].append((i, row))
 
-    for (show_type, campaign), episodes in series_episodes.items():
+    for (show_type, campaign, arc), episodes in series_episodes.items():
         # Filter to episodes with valid dates and episode numbers
         dated_episodes = []
         for i, row in episodes:
@@ -303,6 +304,7 @@ def validate_chronological_order(rows):
                     'type': 'chronological_order',
                     'show_type': show_type,
                     'campaign': campaign,
+                    'arc': arc,
                     'title': curr_row.get('title', 'Unknown'),
                     'episode_number': curr_ep,
                     'airdate': curr_row.get('airdate', ''),
