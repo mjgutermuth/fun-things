@@ -249,44 +249,7 @@
             margin-top: 5px;
         }
 
-        /* Combined Time Progress Card */
-        .stat-card-time {
-            padding: 12px 15px;
-        }
-
-        .time-progress-bar {
-            background: rgba(100, 100, 120, 0.3);
-            border-radius: 4px;
-            height: 14px;
-            overflow: hidden;
-            margin-bottom: 8px;
-            position: relative;
-        }
-
-        .time-progress-fill {
-            background: linear-gradient(90deg, var(--beacon-purple), var(--beacon-purple-light));
-            height: 100%;
-            transition: width 0.3s ease;
-            border-radius: 4px 0 0 4px;
-            position: relative;
-        }
-
-        .time-progress-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            animation: shimmer 2s infinite;
-        }
-
-        .time-progress-fill.complete {
-            background: linear-gradient(90deg, var(--watched-green), #68D391);
-            border-radius: 4px;
-        }
-
+        /* Time Progress Labels (used in series breakdown) */
         .time-progress-labels {
             display: flex;
             justify-content: space-between;
@@ -301,11 +264,6 @@
 
         .time-remaining {
             color: var(--gray);
-        }
-
-        .time-progress-fill.complete + .time-progress-labels .time-watched,
-        .stat-card-time.complete .time-watched {
-            color: var(--watched-green);
         }
 
         /* Episode Table */
@@ -939,15 +897,9 @@
                 <div class="stat-number" id="statPercent">0%</div>
                 <div class="stat-label">Progress</div>
             </div>
-            <div class="stat-card stat-card-time" onclick="toggleSeriesProgress('time')" data-view="time">
-                <div class="time-progress-bar">
-                    <div class="time-progress-fill" id="timeProgressFill"></div>
-                </div>
-                <div class="time-progress-labels">
-                    <span class="time-watched" id="statHoursWatched">0h</span>
-                    <span class="time-remaining" id="statHoursRemaining">0h</span>
-                </div>
-                <div class="stat-label">Time Progress</div>
+            <div class="stat-card" onclick="toggleSeriesProgress('time')" data-view="time">
+                <div class="stat-number" id="statHoursWatched">0h</div>
+                <div class="stat-label">Hours Watched</div>
             </div>
         </div>
 
@@ -1813,21 +1765,6 @@ async function useSyncLink() {
             document.getElementById('statRemaining').textContent = remaining;
             document.getElementById('statPercent').textContent = percent + '%';
             document.getElementById('statHoursWatched').textContent = formatHours(watchedMinutes);
-            document.getElementById('statHoursRemaining').textContent = formatHours(remainingMinutes);
-
-            // Update time progress bar
-            const totalMinutes = watchedMinutes + remainingMinutes;
-            const timePercent = totalMinutes > 0 ? (watchedMinutes / totalMinutes) * 100 : 0;
-            const timeProgressFill = document.getElementById('timeProgressFill');
-            const timeCard = document.querySelector('.stat-card-time');
-            timeProgressFill.style.width = timePercent + '%';
-            if (timePercent >= 100) {
-                timeProgressFill.classList.add('complete');
-                timeCard.classList.add('complete');
-            } else {
-                timeProgressFill.classList.remove('complete');
-                timeCard.classList.remove('complete');
-            }
 
             updateSeriesProgress();
         }
