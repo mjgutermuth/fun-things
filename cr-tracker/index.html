@@ -248,7 +248,66 @@
             color: var(--beacon-teal);
             margin-top: 5px;
         }
-        
+
+        /* Combined Time Progress Card */
+        .stat-card-time {
+            padding: 12px 15px;
+        }
+
+        .time-progress-bar {
+            background: rgba(100, 100, 120, 0.3);
+            border-radius: 4px;
+            height: 14px;
+            overflow: hidden;
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        .time-progress-fill {
+            background: linear-gradient(90deg, var(--beacon-purple), var(--beacon-purple-light));
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 4px 0 0 4px;
+            position: relative;
+        }
+
+        .time-progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        .time-progress-fill.complete {
+            background: linear-gradient(90deg, var(--watched-green), #68D391);
+            border-radius: 4px;
+        }
+
+        .time-progress-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'Crimson Pro', serif;
+        }
+
+        .time-watched {
+            color: var(--beacon-purple-light);
+        }
+
+        .time-remaining {
+            color: var(--gray);
+        }
+
+        .time-progress-fill.complete + .time-progress-labels .time-watched,
+        .stat-card-time.complete .time-watched {
+            color: var(--watched-green);
+        }
+
         /* Episode Table */
         .episode-table-container {
             background: rgba(26, 26, 46, 0.8);
@@ -880,13 +939,15 @@
                 <div class="stat-number" id="statPercent">0%</div>
                 <div class="stat-label">Progress</div>
             </div>
-            <div class="stat-card" onclick="toggleSeriesProgress('time-watched')" data-view="time-watched">
-                <div class="stat-number" id="statHoursWatched">0h</div>
-                <div class="stat-label">Hours Watched</div>
-            </div>
-            <div class="stat-card" onclick="toggleSeriesProgress('time-remaining')" data-view="time-remaining">
-                <div class="stat-number" id="statHoursRemaining">0h</div>
-                <div class="stat-label">Hours Remaining</div>
+            <div class="stat-card stat-card-time" onclick="toggleSeriesProgress('time')" data-view="time">
+                <div class="time-progress-bar">
+                    <div class="time-progress-fill" id="timeProgressFill"></div>
+                </div>
+                <div class="time-progress-labels">
+                    <span class="time-watched" id="statHoursWatched">0h</span>
+                    <span class="time-remaining" id="statHoursRemaining">0h</span>
+                </div>
+                <div class="stat-label">Time Progress</div>
             </div>
         </div>
 
@@ -1754,6 +1815,20 @@ async function useSyncLink() {
             document.getElementById('statHoursWatched').textContent = formatHours(watchedMinutes);
             document.getElementById('statHoursRemaining').textContent = formatHours(remainingMinutes);
 
+            // Update time progress bar
+            const totalMinutes = watchedMinutes + remainingMinutes;
+            const timePercent = totalMinutes > 0 ? (watchedMinutes / totalMinutes) * 100 : 0;
+            const timeProgressFill = document.getElementById('timeProgressFill');
+            const timeCard = document.querySelector('.stat-card-time');
+            timeProgressFill.style.width = timePercent + '%';
+            if (timePercent >= 100) {
+                timeProgressFill.classList.add('complete');
+                timeCard.classList.add('complete');
+            } else {
+                timeProgressFill.classList.remove('complete');
+                timeCard.classList.remove('complete');
+            }
+
             updateSeriesProgress();
         }
 
@@ -1794,8 +1869,7 @@ async function useSyncLink() {
             const titles = {
                 'collapsed': 'Next Episodes to Watch',
                 'expanded': 'Series Progress',
-                'time-watched': 'Hours Watched by Series',
-                'time-remaining': 'Hours Remaining by Series'
+                'time': 'Time Progress by Series'
             };
             progressTitle.textContent = titles[currentProgressView] || 'Series Progress';
 
@@ -1850,7 +1924,7 @@ async function useSyncLink() {
             // Render progress bars
             const fragment = document.createDocumentFragment();
             const isCollapsed = currentProgressView === 'collapsed';
-            const isTimeView = currentProgressView.startsWith('time-');
+            const isTimeView = currentProgressView === 'time';
 
             // Set list classes
             seriesList.className = 'progress-list';
@@ -1867,28 +1941,21 @@ async function useSyncLink() {
                 // Calculate time stats if needed
                 let timeStats = '';
                 let timePercent = 0;
+                let watchedMinutes = 0;
+                let remainingMinutes = 0;
                 if (isTimeView) {
-                    let targetMinutes = 0;
-                    let totalMinutes = 0;
-
                     data.episodes.forEach(ep => {
                         const epMinutes = parseRuntimeToMinutes(ep.runtime);
-                        totalMinutes += epMinutes;
-                        if (currentProgressView === 'time-watched' && ep.watched) {
-                            targetMinutes += epMinutes;
-                        } else if (currentProgressView === 'time-remaining' && !ep.watched) {
-                            targetMinutes += epMinutes;
+                        if (ep.watched) {
+                            watchedMinutes += epMinutes;
+                        } else {
+                            remainingMinutes += epMinutes;
                         }
                     });
 
-                    timeStats = formatHours(targetMinutes);
-                    // For time-watched, show percentage of total watched
-                    // For time-remaining, show percentage of total remaining
-                    if (currentProgressView === 'time-watched') {
-                        timePercent = totalMinutes > 0 ? Math.round((targetMinutes / totalMinutes) * 100) : 0;
-                    } else {
-                        timePercent = totalMinutes > 0 ? Math.round((targetMinutes / totalMinutes) * 100) : 0;
-                    }
+                    const totalMinutes = watchedMinutes + remainingMinutes;
+                    timePercent = totalMinutes > 0 ? Math.round((watchedMinutes / totalMinutes) * 100) : 0;
+                    timeStats = `${formatHours(watchedMinutes)} / ${formatHours(remainingMinutes)}`;
                 }
 
                 // Find next unwatched episode for collapsed view
@@ -1908,22 +1975,36 @@ async function useSyncLink() {
                 const item = document.createElement('div');
                 item.className = `progress-item${isCollapsed ? ' compact' : ''}`;
 
-                const statsDisplay = isTimeView
-                    ? timeStats
-                    : `${watched}/${total} (${percent}%)`;
-
                 const barPercent = isTimeView ? timePercent : percent;
 
-                item.innerHTML = `
-                    <div class="progress-header${isCollapsed ? ' compact' : ''}">
-                        <span class="progress-series-name">${data.name}</span>
-                        <span class="progress-stats">${statsDisplay}</span>
-                    </div>
-                    <div class="progress-bar-container${isCollapsed ? ' compact' : ''}">
-                        <div class="progress-bar-fill ${barPercent === 100 ? 'complete' : ''}" style="width: ${barPercent}%"></div>
-                    </div>
-                    ${nextEpisode}
-                `;
+                if (isTimeView) {
+                    // Time view: show stacked bar with watched/remaining labels
+                    item.innerHTML = `
+                        <div class="progress-header">
+                            <span class="progress-series-name">${data.name}</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill ${barPercent === 100 ? 'complete' : ''}" style="width: ${barPercent}%"></div>
+                        </div>
+                        <div class="time-progress-labels" style="font-size: 0.75rem; margin-top: 4px;">
+                            <span class="time-watched">${formatHours(watchedMinutes)}</span>
+                            <span class="time-remaining">${formatHours(remainingMinutes)}</span>
+                        </div>
+                    `;
+                } else {
+                    // Episode count view
+                    const statsDisplay = `${watched}/${total} (${percent}%)`;
+                    item.innerHTML = `
+                        <div class="progress-header${isCollapsed ? ' compact' : ''}">
+                            <span class="progress-series-name">${data.name}</span>
+                            <span class="progress-stats">${statsDisplay}</span>
+                        </div>
+                        <div class="progress-bar-container${isCollapsed ? ' compact' : ''}">
+                            <div class="progress-bar-fill ${barPercent === 100 ? 'complete' : ''}" style="width: ${barPercent}%"></div>
+                        </div>
+                        ${nextEpisode}
+                    `;
+                }
 
                 fragment.appendChild(item);
             });
