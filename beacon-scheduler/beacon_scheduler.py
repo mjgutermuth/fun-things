@@ -20,30 +20,6 @@ from googleapiclient.errors import HttpError
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
-def get_this_weeks_monday_url() -> str:
-    """Generate the Beacon.tv schedule URL for this week's Monday (most recent Monday)"""
-    today = datetime.now()
-    
-    # Calculate days since last Monday (0=Monday, 6=Sunday)
-    days_since_monday = today.weekday()  # Monday is 0
-    
-    # Get this week's Monday
-    this_monday = today - timedelta(days=days_since_monday)
-    
-    # Format: "january-5th-2025"
-    month = this_monday.strftime("%B").lower()
-    day = this_monday.day
-    year = this_monday.year
-    
-    # Add ordinal suffix (st, nd, rd, th)
-    if 10 <= day % 100 <= 20:
-        suffix = 'th'
-    else:
-        suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
-    
-    url = f"https://beacon.tv/content/programming-schedule-week-of-{month}-{day}{suffix}-{year}"
-    return url, this_monday
-
 def fetch_schedule(url: str) -> tuple:
     """Fetch the HTML from Beacon.tv, handling URL format variations
 
@@ -206,14 +182,14 @@ def parse_event_text(series: str, text: str) -> Dict | None:
         'raw_text': text
     }
 
-def get_calendar_service():
-    """Authenticate and return Google Calendar service"""
+def get_credentials():
+    """Authenticate and return credentials for Google APIs"""
     creds = None
-    
+
     # The file token.json stores the user's access and refresh tokens
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    
+
     # If there are no (valid) credentials available, let the user log in
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
@@ -222,11 +198,15 @@ def get_calendar_service():
             flow = InstalledAppFlow.from_client_secrets_file(
                 'credentials.json', SCOPES)
             creds = flow.run_local_server(port=0)
-        
+
         # Save the credentials for the next run
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
-    
+
+    return creds
+
+def get_calendar_service(creds):
+    """Return Google Calendar service"""
     return build('calendar', 'v3', credentials=creds)
 
 def find_beacon_calendar(service):
@@ -378,12 +358,13 @@ def main():
     
     # Authenticate with Google Calendar
     print("Authenticating with Google Calendar...")
-    service = get_calendar_service()
-    
+    creds = get_credentials()
+    calendar_service = get_calendar_service(creds)
+
     # Find the Beacon Schedule calendar
     print("Finding 'Beacon Schedule' calendar...")
-    calendar_id = find_beacon_calendar(service)
-    
+    calendar_id = find_beacon_calendar(calendar_service)
+
     if not calendar_id:
         print("\n❌ ERROR: Could not find 'Beacon Schedule' calendar!")
         print("Please create it manually in Google Calendar first:")
@@ -392,22 +373,22 @@ def main():
         print("  3. Create new calendar named 'Beacon Schedule'")
         print("  4. Set timezone to Pacific Time")
         return
-    
+
     print(f"Found calendar! ID: {calendar_id}\n")
-    
-    # Create events
+
+    # Create calendar events
     print("Creating calendar events...\n")
     created_count = 0
     skipped_count = 0
-    
+
     for event in events:
-        result = create_calendar_event(service, calendar_id, event, actual_year)
+        result = create_calendar_event(calendar_service, calendar_id, event, actual_year)
         if result:
             created_count += 1
         else:
             skipped_count += 1
         print()
-    
+
     print(f"✓ Done! Created {created_count} events, skipped {skipped_count} duplicates")
 
 if __name__ == "__main__":
