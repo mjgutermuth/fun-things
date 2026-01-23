@@ -7,21 +7,68 @@ and merge them into the main CSV
 import csv
 import re
 import sys
+import time
 from datetime import datetime
 from bs4 import BeautifulSoup
-import requests
+
+# Try Playwright first, fall back to requests
+USE_PLAYWRIGHT = True
+try:
+    from playwright.sync_api import sync_playwright
+except ImportError:
+    USE_PLAYWRIGHT = False
+    import requests
 
 
 def fetch_episode_list():
     """Fetch the episode list page from the CR wiki"""
     url = "https://criticalrole.fandom.com/wiki/List_of_episodes"
+    print(f"Fetching {url}...")
+
+    if USE_PLAYWRIGHT:
+        return fetch_with_playwright(url)
+    else:
+        return fetch_with_requests(url)
+
+
+def fetch_with_playwright(url):
+    """Use Playwright with headless Chromium to fetch the page (bypasses Cloudflare)"""
+    print("Using Playwright to bypass Cloudflare...")
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context(
+            user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+        )
+        page = context.new_page()
+
+        try:
+            # Use domcontentloaded instead of networkidle (Fandom has many async requests)
+            page.goto(url, wait_until='domcontentloaded', timeout=60000)
+
+            # Wait for wikitable to appear (indicates page content loaded)
+            print("Waiting for page content...")
+            page.wait_for_selector('.wikitable', timeout=45000)
+
+            # Short additional wait for any remaining content
+            time.sleep(1)
+
+            html = page.content()
+            print(f"Successfully fetched {len(html)} characters")
+            return html
+        finally:
+            browser.close()
+
+
+def fetch_with_requests(url):
+    """Fallback to requests (may fail with Cloudflare)"""
+    print("Playwright not available, using requests (may fail with Cloudflare)...")
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     }
 
-    print(f"Fetching {url}...")
     response = requests.get(url, headers=headers, timeout=30)
     response.raise_for_status()
     return response.text
