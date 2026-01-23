@@ -230,6 +230,134 @@ def find_missing_runtimes(rows):
     return issues
 
 
+def validate_stale_forthcoming(rows):
+    """Check for episodes marked as forthcoming but with past airdates"""
+    issues = []
+    today = datetime.now().date()
+
+    for i, row in enumerate(rows, 1):
+        airdate = row.get('airdate', '').strip()
+        notes = row.get('notes', '').lower()
+
+        # Check if notes suggest future content
+        future_indicators = ['forthcoming', 'available soon', 'coming soon', 'tba', 'tbd']
+        has_future_note = any(indicator in notes for indicator in future_indicators)
+
+        if has_future_note and airdate and airdate != 'Forthcoming':
+            try:
+                ep_date = datetime.strptime(airdate, '%Y-%m-%d').date()
+                if ep_date < today:
+                    issues.append({
+                        'row': i,
+                        'type': 'stale_forthcoming',
+                        'title': row.get('title', 'Unknown'),
+                        'airdate': airdate,
+                        'notes': row.get('notes', ''),
+                        'message': f"Airdate {airdate} is in the past but notes say '{row.get('notes', '')}'"
+                    })
+            except ValueError:
+                pass
+
+    return issues
+
+
+def validate_chronological_order(rows):
+    """Check that episodes within a series are in chronological order"""
+    issues = []
+
+    # Group episodes by show_type and campaign
+    series_episodes = {}
+    for i, row in enumerate(rows, 1):
+        show_type = row.get('show_type', '')
+        campaign = row.get('campaign', '')
+        key = (show_type, campaign)
+
+        if key not in series_episodes:
+            series_episodes[key] = []
+        series_episodes[key].append((i, row))
+
+    for (show_type, campaign), episodes in series_episodes.items():
+        # Filter to episodes with valid dates and episode numbers
+        dated_episodes = []
+        for i, row in episodes:
+            airdate = row.get('airdate', '').strip()
+            ep_num = row.get('episode_number', '').strip()
+            if airdate and airdate != 'Forthcoming' and ep_num:
+                try:
+                    # Handle numeric episode numbers
+                    if ep_num.isdigit():
+                        ep_date = datetime.strptime(airdate, '%Y-%m-%d')
+                        dated_episodes.append((i, int(ep_num), ep_date, row))
+                except ValueError:
+                    pass
+
+        # Sort by episode number and check dates are increasing
+        dated_episodes.sort(key=lambda x: x[1])
+        for j in range(1, len(dated_episodes)):
+            prev_row_num, prev_ep, prev_date, prev_row = dated_episodes[j - 1]
+            curr_row_num, curr_ep, curr_date, curr_row = dated_episodes[j]
+
+            if curr_date < prev_date:
+                issues.append({
+                    'row': curr_row_num,
+                    'type': 'chronological_order',
+                    'show_type': show_type,
+                    'campaign': campaign,
+                    'title': curr_row.get('title', 'Unknown'),
+                    'episode_number': curr_ep,
+                    'airdate': curr_row.get('airdate', ''),
+                    'prev_episode': prev_ep,
+                    'prev_airdate': prev_row.get('airdate', ''),
+                    'message': f"Episode {curr_ep} ({curr_row.get('airdate')}) airs before episode {prev_ep} ({prev_row.get('airdate')})"
+                })
+
+    return issues
+
+
+def validate_placeholder_titles(rows):
+    """Check for placeholder-looking titles on episodes with past airdates"""
+    issues = []
+    today = datetime.now().date()
+
+    # Patterns that suggest placeholder titles
+    placeholder_patterns = [
+        re.compile(r'^Campaign \d+ Episode \d+$', re.IGNORECASE),
+        re.compile(r'^C\d+E\d+$', re.IGNORECASE),
+        re.compile(r'^Episode \d+$', re.IGNORECASE),
+        re.compile(r'^TBA$', re.IGNORECASE),
+        re.compile(r'^TBD$', re.IGNORECASE),
+        re.compile(r'^Untitled', re.IGNORECASE),
+        re.compile(r'Cooldown$'),  # Just "Cooldown" without episode name
+    ]
+
+    for i, row in enumerate(rows, 1):
+        title = row.get('title', '').strip()
+        airdate = row.get('airdate', '').strip()
+
+        if not title or not airdate or airdate == 'Forthcoming':
+            continue
+
+        try:
+            ep_date = datetime.strptime(airdate, '%Y-%m-%d').date()
+            if ep_date >= today:
+                continue  # Future episodes can have placeholders
+
+            for pattern in placeholder_patterns:
+                if pattern.match(title):
+                    issues.append({
+                        'row': i,
+                        'type': 'placeholder_title',
+                        'title': title,
+                        'airdate': airdate,
+                        'message': f"Placeholder title '{title}' on past episode (aired {airdate})"
+                    })
+                    break
+        except ValueError:
+            pass
+
+    return issues
+
+
 def generate_report(all_issues):
     """Generate a summary report of all issues"""
     print("=" * 80)
@@ -289,10 +417,15 @@ def main():
     all_issues.extend(find_missing_vod_urls(rows))
     all_issues.extend(find_missing_runtimes(rows))
 
+    # Date accuracy checks
+    all_issues.extend(validate_stale_forthcoming(rows))
+    all_issues.extend(validate_chronological_order(rows))
+    all_issues.extend(validate_placeholder_titles(rows))
+
     generate_report(all_issues)
 
     # Return exit code based on critical issues
-    critical_types = ['duplicate', 'invalid_date', 'missing_field']
+    critical_types = ['duplicate', 'invalid_date', 'missing_field', 'stale_forthcoming', 'placeholder_title']
     critical_issues = [i for i in all_issues if i['type'] in critical_types]
 
     return 1 if critical_issues else 0
