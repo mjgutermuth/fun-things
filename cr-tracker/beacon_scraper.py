@@ -7,9 +7,75 @@ import sys
 import re
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
-import requests
 import time
 import csv
+
+# Try Playwright first, fall back to requests
+USE_PLAYWRIGHT = True
+try:
+    from playwright.sync_api import sync_playwright
+except ImportError:
+    USE_PLAYWRIGHT = False
+    import requests
+
+
+def fetch_url_with_retry(url, max_retries=3, timeout=30):
+    """
+    Fetch a URL with retry logic. Uses Playwright if available, otherwise requests.
+    Returns (html_content, success_bool)
+    """
+    for attempt in range(max_retries):
+        try:
+            if USE_PLAYWRIGHT:
+                html = fetch_with_playwright(url, timeout)
+            else:
+                html = fetch_with_requests(url, timeout)
+            return html, True
+        except Exception as e:
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt  # Exponential backoff: 1, 2, 4 seconds
+                print(f"    Retry {attempt + 1}/{max_retries} after {wait_time}s: {e}")
+                time.sleep(wait_time)
+            else:
+                return None, False
+    return None, False
+
+
+def fetch_with_playwright(url, timeout=30):
+    """Use Playwright with headless Chromium to fetch the page"""
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context(
+            user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+        )
+        page = context.new_page()
+
+        try:
+            response = page.goto(url, wait_until='domcontentloaded', timeout=timeout * 1000)
+            if response and response.status == 404:
+                raise Exception("404 Not Found")
+            # Wait a moment for dynamic content
+            time.sleep(0.5)
+            return page.content()
+        finally:
+            browser.close()
+
+
+def fetch_with_requests(url, timeout=30):
+    """Fallback to requests (may fail with Cloudflare)"""
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1'
+    }
+    response = requests.get(url, headers=headers, timeout=timeout)
+    if response.status_code == 404:
+        raise Exception("404 Not Found")
+    response.raise_for_status()
+    return response.text
 
 def generate_schedule_urls(start_date, end_date):
     """
@@ -302,22 +368,13 @@ def scrape_beacon_exclusives(start_date_str, end_date_str=None):
     """
     start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
     end_date = datetime.strptime(end_date_str, '%Y-%m-%d') if end_date_str else datetime.now()
-    
+
     print(f"Generating schedule URLs from {start_date.date()} to {end_date.date()}...")
+    print(f"Using {'Playwright' if USE_PLAYWRIGHT else 'requests'} for fetching\n")
     urls = generate_schedule_urls(start_date, end_date)
     print(f"Found {len(urls)} weekly schedules to check (both critrole.com and beacon.tv)\n")
 
     all_content = []
-
-    # Use proper headers to avoid being blocked
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1'
-    }
 
     for week_date, url, source in urls:
         # Try both URL formats - with and without ordinal suffix
@@ -331,28 +388,22 @@ def scrape_beacon_exclusives(start_date_str, end_date_str=None):
 
             print(f"Fetching {week_date.strftime('%Y-%m-%d')} [{source}]: {attempt_url}")
 
-            try:
-                response = requests.get(attempt_url, headers=headers, timeout=10)
+            html, fetch_success = fetch_url_with_retry(attempt_url, max_retries=2, timeout=15)
 
-                if response.status_code == 200:
-                    content = extract_beacon_content(response.text, week_date)
-                    if content:
-                        print(f"  ✓ Found {len(content)} Beacon-exclusive items")
-                        all_content.extend(content)
-                    else:
-                        print(f"  - No Beacon content found")
-                    success = True
-                elif response.status_code == 404:
-                    print(f"  ✗ HTTP 404 (trying alternate URL format...)")
+            if fetch_success and html:
+                content = extract_beacon_content(html, week_date)
+                if content:
+                    print(f"  ✓ Found {len(content)} Beacon-exclusive items")
+                    all_content.extend(content)
                 else:
-                    print(f"  ✗ HTTP {response.status_code}")
+                    print(f"  - No Beacon content found")
+                success = True
+            else:
+                print(f"  ✗ Failed to fetch (trying alternate URL format...)")
 
-            except Exception as e:
-                print(f"  ✗ Error: {e}")
+        # Be nice to the server
+        time.sleep(1)
 
-        # Be nice to the server - wait longer between requests
-        time.sleep(2)
-    
     return all_content
 
 def save_to_csv(content, filename='beacon_exclusives.csv'):

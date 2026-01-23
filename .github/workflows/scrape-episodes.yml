@@ -23,7 +23,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install beautifulsoup4 requests
+          pip install beautifulsoup4 requests playwright
+          playwright install chromium --with-deps
 
       - name: Run Wiki scraper (main campaign episodes)
         run: |
