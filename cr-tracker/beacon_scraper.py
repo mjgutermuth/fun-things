@@ -433,6 +433,64 @@ def save_to_csv(content, filename='beacon_exclusives.csv'):
     for series, count in sorted(series_counts.items()):
         print(f"  {series}: {count}")
 
+def validate_title(title, series_name):
+    """
+    Validate that a title is complete and well-formed.
+    Returns (is_valid, reason) tuple.
+    """
+    if not title or len(title) < 5:
+        return False, "Title too short"
+
+    # Check for truncated titles (ending mid-word or with incomplete phrases)
+    truncated_patterns = [
+        r'\bwith\s+\w{1,3}$',  # "with our", "with the" - incomplete
+        r'\bthe\s*$',  # ends with "the"
+        r'\band\s*$',  # ends with "and"
+        r'\bof\s*$',  # ends with "of"
+    ]
+    for pattern in truncated_patterns:
+        if re.search(pattern, title, re.IGNORECASE):
+            return False, f"Title appears truncated: '{title}'"
+
+    # Check for generic/placeholder titles that shouldn't be added
+    if series_name == 'Backstage Pass' and title == 'Backstage Pass - Live Show':
+        return False, "Generic backstage pass entry without specific event"
+
+    return True, None
+
+
+def validate_episode_number(ep_num, series_name, existing_episodes):
+    """
+    Validate that an episode number is reasonable.
+    Returns (is_valid, reason) tuple.
+    """
+    if not ep_num:
+        return True, None  # Empty episode numbers are OK for some series
+
+    try:
+        num = int(ep_num)
+    except ValueError:
+        return True, None  # Non-numeric episode numbers are OK (e.g., "1-4")
+
+    # For Weird Kids, check for unreasonable jumps
+    if series_name == 'Weird Kids' and existing_episodes:
+        max_existing = max(int(e) for e in existing_episodes if e.isdigit())
+        if num > max_existing + 5:  # Allow some gap but not huge jumps
+            return False, f"Episode {num} is too far ahead of max existing ({max_existing})"
+
+    return True, None
+
+
+def extract_arc_name(title):
+    """
+    Extract the arc/episode name from titles with pipe separators.
+    Works for "Previously On... | Arc Name" and "Tale Gate | Arc Name" formats.
+    """
+    if '|' in title:
+        return title.split('|', 1)[1].strip().lower()
+    return title.lower()
+
+
 def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.csv'):
     """
     Merge scraped Beacon content into the main episodes CSV
@@ -490,17 +548,17 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
             if ep_num:
                 existing_weird_kids.add(ep_num)
 
-        # Track Tale Gate by arc name
+        # Track Tale Gate by arc name (use simple pipe split for robustness)
         if 'tale gate' in campaign.lower() or 'tale gate' in title:
-            arc_match = re.search(r'tale gate\s*\|\s*(.+)', title, re.IGNORECASE)
-            if arc_match:
-                existing_tale_gates.add(arc_match.group(1).strip().lower())
+            arc_name = extract_arc_name(title)
+            if arc_name and arc_name != title.lower():  # Only add if we extracted something
+                existing_tale_gates.add(arc_name)
 
-        # Track Previously On... by arc name
+        # Track Previously On... by arc name (use simple pipe split for robustness)
         if 'previously on' in campaign.lower() or 'previously on' in title:
-            arc_match = re.search(r'previously on[…\.]+\s*\|\s*(.+)', title, re.IGNORECASE)
-            if arc_match:
-                existing_previously_on.add(arc_match.group(1).strip().lower())
+            arc_name = extract_arc_name(title)
+            if arc_name and arc_name != title.lower():  # Only add if we extracted something
+                existing_previously_on.add(arc_name)
 
         # Track Campaign 4 main episodes by episode number
         if show_type == 'Main Campaign' and ('campaign four' in campaign.lower() or 'campaign 4' in campaign.lower()):
@@ -551,8 +609,20 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
             skipped.append(item['title'])
             continue
 
+        # Validate title - skip truncated or malformed titles
+        title_valid, title_reason = validate_title(item['title'], series_name)
+        if not title_valid:
+            skipped.append(f"{item['title']} ({title_reason})")
+            continue
+
         # Smart duplicate detection for specific series
         ep_num = item['episode_number']
+
+        # Validate episode number - skip unreasonable episode numbers
+        ep_valid, ep_reason = validate_episode_number(ep_num, series_name, existing_weird_kids)
+        if not ep_valid:
+            skipped.append(f"{item['title']} ({ep_reason})")
+            continue
 
         # Check Cooldowns - skip if we already have a cooldown for this episode
         if series_name == 'Critical Role Cooldown' and ep_num:
@@ -577,21 +647,17 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
 
         # Check Tale Gate - skip if we already have this arc
         if series_name == 'Tale Gate':
-            arc_match = re.search(r'tale gate\s*\|\s*(.+)', item['title'], re.IGNORECASE)
-            if arc_match:
-                arc_name = arc_match.group(1).strip().lower()
-                if arc_name in existing_tale_gates:
-                    skipped.append(f"{item['title']} (tale gate for {arc_name} already exists)")
-                    continue
+            arc_name = extract_arc_name(item['title'])
+            if arc_name in existing_tale_gates:
+                skipped.append(f"{item['title']} (tale gate for {arc_name} already exists)")
+                continue
 
         # Check Previously On... - skip if we already have this arc
         if series_name == 'Previously On...':
-            arc_match = re.search(r'previously on[…\.]+\s*\|\s*(.+)', item['title'], re.IGNORECASE)
-            if arc_match:
-                arc_name = arc_match.group(1).strip().lower()
-                if arc_name in existing_previously_on:
-                    skipped.append(f"{item['title']} (previously on for {arc_name} already exists)")
-                    continue
+            arc_name = extract_arc_name(item['title'])
+            if arc_name in existing_previously_on:
+                skipped.append(f"{item['title']} (previously on for {arc_name} already exists)")
+                continue
 
         # Check Campaign 4 main episodes - skip if wiki already has it
         if series_name == 'Campaign Four' and ep_num:
@@ -639,13 +705,11 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
         if series_name == 'Weird Kids' and ep_num:
             existing_weird_kids.add(ep_num)
         if series_name == 'Tale Gate':
-            arc_match = re.search(r'tale gate\s*\|\s*(.+)', item['title'], re.IGNORECASE)
-            if arc_match:
-                existing_tale_gates.add(arc_match.group(1).strip().lower())
+            arc_name = extract_arc_name(item['title'])
+            existing_tale_gates.add(arc_name)
         if series_name == 'Previously On...':
-            arc_match = re.search(r'previously on[…\.]+\s*\|\s*(.+)', item['title'], re.IGNORECASE)
-            if arc_match:
-                existing_previously_on.add(arc_match.group(1).strip().lower())
+            arc_name = extract_arc_name(item['title'])
+            existing_previously_on.add(arc_name)
         if series_name == 'Campaign Four' and ep_num:
             existing_c4_episodes.add(ep_num)
         if series_name == 'Backstage Pass':
