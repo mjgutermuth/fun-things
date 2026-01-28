@@ -349,6 +349,9 @@ def extract_beacon_content(html, week_date):
         if title_match:
             title = title_match.group(1)
 
+        # Campaign 4 airs on Thursdays (3 days after Monday schedule date)
+        thursday_date = week_date + timedelta(days=3)
+
         content.append({
             'week_date': week_date.strftime('%Y-%m-%d'),
             'show_type': 'Main Campaign',
@@ -356,7 +359,7 @@ def extract_beacon_content(html, week_date):
             'campaign': 'Campaign Four',
             'episode_number': episode_num,
             'title': title if title else f'Campaign 4 Episode {episode_num}',
-            'release_date': week_date.strftime('%Y-%m-%d'),
+            'release_date': thursday_date.strftime('%Y-%m-%d'),
             'notes': 'Added from Beacon schedule (wiki pending)'
         })
 
