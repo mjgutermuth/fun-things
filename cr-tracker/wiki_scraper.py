@@ -264,14 +264,19 @@ def merge_into_main_csv(new_episodes, main_csv='cr_episodes_series_airdates.csv'
         return 0
 
     # Build lookup of existing main campaign episodes by (campaign, episode_number)
-    existing_episodes = set()
-    for row in existing_rows:
+    existing_episodes = {}
+    for i, row in enumerate(existing_rows):
         if row.get('show_type') == 'Main Campaign':
             key = (row.get('campaign', ''), row.get('episode_number', ''))
-            existing_episodes.add(key)
+            existing_episodes[key] = i
 
-    # Find new episodes
+    def is_placeholder_title(title):
+        """Check if title is a placeholder like 'Campaign 4 Episode 13'"""
+        return bool(re.match(r'^Campaign \d+ Episode \d+$', title))
+
+    # Find new episodes and update placeholders
     added = []
+    updated = []
     for ep in new_episodes:
         key = (ep['campaign'], ep['episode_number'])
         if key not in existing_episodes:
@@ -299,13 +304,38 @@ def merge_into_main_csv(new_episodes, main_csv='cr_episodes_series_airdates.csv'
             }
 
             existing_rows.append(new_row)
-            existing_episodes.add(key)
+            existing_episodes[key] = len(existing_rows) - 1
             added.append(ep)
             print(f"  + {ep['campaign']} E{ep['episode_number']}: {ep['title']}")
+        else:
+            # Check if existing episode has a placeholder title that should be updated
+            idx = existing_episodes[key]
+            existing_row = existing_rows[idx]
+            existing_title = existing_row.get('title', '')
+            new_title = ep['title']
 
-    if not added:
-        print("\nNo new main campaign episodes to add")
+            if is_placeholder_title(existing_title) and not is_placeholder_title(new_title):
+                # Update the title and other fields from wiki
+                existing_row['title'] = new_title
+                existing_row['episode_id'] = f"Main Campaign|{ep['campaign']}|{ep['episode_number']}|{new_title}"
+                if ep.get('wiki_url') and not existing_row.get('wiki_url'):
+                    existing_row['wiki_url'] = ep['wiki_url']
+                if ep.get('arc') and not existing_row.get('arc'):
+                    existing_row['arc'] = ep['arc']
+                if ep.get('runtime') and not existing_row.get('runtime'):
+                    existing_row['runtime'] = ep['runtime']
+                # Remove placeholder note if present
+                if 'wiki pending' in existing_row.get('notes', '').lower():
+                    existing_row['notes'] = ''
+                updated.append(ep)
+                print(f"  ~ {ep['campaign']} E{ep['episode_number']}: {existing_title} -> {new_title}")
+
+    if not added and not updated:
+        print("\nNo new main campaign episodes to add or update")
         return 0
+
+    if updated:
+        print(f"\n✓ Updated {len(updated)} episode(s) with real titles")
 
     # Sort by airdate
     existing_rows.sort(key=lambda x: x.get('airdate', '') or '9999-99-99')
@@ -316,8 +346,9 @@ def merge_into_main_csv(new_episodes, main_csv='cr_episodes_series_airdates.csv'
         writer.writeheader()
         writer.writerows(existing_rows)
 
-    print(f"\n✓ Added {len(added)} new main campaign episode(s)")
-    return len(added)
+    if added:
+        print(f"\n✓ Added {len(added)} new main campaign episode(s)")
+    return len(added) + len(updated)
 
 
 def main():
@@ -353,9 +384,9 @@ def main():
     new_count = merge_into_main_csv(episodes)
 
     if new_count > 0:
-        print(f"\n✓ Successfully added {new_count} new episode(s) to the tracker!")
+        print(f"\n✓ Successfully updated the tracker with {new_count} change(s)!")
     else:
-        print("\n✓ No new episodes found - CSV is up to date!")
+        print("\n✓ No changes needed - CSV is up to date!")
 
     return new_count
 

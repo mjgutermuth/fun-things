@@ -532,12 +532,20 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
         campaign = row.get('campaign', '')
         show_type = row.get('show_type', '')
 
-        # Track Cooldowns by episode number (handles C3x95 vs 95 mismatch)
+        # Track Cooldowns by (campaign_prefix, episode_number) to differentiate C4 vs Candela etc.
         if 'cooldown' in campaign.lower() or 'cooldown' in title:
             # Extract episode number from various formats
             match = re.search(r'(?:C\d+[xE])?(\d+)', ep_num)
             if match:
-                existing_cooldowns.add(match.group(1))
+                # Determine campaign prefix from title or campaign field
+                campaign_prefix = ''
+                if 'campaign four' in campaign.lower() or '(c4)' in title.lower() or 'c4e' in ep_num.lower():
+                    campaign_prefix = 'c4'
+                elif 'candela' in campaign.lower() or '(candela)' in title.lower():
+                    campaign_prefix = 'candela'
+                elif 'campaign three' in campaign.lower() or '(c3)' in title.lower() or 'c3' in ep_num.lower():
+                    campaign_prefix = 'c3'
+                existing_cooldowns.add((campaign_prefix, match.group(1)))
 
         # Track Fireside Chats by guest name (normalized)
         if 'fireside' in campaign.lower() or 'fireside' in title:
@@ -627,10 +635,21 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
             skipped.append(f"{item['title']} ({ep_reason})")
             continue
 
-        # Check Cooldowns - skip if we already have a cooldown for this episode
+        # Determine cooldown campaign prefix from title (used for tracking)
+        cooldown_prefix = ''
+        title_lower = item['title'].lower()
+        if series_name == 'Critical Role Cooldown':
+            if '(c4)' in title_lower or 'c4e' in item['title']:
+                cooldown_prefix = 'c4'
+            elif '(candela)' in title_lower:
+                cooldown_prefix = 'candela'
+            elif '(c3)' in title_lower:
+                cooldown_prefix = 'c3'
+
+        # Check Cooldowns - skip if we already have a cooldown for this campaign/episode
         if series_name == 'Critical Role Cooldown' and ep_num:
-            if ep_num in existing_cooldowns:
-                skipped.append(f"{item['title']} (cooldown already exists for ep {ep_num})")
+            if (cooldown_prefix, ep_num) in existing_cooldowns:
+                skipped.append(f"{item['title']} (cooldown already exists for {cooldown_prefix} ep {ep_num})")
                 continue
 
         # Check Fireside Chats - skip if we already have one with this guest
@@ -700,7 +719,7 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
 
         # Update tracking sets to prevent duplicates within the same scrape
         if series_name == 'Critical Role Cooldown' and ep_num:
-            existing_cooldowns.add(ep_num)
+            existing_cooldowns.add((cooldown_prefix, ep_num))
         if series_name == 'Fireside Chat':
             guest_match = re.search(r'with\s+(\w+)', item['title'], re.IGNORECASE)
             if guest_match:
