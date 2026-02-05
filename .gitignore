@@ -22,3 +22,7 @@ cr-tracker/*.html
 # Beacon scheduler secrets (never commit these!)
 beacon-scheduler/token.json
 beacon-scheduler/credentials.json
+
+# Node
+node_modules/
+package-lock.json
