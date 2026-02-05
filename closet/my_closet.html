@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Closet - Closet Organizer</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Closet Organizer</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="my_closet.html" class="active">My Closet</a></li>
+                <li><a href="generate.html">Generate Outfit</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="closet-header">
+            <h2>My Closet</h2>
+            <button id="add-item-btn" class="btn btn-primary">+ Add Item</button>
+        </div>
+
+        <div class="filters">
+            <select id="filter-category">
+                <option value="">All Categories</option>
+                <option value="tops">Tops</option>
+                <option value="bottoms">Bottoms</option>
+                <option value="dresses">Dresses</option>
+                <option value="outerwear">Outerwear</option>
+                <option value="shoes">Shoes</option>
+                <option value="accessories">Accessories</option>
+            </select>
+        </div>
+
+        <div id="items-grid" class="items-grid">
+            <!-- Items will be rendered here -->
+        </div>
+
+        <div id="empty-state" class="empty-state" style="display: none;">
+            <p>Your closet is empty!</p>
+            <p>Click "+ Add Item" to start adding clothes.</p>
+        </div>
+    </main>
+
+    <!-- Add/Edit Modal -->
+    <div id="item-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Add Item</h3>
+                <button class="close-btn">&times;</button>
+            </div>
+            <form id="item-form">
+                <input type="hidden" id="item-id">
+
+                <div class="form-group">
+                    <label for="item-name">Name</label>
+                    <input type="text" id="item-name" required placeholder="e.g., Blue denim jacket">
+                </div>
+
+                <div class="form-group">
+                    <label for="item-category">Category</label>
+                    <select id="item-category" required>
+                        <option value="">Select category...</option>
+                        <option value="tops">Tops</option>
+                        <option value="bottoms">Bottoms</option>
+                        <option value="dresses">Dresses</option>
+                        <option value="outerwear">Outerwear</option>
+                        <option value="shoes">Shoes</option>
+                        <option value="accessories">Accessories</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="item-color">Color</label>
+                    <input type="text" id="item-color" placeholder="e.g., blue, red, black">
+                </div>
+
+                <div class="form-group">
+                    <label>Season</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="season" value="spring"> Spring</label>
+                        <label><input type="checkbox" name="season" value="summer"> Summer</label>
+                        <label><input type="checkbox" name="season" value="fall"> Fall</label>
+                        <label><input type="checkbox" name="season" value="winter"> Winter</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="item-image">Image</label>
+                    <input type="file" id="item-image" accept="image/*">
+                    <div id="image-preview" class="image-preview"></div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="delete-btn" class="btn btn-danger" style="display: none;">Delete</button>
+                    <div class="form-actions-right">
+                        <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>Copyright &copy; 2024 by Melinda</p>
+    </footer>
+
+    <script src="js/closet.js"></script>
+</body>
+</html>
