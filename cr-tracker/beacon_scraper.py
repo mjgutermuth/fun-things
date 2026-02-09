@@ -525,6 +525,8 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
     existing_previously_on = set()  # Track by arc name
     existing_c4_episodes = set()  # Track Campaign 4 episodes by number
     existing_backstage_pass = set()  # Track by event name
+    # Track normalized titles to catch duplicates with different episode numbers
+    existing_normalized_titles = set()
 
     for row in existing_rows:
         title = row.get('title', '').lower()
@@ -564,12 +566,16 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
             arc_name = extract_arc_name(title)
             if arc_name and arc_name != title.lower():  # Only add if we extracted something
                 existing_tale_gates.add(arc_name)
+            # Also track normalized title to catch duplicates with different episode numbers
+            existing_normalized_titles.add(('tale gate', title))
 
         # Track Previously On... by arc name (use simple pipe split for robustness)
         if 'previously on' in campaign.lower() or 'previously on' in title:
             arc_name = extract_arc_name(title)
             if arc_name and arc_name != title.lower():  # Only add if we extracted something
                 existing_previously_on.add(arc_name)
+            # Also track normalized title to catch duplicates with different episode numbers
+            existing_normalized_titles.add(('previously on', title))
 
         # Track Campaign 4 main episodes by episode number
         if show_type == 'Main Campaign' and ('campaign four' in campaign.lower() or 'campaign 4' in campaign.lower()):
@@ -636,14 +642,15 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
             continue
 
         # Determine cooldown campaign prefix from title (used for tracking)
+        # Must handle both wiki format "(C3)" and beacon placeholder format "C3E"
         cooldown_prefix = ''
         title_lower = item['title'].lower()
         if series_name == 'Critical Role Cooldown':
-            if '(c4)' in title_lower or 'c4e' in item['title']:
+            if '(c4)' in title_lower or 'c4e' in title_lower:
                 cooldown_prefix = 'c4'
             elif '(candela)' in title_lower:
                 cooldown_prefix = 'candela'
-            elif '(c3)' in title_lower:
+            elif '(c3)' in title_lower or 'c3e' in title_lower:
                 cooldown_prefix = 'c3'
 
         # Check Cooldowns - skip if we already have a cooldown for this campaign/episode
@@ -667,18 +674,26 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
                 skipped.append(f"{item['title']} (weird kids ep {ep_num} already exists)")
                 continue
 
-        # Check Tale Gate - skip if we already have this arc
+        # Check Tale Gate - skip if we already have this arc or same title
         if series_name == 'Tale Gate':
             arc_name = extract_arc_name(item['title'])
+            title_lower = item['title'].lower()
             if arc_name in existing_tale_gates:
                 skipped.append(f"{item['title']} (tale gate for {arc_name} already exists)")
                 continue
+            if ('tale gate', title_lower) in existing_normalized_titles:
+                skipped.append(f"{item['title']} (tale gate with same title already exists)")
+                continue
 
-        # Check Previously On... - skip if we already have this arc
+        # Check Previously On... - skip if we already have this arc or same title
         if series_name == 'Previously On...':
             arc_name = extract_arc_name(item['title'])
+            title_lower = item['title'].lower()
             if arc_name in existing_previously_on:
                 skipped.append(f"{item['title']} (previously on for {arc_name} already exists)")
+                continue
+            if ('previously on', title_lower) in existing_normalized_titles:
+                skipped.append(f"{item['title']} (previously on with same title already exists)")
                 continue
 
         # Check Campaign 4 main episodes - skip if wiki already has it
@@ -729,9 +744,11 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
         if series_name == 'Tale Gate':
             arc_name = extract_arc_name(item['title'])
             existing_tale_gates.add(arc_name)
+            existing_normalized_titles.add(('tale gate', item['title'].lower()))
         if series_name == 'Previously On...':
             arc_name = extract_arc_name(item['title'])
             existing_previously_on.add(arc_name)
+            existing_normalized_titles.add(('previously on', item['title'].lower()))
         if series_name == 'Campaign Four' and ep_num:
             existing_c4_episodes.add(ep_num)
         if series_name == 'Backstage Pass':
