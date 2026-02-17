@@ -363,6 +363,37 @@ def extract_beacon_content(html, week_date):
             'notes': 'Added from Beacon schedule (wiki pending)'
         })
 
+    # Pattern 11: One-Shots
+    # Matches: "Kingdom Come: Deliverance II One-Shot" or similar titled one-shots
+    # Requires a proper title (capitalized words) before "One-Shot" to avoid nav/menu junk
+    one_shot_pattern = r'((?:[A-Z][\w\']+(?:[ \t:]+(?:of|the|and|in|to|a|an|for|II|III|IV|V|VI|\w+))*[ \t]+)One[- ]Shot)'
+    one_shot_matches = re.finditer(one_shot_pattern, text)
+
+    seen_one_shots = set()
+    for match in one_shot_matches:
+        title = match.group(1).strip()
+        title_lower = title.lower()
+        if title_lower in seen_one_shots:
+            continue
+        # Skip if title is too short or contains newlines (nav/menu junk)
+        if len(title) < 15 or '\n' in title:
+            continue
+        # Skip if this is a superset of an already-seen one-shot (e.g. junk prefix)
+        if any(seen in title_lower for seen in seen_one_shots):
+            continue
+        seen_one_shots.add(title_lower)
+
+        content.append({
+            'week_date': week_date.strftime('%Y-%m-%d'),
+            'show_type': 'Beacon Exclusive',
+            'series': 'One-Shot',
+            'campaign': '',
+            'episode_number': '',
+            'title': title,
+            'release_date': week_date.strftime('%Y-%m-%d'),
+            'notes': 'One-shot adventure'
+        })
+
     return content
 
 def scrape_beacon_exclusives(start_date_str, end_date_str=None):
@@ -525,6 +556,7 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
     existing_previously_on = set()  # Track by arc name
     existing_c4_episodes = set()  # Track Campaign 4 episodes by number
     existing_backstage_pass = set()  # Track by event name
+    existing_one_shots = set()  # Track by normalized title
     # Track normalized titles to catch duplicates with different episode numbers
     existing_normalized_titles = set()
 
@@ -588,6 +620,10 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
             if event_match:
                 existing_backstage_pass.add(event_match.group(1).strip().lower())
 
+        # Track One-Shots by normalized title
+        if 'one-shot' in campaign.lower() or 'one-shot' in title or 'one shot' in title:
+            existing_one_shots.add(title.strip().lower())
+
     # Convert scraped content to main CSV format and check for duplicates
     new_rows = []
     skipped = []
@@ -607,7 +643,8 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
             'Get Your Sheet Together': 'Webseries',
             'Previously On...': 'Talk Show',
             'Tale Gate': 'Talk Show',
-            'Campaign Four': 'Main Campaign'
+            'Campaign Four': 'Main Campaign',
+            'One-Shot': 'One-Shot'
         }
 
         # Handle Campaign 4 main episodes differently
@@ -711,6 +748,16 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
                     skipped.append(f"{item['title']} (backstage pass for {event_name} already exists)")
                     continue
 
+        # Check One-Shots - skip if we already have this title (or a substring match)
+        if series_name == 'One-Shot':
+            title_lower = item['title'].strip().lower()
+            if title_lower in existing_one_shots or any(
+                existing in title_lower or title_lower in existing
+                for existing in existing_one_shots
+            ):
+                skipped.append(f"{item['title']} (one-shot already exists)")
+                continue
+
         # Create new row
         new_row = {
             'episode_id': episode_id,
@@ -755,6 +802,8 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
             event_match = re.search(r'backstage pass\s*-\s*(.+)', item['title'], re.IGNORECASE)
             if event_match:
                 existing_backstage_pass.add(event_match.group(1).strip().lower())
+        if series_name == 'One-Shot':
+            existing_one_shots.add(item['title'].strip().lower())
 
     if skipped:
         print(f"\nSkipped {len(skipped)} existing episodes:")
