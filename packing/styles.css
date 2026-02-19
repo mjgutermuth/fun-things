@@ -180,6 +180,20 @@ body {
     color: #20b2aa;
 }
 
+.btn-print {
+    background: white;
+    color: #666;
+    border: 2px solid #ccc;
+    padding: 8px 18px;
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+.btn-print:hover {
+    border-color: #ff1493;
+    color: #ff1493;
+}
+
 .actions {
     display: flex;
     gap: 15px;
@@ -719,8 +733,21 @@ body {
     border-color: #9fa8da !important;
 }
 
-.weather-rain { 
-    background: #cfd8dc !important; 
+.weather-rain {
+    background: #cfd8dc !important;
     color: #2e2e2e !important;
     border-color: #b0bec5 !important;
+}
+
+@media print {
+    .header, .trip-form, .calendar-section, .btn-print, .packing-header p { display: none !important; }
+    .packing-suggestions { display: block !important; }
+    .packing-header h2 { font-size: 1.4rem; margin-bottom: 16px; }
+    .packing-categories { grid-template-columns: repeat(2, 1fr); }
+    .packing-category { break-inside: avoid; background: white !important; border: 1px solid #ccc !important; }
+    .category-title { color: #000 !important; }
+    .quantity-highlight { background: none; font-weight: bold; color: #000; padding: 0; }
+    .priority-high, .priority-medium { background: white !important; }
+    .weather-summary { display: none; }
+    body { font-size: 12px; }
 }

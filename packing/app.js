@@ -7,10 +7,12 @@ let tempUnit = 'F';
 
 const GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search';
 const WEATHER_URL = 'https://api.open-meteo.com/v1/forecast';
+const ARCHIVE_URL = 'https://archive-api.open-meteo.com/v1/archive';
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
     initializeDates();
+    restoreFormState();
 });
 
 function toggleAdvancedOptions() {
@@ -152,6 +154,29 @@ function getAllSegments() {
     return segments;
 }
 
+function saveFormState() {
+    try {
+        localStorage.setItem('packingAssistantState', JSON.stringify({
+            startDate: document.getElementById('startDate').value,
+            endDate: document.getElementById('endDate').value,
+            location: document.getElementById('location').value,
+            tempUnit
+        }));
+    } catch (e) { /* ignore storage errors */ }
+}
+
+function restoreFormState() {
+    try {
+        const saved = localStorage.getItem('packingAssistantState');
+        if (!saved) return;
+        const state = JSON.parse(saved);
+        if (state.startDate) document.getElementById('startDate').value = state.startDate;
+        if (state.endDate) document.getElementById('endDate').value = state.endDate;
+        if (state.location) document.getElementById('location').value = state.location;
+        if (state.tempUnit) setTempUnit(state.tempUnit);
+    } catch (e) { /* ignore storage errors */ }
+}
+
 function showFormError(message) {
     const el = document.getElementById('formError');
     el.textContent = message;
@@ -167,6 +192,7 @@ async function generateCalendar() {
     const segments = getAllSegments();
     const occasions = getOccasionData();
     clearFormError();
+    saveFormState();
 
     if (segments.length === 0) {
         showFormError('Please fill in at least the main trip details.');

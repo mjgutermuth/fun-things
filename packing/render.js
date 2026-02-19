@@ -12,51 +12,48 @@ function assessWeatherConditions(weatherData) {
     let assessment = '';
     let icon = weatherData.icon;
     
-    // ONLY OVERRIDE FOR SIGNIFICANT WEATHER CONDITIONS
+    // Severe weather always takes precedence
     if (weatherData.condition.includes('thunderstorm')) {
-        if (weatherData.condition.includes('hail')) {
-            assessment = 'Thunder + Hail';
-            icon = '⛈️';
-        } else {
-            assessment = 'Storms';
-            icon = '⛈️';
-        }
+        assessment = weatherData.condition.includes('hail') ? 'Thunder + Hail' : 'Storms';
+        icon = '⛈️';
     } else if (weatherData.condition.includes('snow')) {
-        if (weatherData.condition.includes('heavy')) {
-            assessment = 'Heavy Snow';
-            icon = '❄️';
-        } else if (weatherData.condition.includes('slight')) {
-            assessment = 'Light Snow';
-            icon = '❄️';
-        } else {
-            assessment = 'Snow';
-            icon = '❄️';
-        }
-    } else if (precipChance >= 70) {
-        assessment = 'Heavy Rain';
-        icon = '🌧️';
-    }
-    else if (precipChance >= 25) {
-        assessment = 'Possible Rain';
-        icon = '🌦️';
-    } else if (avgTempF >= 95) {
-        assessment = humidity >= 70 ? 'Extreme Heat + Humidity' : 'Extreme Heat';
-        icon = humidity >= 70 ? '🥵' : '🔥';
-    } else if (avgTempF >= 80) {
-        assessment = humidity >= 70 ? 'Hot + Humid' : 'Hot';
-        icon = humidity >= 70 ? '🌡️' : '☀️';
-    } else if (avgTempF >= 60) {
-        assessment = humidity >= 70 ? 'Warm + Humid' : 'Pleasant';
-        icon = humidity >= 70 ? '🌫️' : '😊';
-    } else if (avgTempF >= 45) {
-        assessment = 'Cool';
-        icon = '🧥';
-    } else if (avgTempF >= 32) {
-        assessment = 'Cold';
+        assessment = weatherData.condition.includes('heavy') ? 'Heavy Snow'
+            : weatherData.condition.includes('slight') ? 'Light Snow' : 'Snow';
         icon = '❄️';
     } else {
-        assessment = 'Freezing';
-        icon = '🧊';
+        // Determine temperature label first
+        let tempLabel, tempIcon;
+        if (avgTempF >= 95) {
+            tempLabel = humidity >= 70 ? 'Extreme Heat + Humidity' : 'Extreme Heat';
+            tempIcon = humidity >= 70 ? '🥵' : '🔥';
+        } else if (avgTempF >= 80) {
+            tempLabel = humidity >= 70 ? 'Hot + Humid' : 'Hot';
+            tempIcon = humidity >= 70 ? '🌡️' : '☀️';
+        } else if (avgTempF >= 60) {
+            tempLabel = humidity >= 70 ? 'Warm + Humid' : 'Pleasant';
+            tempIcon = humidity >= 70 ? '🌫️' : '😊';
+        } else if (avgTempF >= 45) {
+            tempLabel = 'Cool';
+            tempIcon = '🧥';
+        } else if (avgTempF >= 32) {
+            tempLabel = 'Cold';
+            tempIcon = '❄️';
+        } else {
+            tempLabel = 'Freezing';
+            tempIcon = '🧊';
+        }
+
+        // Overlay rain on top — combine with temp label for extremes
+        if (precipChance >= 70) {
+            assessment = avgTempF >= 80 ? `Heavy Rain + ${tempLabel}` : 'Heavy Rain';
+            icon = '🌧️';
+        } else if (precipChance >= 25) {
+            assessment = avgTempF >= 95 ? `Rain + ${tempLabel}` : 'Possible Rain';
+            icon = '🌦️';
+        } else {
+            assessment = tempLabel;
+            icon = tempIcon;
+        }
     }
         
     return {
@@ -83,6 +80,7 @@ function getDataTypeLabel(dataType) {
     const labels = {
         'forecast': 'forecast',
         'current': 'current',
+        'historical': 'historical',
         'estimated': 'estimated',
         'mock': 'demo data',
         'default': 'default'

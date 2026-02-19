@@ -129,15 +129,56 @@ async function getCurrentWeather(coords, targetDate) {
 }
 
 async function getHistoricalWeather(coords, targetDate) {
+    const targetDateObj = new Date(targetDate + 'T12:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // For past dates, fetch actual data from the Open-Meteo archive API
+    if (targetDateObj < today) {
+        try {
+            const url = `${ARCHIVE_URL}?latitude=${coords.latitude}&longitude=${coords.longitude}&start_date=${targetDate}&end_date=${targetDate}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,uv_index_max&hourly=relative_humidity_2m&timezone=auto`;
+            const response = await fetch(url);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.daily?.time?.length > 0) {
+                    const hourlyValues = (data.hourly?.relative_humidity_2m || []).filter(h => h !== null);
+                    const avgHumidity = hourlyValues.length > 0
+                        ? Math.round(hourlyValues.reduce((a, b) => a + b, 0) / hourlyValues.length)
+                        : 50;
+                    const precipSum = data.daily.precipitation_sum[0] || 0;
+                    return {
+                        temp: Math.round((data.daily.temperature_2m_max[0] + data.daily.temperature_2m_min[0]) / 2),
+                        tempHigh: Math.round(data.daily.temperature_2m_max[0]),
+                        tempLow: Math.round(data.daily.temperature_2m_min[0]),
+                        condition: getWeatherCondition(data.daily.weathercode[0]),
+                        icon: getWeatherIcon(data.daily.weathercode[0]),
+                        precipitation: precipSum,
+                        precipitationChance: precipSum > 5 ? 80 : precipSum > 0 ? 40 : 0,
+                        humidity: avgHumidity,
+                        uvIndex: data.daily.uv_index_max[0] || 0,
+                        dataType: 'historical'
+                    };
+                }
+            }
+        } catch (error) {
+            console.error('Archive API error, falling back to estimate:', error);
+        }
+    }
+
+    // For future dates beyond the forecast window, use climate-based estimates
+    return getClimateEstimate(coords, targetDate);
+}
+
+function getClimateEstimate(coords, targetDate) {
     const month = new Date(targetDate).getMonth();
     const isWinter = month < 2 || month > 10;
     const isSummer = month >= 5 && month <= 8;
-    
+
     let baseTemp = 20;
     if (Math.abs(coords.latitude) > 60) baseTemp = 5;
     else if (Math.abs(coords.latitude) > 45) baseTemp = 15;
     else if (Math.abs(coords.latitude) < 23.5) baseTemp = 28;
-    
+
     if (coords.latitude > 0) {
         if (isWinter) baseTemp -= 10;
         if (isSummer) baseTemp += 8;
@@ -145,19 +186,17 @@ async function getHistoricalWeather(coords, targetDate) {
         if (isWinter) baseTemp += 8;
         if (isSummer) baseTemp -= 10;
     }
-    
-    const temp = Math.round(baseTemp + (Math.random() * 6 - 3));
-    
+
     return {
-        temp: temp,
-        tempHigh: temp + 3,
-        tempLow: temp - 3,
+        temp: baseTemp,
+        tempHigh: baseTemp + 4,
+        tempLow: baseTemp - 4,
         condition: getWeatherCondition(isWinter ? 3 : 1),
         icon: getWeatherIcon(isWinter ? 3 : 1),
-        precipitation: Math.random() > 0.7 ? Math.round(Math.random() * 10) : 0,
-        precipitationChance: Math.random() > 0.7 ? Math.round(Math.random() * 50 + 20) : 0,
-        humidity: Math.round(Math.random() * 40 + 40),
-        uvIndex: Math.random() * 8,
+        precipitation: 0,
+        precipitationChance: isWinter ? 30 : 10,
+        humidity: 55,
+        uvIndex: isSummer ? 7 : 3,
         dataType: 'estimated'
     };
 }
