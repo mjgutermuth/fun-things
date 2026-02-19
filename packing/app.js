@@ -152,34 +152,42 @@ function getAllSegments() {
     return segments;
 }
 
+function showFormError(message) {
+    const el = document.getElementById('formError');
+    el.textContent = message;
+    el.style.display = 'block';
+}
+
+function clearFormError() {
+    document.getElementById('formError').style.display = 'none';
+}
+
 // Main calendar generation
 async function generateCalendar() {
     const segments = getAllSegments();
     const occasions = getOccasionData();
-    
-    console.log('DEBUG: segments =', segments);
-    console.log('DEBUG: occasions =', occasions);
+    clearFormError();
 
     if (segments.length === 0) {
-        alert('Please fill in at least the main trip details');
+        showFormError('Please fill in at least the main trip details.');
         return;
     }
-    
+
     // Validate dates
     for (const segment of segments) {
         if (new Date(segment.endDate) < new Date(segment.startDate)) {
-            alert(`End date must be after start date for ${segment.location}`);
+            showFormError(`End date must be after start date for ${segment.location}.`);
             return;
         }
     }
-    
+
     // Show loading
     document.getElementById('calendarSection').style.display = 'block';
     document.getElementById('calendarGrid').innerHTML = '<div class="loading">Generating your calendar...</div>';
-    
+
     try {
         const tripData = await generateTripData(segments);
-        tripData.occasions = occasions; // Add occasions to trip data
+        tripData.occasions = occasions;
         currentTripData = tripData;
 
         renderCalendar(tripData);
@@ -189,23 +197,24 @@ async function generateCalendar() {
         document.getElementById('calendarGrid').innerHTML = '<div class="loading">Error loading weather data. Please try again.</div>';
     }
 }
+
 async function generateTripData(segments) {
-    const days = [];
-    
-    for (const segment of segments) {
+    const dayEntries = segments.flatMap(segment => {
         const start = new Date(segment.startDate + 'T12:00:00');
         const end = new Date(segment.endDate + 'T12:00:00');
-        
+        const entries = [];
         for (let d = new Date(start); d.getTime() <= end.getTime(); d.setDate(d.getDate() + 1)) {
-            const weather = await getWeatherData(segment.location, d.toISOString().split('T')[0]);
-            days.push({
-                date: new Date(d),
-                location: segment.location,
-                weather: weather
-            });
+            entries.push({ date: new Date(d), location: segment.location, dateStr: d.toISOString().split('T')[0] });
         }
-    }
-    
+        return entries;
+    });
+
+    const days = await Promise.all(
+        dayEntries.map(({ date, location, dateStr }) =>
+            getWeatherData(location, dateStr).then(weather => ({ date, location, weather }))
+        )
+    );
+
     days.sort((a, b) => a.date - b.date);
     return { days, segments };
 }

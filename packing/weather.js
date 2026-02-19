@@ -1,5 +1,15 @@
 // Weather API functions
+const coordsCache = new Map();
+const forecastCache = new Map();
+
 async function getLocationCoords(location) {
+    if (!coordsCache.has(location)) {
+        coordsCache.set(location, _fetchLocationCoords(location));
+    }
+    return coordsCache.get(location);
+}
+
+async function _fetchLocationCoords(location) {
     try {
         const stateAbbreviations = {
             'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
@@ -58,77 +68,60 @@ async function getLocationCoords(location) {
     }
 }
 
+async function fetchForecastData(coords) {
+    const key = `${coords.latitude},${coords.longitude}`;
+    if (!forecastCache.has(key)) {
+        const url = `${WEATHER_URL}?latitude=${coords.latitude}&longitude=${coords.longitude}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,uv_index_max&hourly=relative_humidity_2m&timezone=auto&forecast_days=16`;
+        forecastCache.set(key, fetch(url).then(r => {
+            if (!r.ok) throw new Error(`Weather API error: ${r.status}`);
+            return r.json();
+        }));
+    }
+    return forecastCache.get(key);
+}
+
 async function getCurrentWeather(coords, targetDate) {
     try {
-        const dailyUrl = `${WEATHER_URL}?latitude=${coords.latitude}&longitude=${coords.longitude}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,uv_index_max&timezone=auto&forecast_days=16`;
-        
-        const dailyResponse = await fetch(dailyUrl);
-        if (!dailyResponse.ok) {
-            throw new Error(`Daily weather API error: ${dailyResponse.status}`);
-        }
-        const dailyData = await dailyResponse.json();
-        
-        const targetDateStr = new Date(targetDate).toISOString().split('T')[0];
-        const humidityUrl = `${WEATHER_URL}?latitude=${coords.latitude}&longitude=${coords.longitude}&hourly=relative_humidity_2m&start_date=${targetDateStr}&end_date=${targetDateStr}&timezone=auto`;
-        
-        const humidityResponse = await fetch(humidityUrl);
-        let avgHumidity = 50;
-        
-        if (humidityResponse.ok) {
-            const humidityData = await humidityResponse.json();
-            if (humidityData.hourly && humidityData.hourly.relative_humidity_2m) {
-                const humidityValues = humidityData.hourly.relative_humidity_2m.filter(h => h !== null);
-                if (humidityValues.length > 0) {
-                    avgHumidity = Math.round(humidityValues.reduce((a, b) => a + b, 0) / humidityValues.length);
-                }
-            }
-        }
-        
+        const data = await fetchForecastData(coords);
         const target = new Date(targetDate).toISOString().split('T')[0];
-        const dayIndex = dailyData.daily.time.findIndex(date => date === target);
-        
-        let weatherInfo, dataType;
-        
+        const dayIndex = data.daily.time.findIndex(date => date === target);
+
         if (dayIndex >= 0) {
-            weatherInfo = {
-                tempHigh: Math.round(dailyData.daily.temperature_2m_max[dayIndex]),
-                tempLow: Math.round(dailyData.daily.temperature_2m_min[dayIndex]),
-                temp: Math.round((dailyData.daily.temperature_2m_max[dayIndex] + dailyData.daily.temperature_2m_min[dayIndex]) / 2),
-                weatherCode: dailyData.daily.weathercode[dayIndex],
-                precipitation: dailyData.daily.precipitation_sum[dayIndex] || 0,
-                precipitationChance: dailyData.daily.precipitation_probability_max[dayIndex] || 0,
+            const hourStart = dayIndex * 24;
+            const hourlyValues = data.hourly.relative_humidity_2m
+                .slice(hourStart, hourStart + 24)
+                .filter(h => h !== null);
+            const avgHumidity = hourlyValues.length > 0
+                ? Math.round(hourlyValues.reduce((a, b) => a + b, 0) / hourlyValues.length)
+                : 50;
+
+            return {
+                temp: Math.round((data.daily.temperature_2m_max[dayIndex] + data.daily.temperature_2m_min[dayIndex]) / 2),
+                tempHigh: Math.round(data.daily.temperature_2m_max[dayIndex]),
+                tempLow: Math.round(data.daily.temperature_2m_min[dayIndex]),
+                condition: getWeatherCondition(data.daily.weathercode[dayIndex]),
+                icon: getWeatherIcon(data.daily.weathercode[dayIndex]),
+                precipitation: data.daily.precipitation_sum[dayIndex] || 0,
+                precipitationChance: data.daily.precipitation_probability_max[dayIndex] || 0,
                 humidity: avgHumidity,
-                uvIndex: dailyData.daily.uv_index_max[dayIndex] || 0
+                uvIndex: data.daily.uv_index_max[dayIndex] || 0,
+                dataType: 'forecast'
             };
-            dataType = 'forecast';
         } else {
-            const currentTemp = dailyData.current_weather.temperature;
-            weatherInfo = {
+            const currentTemp = data.current_weather.temperature;
+            return {
+                temp: Math.round(currentTemp),
                 tempHigh: Math.round(currentTemp + 3),
                 tempLow: Math.round(currentTemp - 3),
-                temp: Math.round(currentTemp),
-                weatherCode: dailyData.current_weather.weathercode,
+                condition: getWeatherCondition(data.current_weather.weathercode),
+                icon: getWeatherIcon(data.current_weather.weathercode),
                 precipitation: 0,
                 precipitationChance: 0,
-                humidity: avgHumidity,
-                uvIndex: 0
+                humidity: 50,
+                uvIndex: 0,
+                dataType: 'current'
             };
-            dataType = 'current';
         }
-        
-        return {
-            temp: weatherInfo.temp,
-            tempHigh: weatherInfo.tempHigh,
-            tempLow: weatherInfo.tempLow,
-            condition: getWeatherCondition(weatherInfo.weatherCode),
-            icon: getWeatherIcon(weatherInfo.weatherCode),
-            precipitation: weatherInfo.precipitation,
-            precipitationChance: weatherInfo.precipitationChance,
-            humidity: weatherInfo.humidity,
-            uvIndex: weatherInfo.uvIndex,
-            dataType: dataType
-        };
-        
     } catch (error) {
         console.error('getCurrentWeather error:', error);
         throw error;
