@@ -233,19 +233,26 @@ function getMockWeatherData(location, date) {
     
     let baseTemp = 20;
     const loc = location.toLowerCase();
-    
+    let citySpecific = false;
+
     if (loc.includes('phoenix') || loc.includes('arizona') || loc.includes('vegas')) {
         baseTemp = isSummer ? 40 : 25;
+        citySpecific = true;
     } else if (loc.includes('seattle') || loc.includes('portland')) {
         baseTemp = isSummer ? 22 : 8;
+        citySpecific = true;
     } else if (loc.includes('miami') || loc.includes('florida')) {
         baseTemp = isSummer ? 32 : 24;
+        citySpecific = true;
     } else if (loc.includes('new york') || loc.includes('chicago')) {
         baseTemp = isSummer ? 26 : isWinter ? 2 : 15;
+        citySpecific = true;
     }
-    
-    if (isWinter) baseTemp -= 8;
-    if (isSummer) baseTemp += 5;
+
+    if (!citySpecific) {
+        if (isWinter) baseTemp -= 8;
+        if (isSummer) baseTemp += 5;
+    }
     
     const temp = Math.round(baseTemp + (Math.random() * 6 - 3));
     const uvIndex = isSummer ? Math.random() * 4 + 6 : Math.random() * 4 + 2;

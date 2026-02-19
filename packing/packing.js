@@ -98,18 +98,18 @@ function generateSmartPackingCategories(tripData) {
     
     // Weather-based clothing for casual days
     if (hotDays > 0 && casualDays > 0) {
-        const casualHotTops = Math.min(casualDays, Math.ceil(hotDays * 0.8));
+        const moistureWickingCount = highHumidityDays > 2 ? Math.ceil(hotDays * 0.5) : 0;
+        const casualHotTops = Math.max(0, Math.min(casualDays, Math.ceil(hotDays * 0.8)) - moistureWickingCount);
         if (casualHotTops > 0) {
             coreItems.push(`<span class="quantity-highlight">${casualHotTops}</span> lightweight t-shirt${casualHotTops > 1 ? 's' : ''}`);
+        }
+        if (moistureWickingCount > 0) {
+            coreItems.push(`<span class="quantity-highlight">${moistureWickingCount}</span> moisture-wicking shirt${moistureWickingCount > 1 ? 's' : ''}`);
+            coreItems.push('Quick-dry underwear for humid days');
         }
         const casualShorts = Math.min(casualDays, Math.ceil(hotDays * 0.5));
         if (casualShorts > 0) {
             coreItems.push(`<span class="quantity-highlight">${casualShorts}</span> pair${casualShorts > 1 ? 's' : ''} of shorts`);
-        }
-        
-        if (highHumidityDays > 2) {
-            coreItems.push(`<span class="quantity-highlight">${Math.ceil(hotDays * 0.5)}</span> moisture-wicking shirt${hotDays > 2 ? 's' : ''}`);
-            coreItems.push('Quick-dry underwear for humid days');
         }
     }
     
@@ -139,6 +139,12 @@ function generateSmartPackingCategories(tripData) {
         }
     }
     
+    // Layering advice for variable-temperature trips
+    const tempRange = maxTemp - minTemp;
+    if (tempRange > 15) {
+        coreItems.push('Zip-up hoodie or light jacket for layering (temperatures vary significantly)');
+    }
+
     // Core essentials - based on casual days, plus special occasion tops if specified
     // Calculate tops: casual days need ~0.7 coverage, special occasions already counted separately
     const casualTops = casualDays > 0 ? Math.ceil(casualDays * 0.7) : 0;
@@ -157,9 +163,12 @@ function generateSmartPackingCategories(tripData) {
     }
     
     // Bottoms - more conservative, most occasions can reuse pants/jeans
-    const casualBottoms = casualDays > 0 ? Math.ceil(casualDays * 0.5) : Math.ceil(tripLength * 0.4);
-    if (casualBottoms > 0) {
-        coreItems.push(`<span class="quantity-highlight">${casualBottoms}</span> pairs of pants/jeans`);
+    // Only for casual days; formal/business outfits already include bottoms
+    if (casualDays > 0) {
+        const casualBottoms = Math.ceil(casualDays * 0.5);
+        if (casualBottoms > 0) {
+            coreItems.push(`<span class="quantity-highlight">${casualBottoms}</span> pairs of pants/jeans`);
+        }
     }
     
     // Underwear and socks - always need for every day regardless of occasion
@@ -170,23 +179,25 @@ function generateSmartPackingCategories(tripData) {
     
     // SWIMWEAR & BEACH GEAR
     const totalBeachDays = Math.max(swimWeatherDays, beachDays); // Use whichever is higher
+    let flipFlopsAdded = false;
     if (totalBeachDays >= 2 || beachDays > 0) {
         const swimItems = [];
-        
+
         if (beachDays > 0) {
             swimItems.push(`<strong>Beach days specified:</strong> ${beachDays}`);
         }
-        
+
         if (totalBeachDays >= 5) {
             swimItems.push('<span class="quantity-highlight">2-3</span> swimsuits');
             swimItems.push('Beach cover-up or sarong');
         } else if (totalBeachDays >= 2) {
             swimItems.push('<span class="quantity-highlight">1-2</span> swimsuits');
         }
-        
+
         if (veryHotDays >= 2 || beachDays >= 2) {
             swimItems.push('Beach towel');
             swimItems.push('Flip-flops or water shoes');
+            flipFlopsAdded = true;
         }
         
         if ((extremeUVDays >= 2 && swimWeatherDays >= 3) || beachDays >= 3) {
@@ -238,11 +249,11 @@ function generateSmartPackingCategories(tripData) {
     if (rainDays > 0 || snowDays > 0) {
         const weatherItems = [];
         
-        if (heavyRainDays >= 2) {
+        if (heavyRainDays >= 1) {
             weatherItems.push('Waterproof rain jacket');
             weatherItems.push('Quick-dry pants');
             weatherItems.push('Compact umbrella');
-        } else if (rainDays >= 2) {
+        } else if (rainDays >= 1) {
             weatherItems.push('Water-resistant jacket');
             weatherItems.push('Compact umbrella');
         }
@@ -271,7 +282,7 @@ function generateSmartPackingCategories(tripData) {
         footwearItems.push(`<span class="quantity-highlight">1-2</span> pairs of breathable sandals`);
     }
     
-    if (swimWeatherDays >= 3) {
+    if (swimWeatherDays >= 3 && !flipFlopsAdded) {
         footwearItems.push('Flip-flops or beach sandals');
     }
     
