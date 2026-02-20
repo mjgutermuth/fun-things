@@ -105,6 +105,7 @@ async function getCurrentWeather(coords, targetDate) {
                 precipitationChance: data.daily.precipitation_probability_max[dayIndex] || 0,
                 humidity: avgHumidity,
                 uvIndex: data.daily.uv_index_max[dayIndex] || 0,
+                elevation: Math.round(data.elevation || 0),
                 dataType: 'forecast'
             };
         } else {
@@ -119,6 +120,7 @@ async function getCurrentWeather(coords, targetDate) {
                 precipitationChance: 0,
                 humidity: 50,
                 uvIndex: 0,
+                elevation: Math.round(data.elevation || 0),
                 dataType: 'current'
             };
         }
@@ -156,6 +158,7 @@ async function getHistoricalWeather(coords, targetDate) {
                         precipitationChance: precipSum > 5 ? 80 : precipSum > 0 ? 40 : 0,
                         humidity: avgHumidity,
                         uvIndex: data.daily.uv_index_max[0] || 0,
+                        elevation: Math.round(data.elevation || 0),
                         dataType: 'historical'
                     };
                 }
@@ -197,6 +200,7 @@ function getClimateEstimate(coords, targetDate) {
         precipitationChance: isWinter ? 30 : 10,
         humidity: 55,
         uvIndex: isSummer ? 7 : 3,
+        elevation: 0,
         dataType: 'estimated'
     };
 }
@@ -269,6 +273,7 @@ function getMockWeatherData(location, date) {
         precipitationChance: Math.random() > 0.8 ? Math.round(Math.random() * 50 + 20) : 0,
         humidity: Math.round(humidity),
         uvIndex: Math.round(uvIndex),
+        elevation: 0,
         dataType: 'mock'
     };
 }

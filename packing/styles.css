@@ -739,6 +739,131 @@ body {
     border-color: #b0bec5 !important;
 }
 
+/* BAG VIEW */
+.bag-view {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.bag-column {
+    border: 2px solid #ddd;
+    padding: 0;
+}
+
+.bag-header {
+    padding: 12px 20px;
+    font-weight: bold;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: white;
+}
+
+.carry-on-header { background: #20b2aa; }
+.checked-header { background: #9370db; }
+
+.bag-items {
+    list-style: none;
+    padding: 15px 20px;
+    font-size: 0.9rem;
+    color: #2e2e2e;
+    line-height: 1.6;
+}
+
+.bag-items li {
+    margin-bottom: 8px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 6px;
+}
+
+.bag-items li:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.item-category {
+    font-weight: bold;
+    color: #999;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-right: 4px;
+}
+
+/* DAILY PLANNER */
+.daily-planner {
+    border: 2px solid #ff1493;
+    margin-bottom: 30px;
+    overflow: hidden;
+}
+
+.planner-header {
+    background: #ff1493;
+    color: white;
+    padding: 12px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+}
+
+.planner-header:hover { background: #e6127a; }
+
+.planner-title {
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.95rem;
+}
+
+.planner-day {
+    padding: 12px 20px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.planner-day:last-child { border-bottom: none; }
+
+.planner-day-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.planner-date {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #2e2e2e;
+    min-width: 90px;
+}
+
+.planner-location {
+    font-size: 0.75rem;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.planner-weather {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: #555;
+}
+
+.planner-outfit {
+    font-size: 0.9rem;
+    color: #555;
+    line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+    .bag-view { grid-template-columns: 1fr; }
+    .planner-day-header { flex-wrap: wrap; }
+    .planner-weather { margin-left: 0; }
+}
+
 @media print {
     .header, .trip-form, .calendar-section, .btn-print, .packing-header p { display: none !important; }
     .packing-suggestions { display: block !important; }

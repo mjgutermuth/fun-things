@@ -373,12 +373,28 @@ function renderWeatherSummary(tripData) {
     `;
 }
 
-// Main packing suggestions rendering
-function renderPackingSuggestions(tripData) {
-    renderWeatherSummary(tripData);
-    const categories = generateSmartPackingCategories(tripData);
-    const packingCategories = document.getElementById('packingCategories');
-    
+// Bag view state
+let bagViewActive = false;
+let _lastCategories = null;
+
+function classifyItem(htmlText) {
+    const text = htmlText.replace(/<[^>]+>/g, '').toLowerCase();
+    const checkedKeywords = [
+        'sunscreen', 'zinc sunscreen', 'moisturizer', 'aloe vera', 'saline nasal',
+        'anti-chafing', 'antifungal', 'laundry detergent', 'electrolyte',
+        'winter coat', 'heavy coat', 'waterproof boots', 'winter boots',
+        'insulated boots', 'hand warmers', 'heat packs', 'emergency heat'
+    ];
+    return checkedKeywords.some(kw => text.includes(kw)) ? 'checked' : 'carry-on';
+}
+
+function toggleBagView() {
+    bagViewActive = !bagViewActive;
+    document.getElementById('bagViewBtn').textContent = bagViewActive ? 'Category View' : 'By Bag';
+    renderPackingCategories();
+}
+
+function renderCategoryView(categories) {
     let html = '';
     Object.entries(categories).forEach(([category, data]) => {
         const priorityClass = data.priority ? `priority-${data.priority}` : '';
@@ -391,6 +407,87 @@ function renderPackingSuggestions(tripData) {
             </div>
         `;
     });
-    
-    packingCategories.innerHTML = html;
+    return html;
+}
+
+function renderBagView(categories) {
+    const carryOnItems = [];
+    const checkedItems = [];
+
+    Object.entries(categories).forEach(([categoryName, data]) => {
+        data.items.forEach(item => {
+            const stripped = item.replace(/<[^>]+>/g, '').trim();
+            // Skip meta/summary lines
+            if (!stripped || stripped.startsWith('(') || stripped.startsWith('See ') || stripped.startsWith('Trip breakdown') || stripped.startsWith('Destination reaches')) return;
+            const entry = `<li><span class="item-category">${categoryName}:</span> ${item}</li>`;
+            if (classifyItem(item) === 'checked') {
+                checkedItems.push(entry);
+            } else {
+                carryOnItems.push(entry);
+            }
+        });
+    });
+
+    return `
+        <div class="bag-view">
+            <div class="bag-column">
+                <div class="bag-header carry-on-header">🎒 Carry-On</div>
+                <ul class="bag-items">${carryOnItems.join('')}</ul>
+            </div>
+            <div class="bag-column">
+                <div class="bag-header checked-header">🧳 Checked Bag</div>
+                <ul class="bag-items">${checkedItems.join('')}</ul>
+            </div>
+        </div>
+    `;
+}
+
+function renderPackingCategories() {
+    const packingCategories = document.getElementById('packingCategories');
+    if (!_lastCategories) return;
+    packingCategories.innerHTML = bagViewActive
+        ? renderBagView(_lastCategories)
+        : renderCategoryView(_lastCategories);
+}
+
+function renderDailyPlanner(tripData) {
+    const content = document.getElementById('dailyPlannerContent');
+    if (!content) return;
+
+    let html = '';
+    tripData.days.forEach(day => {
+        const dateStr = day.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const outfit = generateDailyOutfit(day.weather);
+        const assessment = assessWeatherConditions(day.weather);
+        const cityName = getCityName(day.location);
+
+        html += `
+            <div class="planner-day">
+                <div class="planner-day-header">
+                    <span class="planner-date">${dateStr}</span>
+                    <span class="planner-location">${cityName}</span>
+                    <span class="planner-weather">${assessment.icon} ${assessment.tempRange}</span>
+                </div>
+                <div class="planner-outfit">${outfit}</div>
+            </div>
+        `;
+    });
+
+    content.innerHTML = html;
+}
+
+function toggleDailyPlanner() {
+    const content = document.getElementById('dailyPlannerContent');
+    const icon = document.getElementById('plannerToggleIcon');
+    const isHidden = content.style.display === 'none';
+    content.style.display = isHidden ? 'block' : 'none';
+    icon.textContent = isHidden ? '▼' : '▶';
+}
+
+// Main packing suggestions rendering
+function renderPackingSuggestions(tripData) {
+    renderWeatherSummary(tripData);
+    _lastCategories = generateSmartPackingCategories(tripData);
+    renderPackingCategories();
+    renderDailyPlanner(tripData);
 }

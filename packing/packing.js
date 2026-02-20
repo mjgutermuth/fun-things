@@ -37,6 +37,11 @@ function generateSmartPackingCategories(tripData) {
     const freezingDays = tripData.days.filter(d => d.weather.temp <= 0).length;
     const snowDays = tripData.days.filter(d => d.weather.condition.includes('snow')).length;
     const swimWeatherDays = tripData.days.filter(d => d.weather.temp >= 24).length;
+
+    const elevations = tripData.days.map(d => d.weather.elevation || 0);
+    const maxElevation = Math.max(...elevations);
+    const highAltitudeDays = tripData.days.filter(d => (d.weather.elevation || 0) >= 1500).length;
+    const veryHighAltitudeDays = tripData.days.filter(d => (d.weather.elevation || 0) >= 2500).length;
     
     const categories = {};
     
@@ -363,6 +368,107 @@ function generateSmartPackingCategories(tripData) {
     if (healthItems.length > 0) {
         categories['Health & Comfort'] = { items: healthItems };
     }
-    
+
+    // HIGH ALTITUDE ESSENTIALS
+    if (maxElevation >= 1500) {
+        const altitudeItems = [];
+        altitudeItems.push(`Destination reaches up to ${maxElevation.toLocaleString()}m elevation`);
+        altitudeItems.push('Extra-strength SPF sunscreen (UV intensity increases with altitude)');
+        altitudeItems.push('Lip balm with SPF (thinner air causes faster chapping)');
+        altitudeItems.push('Extra water bottle — dehydration is accelerated at altitude');
+        altitudeItems.push('Electrolyte tablets');
+
+        if (veryHighAltitudeDays > 0) {
+            altitudeItems.push('Altitude sickness medication — consult your doctor before traveling');
+            altitudeItems.push('Plan for acclimatization: avoid strenuous activity on day 1');
+        }
+
+        if (maxElevation >= 3000) {
+            altitudeItems.push('Compression socks (supports circulation in reduced-oxygen air)');
+            altitudeItems.push('Warm layers for rapid temperature drops (mountain weather changes fast)');
+        }
+
+        categories['High Altitude Essentials'] = {
+            items: altitudeItems,
+            priority: veryHighAltitudeDays > 0 ? 'high' : 'medium'
+        };
+    }
+
     return categories;
+}
+
+function generateDailyOutfit(weather) {
+    const { temp, precipitationChance, condition, uvIndex, humidity } = weather;
+    const isHeavyRain = precipitationChance > 70;
+    const isRainy = precipitationChance > 30;
+    const isSnowy = condition.includes('snow');
+    const isHumid = humidity > 70;
+
+    // Base layer
+    const layers = [];
+    if (temp >= 28) {
+        layers.push(isHumid ? 'moisture-wicking tee' : 'lightweight tee or tank');
+    } else if (temp >= 20) {
+        layers.push('light t-shirt');
+    } else if (temp >= 12) {
+        layers.push('long-sleeve shirt');
+    } else if (temp >= 4) {
+        layers.push('thermal base layer');
+    } else {
+        layers.push('heavy thermal base layer');
+    }
+
+    // Mid layer
+    if (temp >= 12 && temp < 20) {
+        layers.push('light sweater or cardigan');
+    } else if (temp >= 4 && temp < 12) {
+        layers.push('warm sweater or fleece');
+    } else if (temp < 4) {
+        layers.push('heavy fleece or insulated mid-layer');
+    }
+
+    // Bottoms
+    let bottoms;
+    if (temp >= 26) {
+        bottoms = 'shorts or light skirt';
+    } else if (temp >= 15) {
+        bottoms = 'jeans or chinos';
+    } else if (temp < 0) {
+        bottoms = 'insulated pants over thermals';
+    } else {
+        bottoms = 'warm pants';
+    }
+
+    // Outer layer
+    let outer = null;
+    if (isSnowy) {
+        outer = 'heavy waterproof coat';
+    } else if (isHeavyRain) {
+        outer = 'waterproof rain jacket';
+    } else if (isRainy) {
+        outer = 'water-resistant jacket + umbrella';
+    } else if (temp < 4) {
+        outer = 'heavy winter coat';
+    } else if (temp < 12) {
+        outer = 'warm jacket';
+    }
+
+    // Accessories
+    const extras = [];
+    if (uvIndex >= 8) {
+        extras.push('SPF 50+, sun hat, sunglasses');
+    } else if (uvIndex >= 6) {
+        extras.push('SPF 30+, sunglasses');
+    }
+    if (isSnowy || temp < 0) {
+        extras.push('gloves, scarf, warm hat');
+    } else if (temp < 4) {
+        extras.push('gloves, light scarf');
+    }
+
+    let description = [...layers, bottoms].join(', ');
+    if (outer) description += ', ' + outer;
+    if (extras.length > 0) description += ' — ' + extras.join(', ');
+
+    return description;
 }

@@ -137,10 +137,19 @@
                 <h2>Smart Packing Suggestions</h2>
                 <p>Personalized recommendations based on your destination weather conditions</p>
                 <button class="btn btn-print" onclick="window.print()">Print List</button>
+                <button class="btn btn-print" id="bagViewBtn" onclick="toggleBagView()">By Bag</button>
             </div>
             
             <div class="weather-summary" id="weatherSummary"></div>
-            
+
+            <div class="daily-planner" id="dailyPlanner">
+                <div class="planner-header" onclick="toggleDailyPlanner()">
+                    <span class="planner-title">Daily Outfit Planner</span>
+                    <span class="toggle-icon" id="plannerToggleIcon">▶</span>
+                </div>
+                <div id="dailyPlannerContent" style="display: none;"></div>
+            </div>
+
             <div class="packing-categories" id="packingCategories"></div>
         </div>
     </div>
