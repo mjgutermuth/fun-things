@@ -697,7 +697,129 @@
             padding: 10px;
             cursor: pointer;
         }
-        
+
+        .add-mode-toggle {
+            display: flex;
+            border: 2px solid var(--dark);
+            overflow: hidden;
+            width: fit-content;
+            margin-bottom: 25px;
+        }
+
+        .add-mode-toggle button {
+            padding: 10px 24px;
+            background: white;
+            border: none;
+            border-right: 2px solid var(--dark);
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .add-mode-toggle button:last-child {
+            border-right: none;
+        }
+
+        .add-mode-toggle button.active {
+            background: var(--dark);
+            color: white;
+        }
+
+        .bulk-add-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 10px;
+            padding: 8px 12px;
+            background: var(--dark);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+
+        .bulk-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 10px 12px;
+            background: white;
+            border: 1px solid #ddd;
+            border-bottom: none;
+        }
+
+        .bulk-row:last-child {
+            border-bottom: 1px solid #ddd;
+        }
+
+        .bulk-row input,
+        .bulk-row select {
+            margin: 0;
+            padding: 8px;
+            font-size: 0.85rem;
+        }
+
+        .bulk-color-picker {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .bulk-color-dot {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            flex-shrink: 0;
+        }
+
+        .bulk-color-dot:hover {
+            transform: scale(1.15);
+        }
+
+        .bulk-color-dot.selected {
+            border-color: var(--dark);
+            box-shadow: 0 0 0 1px var(--dark);
+            transform: scale(1.1);
+        }
+
+        .bulk-row-delete {
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            cursor: pointer;
+            color: var(--gray);
+            line-height: 1;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+
+        .bulk-row-delete:hover {
+            color: var(--pink);
+        }
+
+        .bulk-add-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            align-items: center;
+        }
+
+        .bulk-note {
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-bottom: 15px;
+        }
+
         .empty-wardrobe {
             text-align: center;
             padding: 60px 20px;
@@ -1150,6 +1272,27 @@
                 <h2>Add Wardrobe Items</h2>
                 <p>Build your wardrobe inventory with photos and details. Items are filtered by your color story.</p>
                 
+                <div class="add-mode-toggle">
+                    <button type="button" id="singleModeBtn" class="active" onclick="setAddMode('single')">Add Single</button>
+                    <button type="button" id="bulkModeBtn" onclick="setAddMode('bulk')">Bulk Add</button>
+                </div>
+
+                <!-- Bulk Add Section -->
+                <div id="bulkAddSection" style="display: none;">
+                    <p class="bulk-note">Enter multiple items at once. Select colors from your color story for each row. Photos can be added later.</p>
+                    <div class="bulk-add-header">
+                        <span>Name</span>
+                        <span>Type</span>
+                        <span>Colors</span>
+                        <span></span>
+                    </div>
+                    <div id="bulkRows"></div>
+                    <div class="bulk-add-actions">
+                        <button type="button" class="secondary" onclick="addBulkRow()">+ Add Row</button>
+                        <button type="button" class="primary" onclick="submitBulkItems()">Add All to Wardrobe</button>
+                    </div>
+                </div>
+
                 <form id="wardrobeForm" onsubmit="addWardrobeItem(event)">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                         <div class="form-group">
@@ -2374,6 +2517,118 @@
             }).join('');
         }
         
+        // Bulk Add Functions
+        function setAddMode(mode) {
+            const singleForm = document.getElementById('wardrobeForm');
+            const bulkSection = document.getElementById('bulkAddSection');
+            const singleBtn = document.getElementById('singleModeBtn');
+            const bulkBtn = document.getElementById('bulkModeBtn');
+
+            if (mode === 'single') {
+                singleForm.style.display = 'block';
+                bulkSection.style.display = 'none';
+                singleBtn.classList.add('active');
+                bulkBtn.classList.remove('active');
+            } else {
+                singleForm.style.display = 'none';
+                bulkSection.style.display = 'block';
+                singleBtn.classList.remove('active');
+                bulkBtn.classList.add('active');
+
+                if (document.querySelectorAll('.bulk-row').length === 0) {
+                    addBulkRow();
+                    addBulkRow();
+                    addBulkRow();
+                }
+            }
+        }
+
+        const ITEM_TYPES = [
+            ['', '-- Type --'],
+            ['top', 'Top'],
+            ['top-layer', 'Layer'],
+            ['bottom', 'Bottom'],
+            ['dress', 'Dress'],
+            ['jumpsuit', 'Jumpsuit / Romper'],
+            ['outerwear', 'Outerwear'],
+            ['shoes', 'Shoes'],
+            ['swimwear', 'Swimwear'],
+            ['activewear-top', 'Activewear Top'],
+            ['activewear-bottom', 'Activewear Bottom'],
+            ['accessory', 'Accessory'],
+        ];
+
+        function addBulkRow() {
+            const container = document.getElementById('bulkRows');
+
+            const typeOptions = ITEM_TYPES.map(([val, label]) =>
+                `<option value="${val}">${label}</option>`
+            ).join('');
+
+            const colorDots = appState.colorStory.colors.length > 0
+                ? appState.colorStory.colors.map(color =>
+                    `<div class="bulk-color-dot"
+                         style="background-color: ${color.hex};"
+                         title="${color.name}"
+                         data-hex="${color.hex}"
+                         data-name="${color.name}"
+                         onclick="this.classList.toggle('selected')"></div>`
+                  ).join('')
+                : '<span style="font-size:0.75rem;color:var(--gray);">Add colors in step 1</span>';
+
+            const row = document.createElement('div');
+            row.className = 'bulk-row';
+            row.innerHTML = `
+                <input type="text" class="bulk-item-name" placeholder="Item name…">
+                <select class="bulk-item-type">${typeOptions}</select>
+                <div class="bulk-color-picker">${colorDots}</div>
+                <button type="button" class="bulk-row-delete" onclick="this.closest('.bulk-row').remove()" title="Remove row">×</button>
+            `;
+            container.appendChild(row);
+        }
+
+        function submitBulkItems() {
+            const rows = document.querySelectorAll('.bulk-row');
+            const errors = [];
+            const toAdd = [];
+
+            rows.forEach((row, index) => {
+                const name = row.querySelector('.bulk-item-name').value.trim();
+                const type = row.querySelector('.bulk-item-type').value;
+                const selectedDots = row.querySelectorAll('.bulk-color-dot.selected');
+
+                if (!name && !type) return; // skip fully empty rows
+
+                if (!name) { errors.push(`Row ${index + 1}: missing item name`); return; }
+                if (!type) { errors.push(`Row ${index + 1}: missing type for "${name}"`); return; }
+                if (selectedDots.length === 0) { errors.push(`Row ${index + 1}: "${name}" needs at least one color`); return; }
+
+                const colors = Array.from(selectedDots).map(dot => ({ name: dot.dataset.name, hex: dot.dataset.hex }));
+                toAdd.push({ id: Date.now() + Math.random(), name, type, colors, photo: null, notes: '' });
+            });
+
+            if (errors.length > 0) {
+                alert('Please fix these issues:\n\n' + errors.join('\n'));
+                return;
+            }
+
+            if (toAdd.length === 0) {
+                alert('No items to add. Fill in at least one row.');
+                return;
+            }
+
+            toAdd.forEach(item => appState.wardrobe.push(item));
+            saveState();
+            renderWardrobeList();
+
+            document.getElementById('bulkRows').innerHTML = '';
+            addBulkRow();
+            addBulkRow();
+            addBulkRow();
+
+            alert(`${toAdd.length} item${toAdd.length !== 1 ? 's' : ''} added to your wardrobe!`);
+        }
+
         function deleteWardrobeItem(id) {
             if (confirm('Delete this item from your wardrobe?')) {
                 appState.wardrobe = appState.wardrobe.filter(item => item.id !== id);
