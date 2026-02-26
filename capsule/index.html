@@ -820,6 +820,38 @@
             margin-bottom: 15px;
         }
 
+        .bulk-preview-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #ddd;
+            border-bottom: none;
+        }
+
+        .bulk-preview-row:last-child {
+            border-bottom: 1px solid #ddd;
+        }
+
+        .bulk-preview-row select {
+            margin: 0;
+            padding: 6px 8px;
+            font-size: 0.8rem;
+        }
+
+        .bulk-item-notes {
+            font-size: 0.75rem;
+            color: var(--gray);
+            font-style: italic;
+            margin-top: 2px;
+        }
+
+        #bulkItemsText {
+            line-height: 1.8;
+        }
+
         .empty-wardrobe {
             text-align: center;
             padding: 60px 20px;
@@ -1279,18 +1311,38 @@
 
                 <!-- Bulk Add Section -->
                 <div id="bulkAddSection" style="display: none;">
-                    <p class="bulk-note">Enter multiple items at once. Select colors from your color story for each row. Photos can be added later.</p>
-                    <div class="bulk-add-header">
-                        <span>Name</span>
-                        <span>Type</span>
-                        <span>Colors</span>
-                        <span></span>
+
+                    <!-- Step 1: Paste text -->
+                    <div id="bulkTextInput">
+                        <p class="bulk-note">Paste your list with section headers in ALL CAPS (TOPS, BOTTOMS, SHOES, etc.). One item per line. Parenthetical notes are captured automatically. Colors are auto-detected from your color story.</p>
+                        <textarea id="bulkItemsText" rows="14" placeholder="TOPS&#10;&#10;White eyelet tee&#10;Dusty blue beach tee&#10;&#10;BOTTOMS&#10;&#10;Black leggings&#10;Navy floral pants (dinners)&#10;&#10;SHOES&#10;&#10;Black sneakers"></textarea>
+                        <div class="bulk-add-actions">
+                            <button type="button" class="primary" onclick="parseBulkText()">Parse List →</button>
+                            <button type="button" class="secondary" onclick="document.getElementById('bulkItemsText').value = ''">Clear</button>
+                        </div>
                     </div>
-                    <div id="bulkRows"></div>
-                    <div class="bulk-add-actions">
-                        <button type="button" class="secondary" onclick="addBulkRow()">+ Add Row</button>
-                        <button type="button" class="primary" onclick="submitBulkItems()">Add All to Wardrobe</button>
+
+                    <!-- Step 2: Review parsed items -->
+                    <div id="bulkPreview" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <div>
+                                <strong id="bulkItemCount">0</strong> items parsed
+                                <span style="font-size:0.8rem;color:var(--gray);margin-left:12px;">Colors auto-detected · click dots to adjust · delete rows to skip</span>
+                            </div>
+                            <button type="button" class="secondary" onclick="resetBulkImport()" style="font-size:0.8rem;">← Edit List</button>
+                        </div>
+                        <div class="bulk-add-header" style="grid-template-columns: 2fr 1fr 1fr auto;">
+                            <span>Name &amp; Notes</span>
+                            <span>Type</span>
+                            <span>Colors</span>
+                            <span></span>
+                        </div>
+                        <div id="bulkPreviewRows"></div>
+                        <div class="bulk-add-actions" style="margin-top: 15px;">
+                            <button type="button" class="primary" onclick="submitBulkItems()">Add All to Wardrobe</button>
+                        </div>
                     </div>
+
                 </div>
 
                 <form id="wardrobeForm" onsubmit="addWardrobeItem(event)">
@@ -2517,7 +2569,7 @@
             }).join('');
         }
         
-        // Bulk Add Functions
+        // Bulk Text Import Functions
         function setAddMode(mode) {
             const singleForm = document.getElementById('wardrobeForm');
             const bulkSection = document.getElementById('bulkAddSection');
@@ -2534,12 +2586,6 @@
                 bulkSection.style.display = 'block';
                 singleBtn.classList.remove('active');
                 bulkBtn.classList.add('active');
-
-                if (document.querySelectorAll('.bulk-row').length === 0) {
-                    addBulkRow();
-                    addBulkRow();
-                    addBulkRow();
-                }
             }
         }
 
@@ -2558,62 +2604,142 @@
             ['accessory', 'Accessory'],
         ];
 
-        function addBulkRow() {
-            const container = document.getElementById('bulkRows');
+        const SECTION_TYPE_MAP = {
+            'TOPS': 'top', 'TOP': 'top',
+            'BOTTOMS': 'bottom', 'BOTTOM': 'bottom', 'PANTS': 'bottom', 'SHORTS': 'bottom', 'SKIRTS': 'bottom',
+            'DRESSES': 'dress', 'DRESS': 'dress',
+            'DRESSES & ROMPERS': 'dress', 'DRESSES AND ROMPERS': 'dress',
+            'ROMPERS': 'jumpsuit', 'JUMPSUITS': 'jumpsuit', 'JUMPSUITS & ROMPERS': 'jumpsuit',
+            'LAYERS': 'top-layer', 'LAYER': 'top-layer', 'LAYERING': 'top-layer',
+            'OUTERWEAR': 'outerwear', 'JACKETS': 'outerwear', 'COATS': 'outerwear',
+            'SHOES': 'shoes', 'FOOTWEAR': 'shoes', 'SNEAKERS': 'shoes', 'BOOTS': 'shoes', 'SANDALS': 'shoes', 'HEELS': 'shoes',
+            'SWIMWEAR': 'swimwear', 'SWIM': 'swimwear', 'SWIMSUITS': 'swimwear',
+            'ACTIVEWEAR': 'activewear-top',
+            'ACCESSORIES': 'accessory', 'ACCESSORY': 'accessory', 'BAGS': 'accessory', 'JEWELRY': 'accessory',
+        };
+
+        function autoDetectColors(text) {
+            if (!appState.colorStory.colors.length) return [];
+            const lower = text.toLowerCase();
+            // Sort by name length descending so "dusty blue" matches before "blue"
+            const sorted = [...appState.colorStory.colors].sort((a, b) => b.name.length - a.name.length);
+            const detected = [];
+            for (const color of sorted) {
+                if (lower.includes(color.name.toLowerCase())) {
+                    detected.push(color);
+                }
+            }
+            return detected;
+        }
+
+        function parseBulkText() {
+            const text = document.getElementById('bulkItemsText').value.trim();
+            if (!text) { alert('Paste your list first.'); return; }
+
+            const lines = text.split('\n');
+            const parsed = [];
+            let currentType = '';
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) continue;
+
+                // Section header: all uppercase letters, spaces, &, /
+                if (/^[A-Z][A-Z\s&\/\-]+$/.test(trimmed)) {
+                    currentType = SECTION_TYPE_MAP[trimmed.toUpperCase()] || '';
+                    continue;
+                }
+
+                if (!currentType) continue;
+
+                // Extract all parenthetical notes from the end
+                let name = trimmed;
+                const allNotes = [];
+                let m;
+                while ((m = name.match(/\s*\(([^)]+)\)\s*$/))) {
+                    allNotes.unshift(m[1]);
+                    name = name.slice(0, name.lastIndexOf('(')).trim();
+                }
+                const notes = allNotes.join('; ');
+
+                if (!name) continue;
+
+                // Refine type based on name keywords
+                let type = currentType;
+                const nl = name.toLowerCase();
+                if (currentType === 'top' && /activewear|sports bra|workout/.test(nl)) type = 'activewear-top';
+                if (currentType === 'dress' && /romper|jumpsuit/.test(nl)) type = 'jumpsuit';
+
+                const colors = autoDetectColors(name + ' ' + notes);
+                parsed.push({ name, type, notes, colors });
+            }
+
+            if (parsed.length === 0) {
+                alert('No items found. Make sure your list has ALL CAPS section headers (e.g. TOPS, BOTTOMS) followed by item names.');
+                return;
+            }
+
+            renderBulkPreview(parsed);
+        }
+
+        function renderBulkPreview(items) {
+            document.getElementById('bulkItemCount').textContent = items.length;
+            document.getElementById('bulkTextInput').style.display = 'none';
+            document.getElementById('bulkPreview').style.display = 'block';
 
             const typeOptions = ITEM_TYPES.map(([val, label]) =>
                 `<option value="${val}">${label}</option>`
             ).join('');
 
-            const colorDots = appState.colorStory.colors.length > 0
-                ? appState.colorStory.colors.map(color =>
-                    `<div class="bulk-color-dot"
-                         style="background-color: ${color.hex};"
-                         title="${color.name}"
-                         data-hex="${color.hex}"
-                         data-name="${color.name}"
-                         onclick="this.classList.toggle('selected')"></div>`
-                  ).join('')
-                : '<span style="font-size:0.75rem;color:var(--gray);">Add colors in step 1</span>';
+            const container = document.getElementById('bulkPreviewRows');
+            container.innerHTML = items.map((item) => {
+                const opts = typeOptions.replace(`value="${item.type}"`, `value="${item.type}" selected`);
+                const dots = appState.colorStory.colors.map(color => {
+                    const sel = item.colors.some(c => c.hex === color.hex) ? ' selected' : '';
+                    return `<div class="bulk-color-dot${sel}" style="background-color:${color.hex};" title="${color.name}" data-hex="${color.hex}" data-name="${color.name}" onclick="this.classList.toggle('selected')"></div>`;
+                }).join('') || '<span style="font-size:0.75rem;color:var(--gray);">—</span>';
 
-            const row = document.createElement('div');
-            row.className = 'bulk-row';
-            row.innerHTML = `
-                <input type="text" class="bulk-item-name" placeholder="Item name…">
-                <select class="bulk-item-type">${typeOptions}</select>
-                <div class="bulk-color-picker">${colorDots}</div>
-                <button type="button" class="bulk-row-delete" onclick="this.closest('.bulk-row').remove()" title="Remove row">×</button>
-            `;
-            container.appendChild(row);
+                return `
+                    <div class="bulk-preview-row">
+                        <div>
+                            <div class="bulk-item-name-text">${item.name}</div>
+                            ${item.notes ? `<div class="bulk-item-notes">${item.notes}</div>` : ''}
+                        </div>
+                        <select class="bulk-item-type">${opts}</select>
+                        <div class="bulk-color-picker">${dots}</div>
+                        <button type="button" class="bulk-row-delete" onclick="this.closest('.bulk-preview-row').remove()" title="Remove">×</button>
+                    </div>`;
+            }).join('');
+        }
+
+        function resetBulkImport() {
+            document.getElementById('bulkPreview').style.display = 'none';
+            document.getElementById('bulkTextInput').style.display = 'block';
         }
 
         function submitBulkItems() {
-            const rows = document.querySelectorAll('.bulk-row');
+            const rows = document.querySelectorAll('.bulk-preview-row');
             const errors = [];
             const toAdd = [];
 
-            rows.forEach((row, index) => {
-                const name = row.querySelector('.bulk-item-name').value.trim();
+            rows.forEach((row) => {
+                const name = row.querySelector('.bulk-item-name-text').textContent.trim();
                 const type = row.querySelector('.bulk-item-type').value;
-                const selectedDots = row.querySelectorAll('.bulk-color-dot.selected');
+                const notes = row.querySelector('.bulk-item-notes')?.textContent.trim() || '';
+                const colors = Array.from(row.querySelectorAll('.bulk-color-dot.selected'))
+                    .map(dot => ({ name: dot.dataset.name, hex: dot.dataset.hex }));
 
-                if (!name && !type) return; // skip fully empty rows
+                if (!type) { errors.push(`"${name}": please select a type`); return; }
 
-                if (!name) { errors.push(`Row ${index + 1}: missing item name`); return; }
-                if (!type) { errors.push(`Row ${index + 1}: missing type for "${name}"`); return; }
-                if (selectedDots.length === 0) { errors.push(`Row ${index + 1}: "${name}" needs at least one color`); return; }
-
-                const colors = Array.from(selectedDots).map(dot => ({ name: dot.dataset.name, hex: dot.dataset.hex }));
-                toAdd.push({ id: Date.now() + Math.random(), name, type, colors, photo: null, notes: '' });
+                toAdd.push({ id: Date.now() + Math.random(), name, type, colors, photo: null, notes });
             });
 
             if (errors.length > 0) {
                 alert('Please fix these issues:\n\n' + errors.join('\n'));
                 return;
             }
-
             if (toAdd.length === 0) {
-                alert('No items to add. Fill in at least one row.');
+                alert('No items to add.');
                 return;
             }
 
@@ -2621,10 +2747,10 @@
             saveState();
             renderWardrobeList();
 
-            document.getElementById('bulkRows').innerHTML = '';
-            addBulkRow();
-            addBulkRow();
-            addBulkRow();
+            document.getElementById('bulkPreview').style.display = 'none';
+            document.getElementById('bulkTextInput').style.display = 'block';
+            document.getElementById('bulkItemsText').value = '';
+            document.getElementById('bulkPreviewRows').innerHTML = '';
 
             alert(`${toAdd.length} item${toAdd.length !== 1 ? 's' : ''} added to your wardrobe!`);
         }
