@@ -201,7 +201,7 @@ def get_credentials():
             auth_url, _ = flow.authorization_url(prompt='select_account consent')
             print(f'\nVisit this URL to authorize:\n{auth_url}\n')
             code = input('Enter the authorization code: ')
-            flow.fetch_token(code=code, redirect_uri='urn:ietf:wg:oauth:2.0:oob')
+            flow.fetch_token(code=code)
             creds = flow.credentials
 
         # Save the credentials for the next run
