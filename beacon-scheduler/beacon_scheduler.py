@@ -197,7 +197,7 @@ def get_credentials():
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
                 'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
+            creds = flow.run_console()
 
         # Save the credentials for the next run
         with open('token.json', 'w') as token:
@@ -337,10 +337,15 @@ def create_calendar_event(service, calendar_id: str, event: Dict, actual_year: i
 
 def main():
     """Main function"""
-    # Generate URL for this week's Monday
-    url, week_start = get_this_weeks_monday_url()
-    print(f"Week starting: {week_start.strftime('%B %d, %Y')}")
-    print(f"URL: {url}\n")
+    import sys
+    if len(sys.argv) > 1:
+        url = sys.argv[1]
+        print(f"URL: {url}\n")
+    else:
+        # Generate URL for this week's Monday
+        url, week_start = get_this_weeks_monday_url()
+        print(f"Week starting: {week_start.strftime('%B %d, %Y')}")
+        print(f"URL: {url}\n")
     
     print("Fetching schedule from Beacon.tv...")
     html, actual_url = fetch_schedule(url)
