@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booth Buddy — fun things</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- ── VIEW: INPUT ── -->
+    <div id="view-input" class="view">
+        <header class="input-header">
+            <a href="../" class="back-link">← fun things</a>
+            <h1>booth buddy</h1>
+            <p class="tagline">voice actor's script assistant</p>
+        </header>
+        <main class="input-main">
+
+            <!-- Script + brief -->
+            <div class="input-grid">
+                <div class="input-group">
+                    <label for="script-input">audition script</label>
+                    <textarea id="script-input" placeholder="Paste your script here. Each line becomes an annotatable block." spellcheck="false"></textarea>
+                </div>
+                <div class="input-group">
+                    <label for="brief-input">character brief / notes</label>
+                    <textarea id="brief-input" placeholder="Character specs, tone, age range, director notes, genre context..."></textarea>
+                </div>
+            </div>
+
+            <button id="prep-btn" class="prep-btn">prep it →</button>
+        </main>
+    </div>
+
+    <!-- ── VIEW: ANNOTATE ── -->
+    <div id="view-annotate" class="view hidden">
+        <div class="annotate-topbar">
+            <button id="back-to-input" class="topbar-btn secondary">← back</button>
+            <div class="topbar-center">
+                <button id="brief-toggle" class="topbar-btn ghost">brief ▾</button>
+            </div>
+            <button id="enter-booth" class="topbar-btn primary">enter booth →</button>
+        </div>
+        <div id="brief-panel" class="brief-panel hidden">
+            <pre id="brief-content" class="brief-content"></pre>
+        </div>
+        <div class="workspace">
+            <main id="script-panel" class="script-panel">
+                <!-- Lines rendered by JS -->
+            </main>
+            <aside class="sidebar">
+                <div id="sidebar-empty" class="sidebar-empty">
+                    <p>click a line<br>to annotate it</p>
+                </div>
+                <div id="sidebar-tools" class="sidebar-tools hidden">
+                    <div class="sidebar-line-num" id="sidebar-line-num">line —</div>
+
+                    <div class="sidebar-section">
+                        <div class="sidebar-label">beat</div>
+                        <button id="beat-toggle" class="beat-toggle">mark beat start</button>
+                    </div>
+
+                    <div class="sidebar-section">
+                        <div class="sidebar-label">turn</div>
+                        <button id="turn-toggle" class="beat-toggle turn-toggle">mark turn</button>
+                    </div>
+
+                    <div class="sidebar-section">
+                        <div class="sidebar-label">vibe</div>
+                        <input type="text" id="vibe-input" class="anno-input" placeholder="playful, urgent, conspiratorial..." autocomplete="off" />
+                    </div>
+
+                    <div class="sidebar-section">
+                        <div class="sidebar-label">intention</div>
+                        <input type="text" id="intention-input" class="anno-input" placeholder="reassure her, warn them, challenge him..." autocomplete="off" />
+                    </div>
+
+                    <div class="sidebar-section">
+                        <div class="sidebar-label">pacing</div>
+                        <div class="tag-row">
+                            <button class="tag-btn pacing-btn" data-pacing="normal">normal</button>
+                            <button class="tag-btn pacing-btn" data-pacing="build">build ↑</button>
+                            <button class="tag-btn pacing-btn" data-pacing="pull-back">pull back ↓</button>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-section">
+                        <div class="sidebar-label">energy</div>
+                        <div class="tag-row">
+                            <button class="tag-btn energy-btn" data-energy="soft">soft</button>
+                            <button class="tag-btn energy-btn" data-energy="medium">medium</button>
+                            <button class="tag-btn energy-btn" data-energy="big">big</button>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-section">
+                        <div class="sidebar-label">delivery</div>
+                        <p class="beat-hint">select text in the script, then click a marker</p>
+
+                        <div class="delivery-group">
+                            <div class="delivery-group-label">timing</div>
+                            <div class="beat-grid">
+                                <button class="beat-btn" data-insert="/ " title="pause / breath">/ pause</button>
+                                <button class="beat-btn" data-insert=" ↩ " title="pull-back — slight deceleration">↩ back</button>
+                            </div>
+                        </div>
+
+                        <div class="delivery-group">
+                            <div class="delivery-group-label">emphasis</div>
+                            <div class="beat-grid">
+                                <button class="beat-btn" data-insert="**" title="arc — lift the operative word">* arc</button>
+                                <button class="beat-btn" data-insert="~~" title="zhoosh — add a little sprinkle">~ zhoosh</button>
+                            </div>
+                        </div>
+
+                        <div class="delivery-group">
+                            <div class="delivery-group-label">commercial</div>
+                            <div class="beat-grid">
+                                <button class="beat-btn" data-insert="[]" title="product name">[ ] product</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-section sidebar-notes">
+                        <div class="sidebar-label">notes</div>
+                        <textarea id="line-notes" class="line-notes-input" placeholder="director notes, feelings, cues..."></textarea>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- ── VIEW: BOOTH ── -->
+    <div id="view-booth" class="view hidden">
+        <div class="booth-topbar">
+            <div id="booth-brief-bar" class="booth-brief-bar"></div>
+            <div class="booth-topbar-right">
+                <button id="print-btn" class="booth-util-btn" title="Print / Save as PDF">⎙ print</button>
+                <button id="exit-booth" class="booth-util-btn exit">✕ exit</button>
+            </div>
+        </div>
+        <main id="booth-script" class="booth-script">
+            <!-- Rendered booth view -->
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
