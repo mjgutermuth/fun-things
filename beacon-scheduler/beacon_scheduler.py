@@ -197,12 +197,7 @@ def get_credentials():
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
                 'credentials.json', SCOPES)
-            flow.redirect_uri = 'urn:ietf:wg:oauth:2.0:oob'
-            auth_url, _ = flow.authorization_url(prompt='select_account consent')
-            print(f'\nVisit this URL to authorize:\n{auth_url}\n')
-            code = input('Enter the authorization code: ')
-            flow.fetch_token(code=code)
-            creds = flow.credentials
+            creds = flow.run_local_server(port=0)
 
         # Save the credentials for the next run
         with open('token.json', 'w') as token:
