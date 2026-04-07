@@ -455,9 +455,9 @@ function renderDailyPlanner(tripData) {
     if (!content) return;
 
     let html = '';
-    tripData.days.forEach(day => {
+    tripData.days.forEach((day, i) => {
         const dateStr = day.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-        const outfit = generateDailyOutfit(day.weather);
+        const outfit = generateDailyOutfit(day.weather, i);
         const assessment = assessWeatherConditions(day.weather);
         const cityName = getCityName(day.location);
 

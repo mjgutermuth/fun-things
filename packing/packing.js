@@ -3,13 +3,16 @@ function generateSmartPackingCategories(tripData) {
     const temps = tripData.days.map(d => d.weather.temp);
     const minTemp = Math.min(...temps);
     const maxTemp = Math.max(...temps);
-    const tripLength = tripData.days.length;
+    const tripLength = tripData.effectiveTripLength || tripData.days.length;
     
     // Get occasion data (defaults to empty if not provided)
     const occasions = tripData.occasions || {};
-    const semiFormalDays = occasions.semiFormal || 0;
+    let semiFormalDays = occasions.semiFormal || 0;
     const formalDays = occasions.formal || 0;
     const loungeDays = occasions.lounge || 0;
+    // Cruises almost always have at least one formal or elegant casual night
+    const cruiseDefaultFormal = tripData.cruiseMode && formalDays === 0 && semiFormalDays === 0;
+    if (cruiseDefaultFormal) semiFormalDays = 1;
     const adventureDays = occasions.adventure || 0;
     const beachDays = occasions.beach || 0;
     const businessDays = occasions.business || 0;
@@ -44,18 +47,48 @@ function generateSmartPackingCategories(tripData) {
     const veryHighAltitudeDays = tripData.days.filter(d => (d.weather.elevation || 0) >= 2500).length;
     
     const categories = {};
-    
+
+    // CRUISE ESSENTIALS - Always shown in cruise mode
+    if (tripData.cruiseMode) {
+        categories['Cruise Essentials'] = {
+            items: [
+                'Magnetic hooks',
+                'Over-door shoe organizer',
+                'Extension cord or power strip',
+                'Towel bands or clips',
+                'Travel clothes hangers',
+                '<span class="quantity-highlight">2–3</span> swimsuits',
+                '<span class="quantity-highlight">2</span> cover-ups',
+                'Small dry bag',
+                'Stain remover pen',
+                'Cash in small bills for tips',
+                'Printed boarding passes + excursion confirmations',
+            ]
+        };
+    }
+
     // Add occasion summary if any occasions specified
     if (specialDays > 0) {
         const summaryItems = [];
-        summaryItems.push(`<strong>Trip breakdown:</strong> ${casualDays} casual day${casualDays !== 1 ? 's' : ''}${semiFormalDays > 0 ? `, ${semiFormalDays} semi-formal` : ''}${formalDays > 0 ? `, ${formalDays} formal` : ''}${businessDays > 0 ? `, ${businessDays} business` : ''}${loungeDays > 0 ? `, ${loungeDays} lounge` : ''}${adventureDays > 0 ? `, ${adventureDays} adventure` : ''}${beachDays > 0 ? `, ${beachDays} beach` : ''}`);
+        const breakdownParts = [];
+        if (semiFormalDays > 0) breakdownParts.push(`${semiFormalDays} semi-formal night${semiFormalDays > 1 ? 's' : ''}`);
+        if (formalDays > 0) breakdownParts.push(`${formalDays} formal night${formalDays > 1 ? 's' : ''}`);
+        if (businessDays > 0) breakdownParts.push(`${businessDays} business day${businessDays > 1 ? 's' : ''}`);
+        if (loungeDays > 0) breakdownParts.push(`${loungeDays} lounge day${loungeDays > 1 ? 's' : ''}`);
+        if (adventureDays > 0) breakdownParts.push(`${adventureDays} adventure day${adventureDays > 1 ? 's' : ''}`);
+        if (beachDays > 0) breakdownParts.push(`${beachDays} beach day${beachDays > 1 ? 's' : ''}`);
+        summaryItems.push(`<strong>Trip breakdown:</strong> ${tripLength} day${tripLength !== 1 ? 's' : ''}, including ${breakdownParts.join(', ')}`);
         categories['Trip Overview'] = { items: summaryItems };
     }
     
     // SPECIAL OCCASIONS - Only show if any formal/business days specified
     if (formalDays > 0 || semiFormalDays > 0 || businessDays > 0) {
         const specialItems = [];
-        
+
+        if (cruiseDefaultFormal) {
+            specialItems.push('<em>Most cruise lines include at least 1 formal or elegant casual night — check your line\'s dress code and update Advanced Options if needed</em>');
+        }
+
         if (formalDays > 0) {
             specialItems.push(`<span class="quantity-highlight">${formalDays}</span> formal outfit${formalDays > 1 ? 's' : ''} (suit/dress/gown)`);
             specialItems.push(`<span class="quantity-highlight">${formalDays}</span> pair${formalDays > 1 ? 's' : ''} of dress shoes`);
@@ -103,24 +136,13 @@ function generateSmartPackingCategories(tripData) {
     
     // Weather-based clothing for casual days
     if (hotDays > 0 && casualDays > 0) {
-        const moistureWickingCount = highHumidityDays > 2 ? Math.ceil(hotDays * 0.5) : 0;
-        const casualHotTops = Math.max(0, Math.min(casualDays, Math.ceil(hotDays * 0.8)) - moistureWickingCount);
-        if (casualHotTops > 0) {
-            coreItems.push(`<span class="quantity-highlight">${casualHotTops}</span> lightweight t-shirt${casualHotTops > 1 ? 's' : ''}`);
-        }
-        if (moistureWickingCount > 0) {
-            coreItems.push(`<span class="quantity-highlight">${moistureWickingCount}</span> moisture-wicking shirt${moistureWickingCount > 1 ? 's' : ''}`);
+        if (highHumidityDays > 2) {
             coreItems.push('Quick-dry underwear for humid days');
         }
         const casualShorts = Math.min(casualDays, Math.ceil(hotDays * 0.5));
         if (casualShorts > 0) {
             coreItems.push(`<span class="quantity-highlight">${casualShorts}</span> pair${casualShorts > 1 ? 's' : ''} of shorts`);
         }
-    }
-    
-    if (maxTemp >= 20 && minTemp >= 15 && casualDays > 0) {
-        coreItems.push('1-2 light pants');
-        coreItems.push('1 light sweater or cardigan');
     }
     
     if (coldDays > 0) {
@@ -156,15 +178,9 @@ function generateSmartPackingCategories(tripData) {
     const specialOccasionTops = semiFormalDays + formalDays + businessDays + Math.ceil(loungeDays * 0.7) + Math.ceil(adventureDays * 1.2);
     const totalTops = casualTops + specialOccasionTops;
     
-    if (casualDays > 0) {
-        if (specialDays > 0) {
-            coreItems.push(`<span class="quantity-highlight">${casualTops}</span> casual tops for everyday wear`);
-            coreItems.push(`<em>(${totalTops} tops total including special occasions)</em>`);
-        } else {
-            coreItems.push(`<span class="quantity-highlight">${totalTops}</span> tops (mix of styles & sleeves)`);
-        }
-    } else if (specialDays > 0) {
-        coreItems.push(`<em>See Special Occasions & Activity Wear for all clothing (${totalTops} tops total)</em>`);
+    if (totalTops > 0) {
+        const topsNote = hotDays > 0 ? ' — favor lightweight, breathable fabrics' : '';
+        coreItems.push(`<span class="quantity-highlight">${totalTops}</span> tops or dresses${topsNote}`);
     }
     
     // Bottoms - more conservative, most occasions can reuse pants/jeans
@@ -172,7 +188,8 @@ function generateSmartPackingCategories(tripData) {
     if (casualDays > 0) {
         const casualBottoms = Math.ceil(casualDays * 0.5);
         if (casualBottoms > 0) {
-            coreItems.push(`<span class="quantity-highlight">${casualBottoms}</span> pairs of pants/jeans`);
+            const bottomsLabel = hotDays > 0 ? 'pairs of pants, jeans, or skirts' : 'pairs of pants/jeans';
+            coreItems.push(`<span class="quantity-highlight">${casualBottoms}</span> ${bottomsLabel}`);
         }
     }
     
@@ -225,13 +242,14 @@ function generateSmartPackingCategories(tripData) {
     if (highUVDays > 0 || maxTemp >= 25) {
         const sunItems = [];
         
+        const sunscreenLabel = tripData.cruiseMode && highUVDays > 0 ? 'reef-safe sunscreen' : 'sunscreen';
         if (extremeUVDays >= 3) {
-            sunItems.push(`<span class="quantity-highlight">SPF 50+</span> sunscreen`);
+            sunItems.push(`<span class="quantity-highlight">SPF 50+</span> ${sunscreenLabel}`);
             sunItems.push('UPF 50+ long-sleeve shirts');
             sunItems.push('Wide-brim sun hat with neck protection');
             sunItems.push('Zinc sunscreen for face/lips');
         } else if (highUVDays >= 2) {
-            sunItems.push(`<span class="quantity-highlight">SPF 30+</span> sunscreen`);
+            sunItems.push(`<span class="quantity-highlight">SPF 30+</span> ${sunscreenLabel}`);
             sunItems.push('Sun hat');
         }
         
@@ -244,12 +262,25 @@ function generateSmartPackingCategories(tripData) {
             sunItems.push(`<span class="quantity-highlight">${Math.min(hotDays, 3)}</span> UPF clothing items`);
         }
         
-        categories['Sun Protection'] = { 
-            items: sunItems, 
-            priority: extremeUVDays >= 2 ? 'high' : 'medium'
-        };
+        if (sunItems.length > 0) {
+            categories['Sun Protection'] = {
+                items: sunItems,
+                priority: extremeUVDays >= 2 ? 'high' : 'medium'
+            };
+        }
     }
     
+    // TROPICAL PORT ADD-ONS - Cruise mode with high UV ports (Caribbean, Hawaii, Med summer, etc.)
+    if (tripData.cruiseMode && highUVDays > 0) {
+        const tropicalItems = [];
+        tropicalItems.push('Reef-safe sunscreen');
+        tropicalItems.push('Snorkel + mask');
+        tropicalItems.push('Water shoes');
+        tropicalItems.push('Bandana or buff');
+        tropicalItems.push('Insect repellent');
+        categories['Tropical Port Add-Ons'] = { items: tropicalItems };
+    }
+
     // WEATHER GEAR - Specific to conditions
     if (rainDays > 0 || snowDays > 0) {
         const weatherItems = [];
@@ -282,13 +313,19 @@ function generateSmartPackingCategories(tripData) {
     // FOOTWEAR - Activity and weather specific
     const footwearItems = [];
     footwearItems.push('Comfortable walking shoes');
-    
-    if (hotDays >= 2) {
-        footwearItems.push(`<span class="quantity-highlight">1-2</span> pairs of breathable sandals`);
+
+    let sandalsAdded = false;
+    if (tripData.cruiseMode || hotDays >= 2) {
+        footwearItems.push(`<span class="quantity-highlight">1-2</span> pairs of sandals or flip-flops`);
+        sandalsAdded = true;
     }
-    
-    if (swimWeatherDays >= 3 && !flipFlopsAdded) {
-        footwearItems.push('Flip-flops or beach sandals');
+
+    if (swimWeatherDays >= 3 && !flipFlopsAdded && !sandalsAdded) {
+        footwearItems.push('Flip flops or beach sandals');
+    }
+
+    if (tripData.cruiseMode && highUVDays > 0) {
+        footwearItems.push('Closed-toe athletic shoes for excursions');
     }
     
     if (coldDays > 0 || snowDays > 0) {
@@ -330,8 +367,12 @@ function generateSmartPackingCategories(tripData) {
     }
     
     if (tripLength > 7) {
-        accessoryItems.push('Laundry detergent pods');
-        accessoryItems.push('Travel clothesline');
+        if (tripData.cruiseMode) {
+            accessoryItems.push('Travel laundry soap or sink suds');
+        } else {
+            accessoryItems.push('Laundry detergent pods');
+            accessoryItems.push('Travel clothesline');
+        }
     }
     
     categories['Travel Accessories'] = { items: accessoryItems };
@@ -397,78 +438,83 @@ function generateSmartPackingCategories(tripData) {
     return categories;
 }
 
-function generateDailyOutfit(weather) {
+function generateDailyOutfit(weather, dayIndex = 0) {
     const { temp, precipitationChance, condition, uvIndex, humidity } = weather;
     const isHeavyRain = precipitationChance > 70;
     const isRainy = precipitationChance > 30;
     const isSnowy = condition.includes('snow');
     const isHumid = humidity > 70;
+    const pick = (arr) => arr[dayIndex % arr.length];
 
-    // Base layer
-    const layers = [];
+    let outfit;
+
     if (temp >= 28) {
-        layers.push(isHumid ? 'moisture-wicking tee' : 'lightweight tee or tank');
-    } else if (temp >= 20) {
-        layers.push('light t-shirt');
-    } else if (temp >= 12) {
-        layers.push('long-sleeve shirt');
-    } else if (temp >= 4) {
-        layers.push('thermal base layer');
-    } else {
-        layers.push('heavy thermal base layer');
-    }
-
-    // Mid layer
-    if (temp >= 12 && temp < 20) {
-        layers.push('light sweater or cardigan');
-    } else if (temp >= 4 && temp < 12) {
-        layers.push('warm sweater or fleece');
-    } else if (temp < 4) {
-        layers.push('heavy fleece or insulated mid-layer');
-    }
-
-    // Bottoms
-    let bottoms;
-    if (temp >= 26) {
-        bottoms = 'shorts or light skirt';
+        // Hot
+        outfit = pick(isHumid
+            ? ['moisture-wicking tee + shorts', 'tank top + linen shorts', 'breezy dress or romper', 'lightweight tee + light skirt', 'linen jumpsuit']
+            : ['lightweight tee + shorts', 'tank top + shorts or skirt', 'sundress', 'linen top + shorts', 'romper or jumpsuit']
+        );
+    } else if (temp >= 22) {
+        // Warm
+        outfit = pick([
+            'light tee + jeans',
+            'casual blouse + pants',
+            'sundress or casual dress',
+            'light top + shorts',
+            'breezy top + light pants',
+            'romper or casual jumpsuit',
+        ]);
     } else if (temp >= 15) {
-        bottoms = 'jeans or chinos';
-    } else if (temp < 0) {
-        bottoms = 'insulated pants over thermals';
+        // Mild
+        outfit = pick([
+            't-shirt + cardigan + jeans',
+            'long-sleeve top + pants',
+            'casual dress + light jacket',
+            'light sweater + jeans',
+            'blouse + light jacket + pants',
+            'light tee + shorts',
+        ]);
+    } else if (temp >= 8) {
+        // Cool
+        outfit = pick([
+            'sweater + warm pants',
+            'long-sleeve + fleece + jeans',
+            'cozy knit + warm pants',
+            'warm top + jacket + jeans',
+        ]);
+    } else if (temp >= 0) {
+        // Cold
+        outfit = pick([
+            'thermal layer + heavy sweater + warm pants',
+            'fleece + warm jacket + jeans',
+            'insulated layers + warm pants',
+        ]);
     } else {
-        bottoms = 'warm pants';
+        // Freezing
+        outfit = 'heavy thermals + fleece + winter coat + insulated pants';
     }
 
-    // Outer layer
-    let outer = null;
+    // Weather overlays
     if (isSnowy) {
-        outer = 'heavy waterproof coat';
+        outfit += ' + waterproof winter coat';
     } else if (isHeavyRain) {
-        outer = 'waterproof rain jacket';
+        outfit += ' + rain jacket';
     } else if (isRainy) {
-        outer = 'water-resistant jacket + umbrella';
-    } else if (temp < 4) {
-        outer = 'heavy winter coat';
-    } else if (temp < 12) {
-        outer = 'warm jacket';
+        outfit += ' + water-resistant jacket + umbrella';
+    } else if (temp < 4 && !isSnowy) {
+        outfit += ' + heavy coat';
+    } else if (temp < 12 && !isRainy) {
+        outfit += ' + warm jacket';
     }
 
     // Accessories
     const extras = [];
-    if (uvIndex >= 8) {
-        extras.push('SPF 50+, sun hat, sunglasses');
-    } else if (uvIndex >= 6) {
-        extras.push('SPF 30+, sunglasses');
-    }
-    if (isSnowy || temp < 0) {
-        extras.push('gloves, scarf, warm hat');
-    } else if (temp < 4) {
-        extras.push('gloves, light scarf');
-    }
+    if (uvIndex >= 8) extras.push('SPF 50+, sun hat, sunglasses');
+    else if (uvIndex >= 6) extras.push('SPF 30+, sunglasses');
+    if (isSnowy || temp < 0) extras.push('gloves, scarf, warm hat');
+    else if (temp < 4) extras.push('gloves, light scarf');
 
-    let description = [...layers, bottoms].join(', ');
-    if (outer) description += ', ' + outer;
-    if (extras.length > 0) description += ' — ' + extras.join(', ');
+    if (extras.length > 0) outfit += ' — ' + extras.join(', ');
 
-    return description;
+    return outfit;
 }

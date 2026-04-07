@@ -48,6 +48,120 @@ body {
     font-size: 0.9rem;
 }
 
+.mode-switcher {
+    display: flex;
+    margin-bottom: 25px;
+    border: 2px solid #ff1493;
+    width: fit-content;
+}
+
+.mode-btn {
+    padding: 10px 22px;
+    border: none;
+    background: white;
+    color: #ff1493;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+}
+
+.mode-btn.active {
+    background: #ff1493;
+    color: white;
+}
+
+.mode-btn:not(.active):hover {
+    background: #fff0f8;
+}
+
+.cruise-note {
+    background: #fff0f8;
+    border-left: 3px solid #ff1493;
+    padding: 10px 14px;
+    margin-bottom: 20px;
+    font-size: 0.85rem;
+    color: #555;
+    font-style: italic;
+}
+
+#cruiseDateHeader {
+    margin-bottom: 20px;
+}
+
+#cruiseDateHeader .form-group {
+    max-width: 280px;
+}
+
+.day0-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 15px 0 10px;
+    font-size: 0.9rem;
+    color: #555;
+    cursor: pointer;
+}
+
+.day0-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #ff1493;
+}
+
+.day0-toggle label {
+    cursor: pointer;
+}
+
+.day0-segment {
+    border: 2px solid #ddd;
+    padding: 15px 20px;
+    margin-top: 10px;
+    background: #fafafa;
+}
+
+.day0-segment .segment-title {
+    font-weight: bold;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    color: #888;
+}
+
+.cruise-day-label {
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #888;
+    margin-bottom: 10px;
+}
+
+.cruise-port-row {
+    grid-template-columns: 90px 1fr;
+}
+
+.cruise-day-number {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #ddd;
+    border-radius: 0;
+    font-size: 16px;
+    font-family: 'Courier New', monospace;
+    background: white;
+    text-align: center;
+}
+
+.cruise-day-number:focus {
+    outline: none;
+    border-color: #ff1493;
+}
+
 .trip-form {
     background: white;
     border: 3px solid #ff1493;
@@ -143,6 +257,33 @@ body {
     box-shadow: none;
 }
 
+.location-wrapper {
+    position: relative;
+}
+
+.location-status {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1rem;
+    pointer-events: none;
+}
+
+.form-group input.location-valid {
+    border-color: #27ae60;
+}
+
+.form-group input.location-invalid {
+    border-color: #c0392b;
+}
+
+.location-error-msg {
+    font-size: 0.78rem;
+    color: #c0392b;
+    margin-top: 4px;
+}
+
 .btn {
     padding: 15px 30px;
     border: none;
@@ -163,8 +304,8 @@ body {
 }
 
 .btn-primary:hover {
-    background: white;
-    color: #ff1493;
+    background: #e6127a;
+    color: white;
 }
 
 .btn-add {
@@ -269,25 +410,6 @@ body {
     box-shadow: none;
 }
 
-.calendar-day.trip-day {
-    cursor: pointer;
-}
-
-.calendar-day.trip-day:hover {
-    transform: scale(1.02);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 10;
-}
-
-.calendar-day {
-    background: white;
-    min-height: 130px;
-    padding: 10px;
-    position: relative;
-    transition: all 0.3s ease;
-    border: 2px solid #eee;
-    font-family: 'SF Pro Rounded', 'Arial Rounded MT Bold', -apple-system, BlinkMacSystemFont, sans-serif;
-}
 
 .day-number {
     font-weight: 800;
@@ -358,18 +480,6 @@ body {
     opacity: 0.6;
 }
 
-.calendar-day-header {
-    background: #2e2e2e;
-    color: white;
-    padding: 20px 8px;
-    text-align: center;
-    font-weight: 700;
-    font-size: 1rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-family: 'SF Pro Rounded', 'Arial Rounded MT Bold', -apple-system, BlinkMacSystemFont, sans-serif;
-    border: none;
-}
 
 /* BETTER PROPORTIONS */
 .calendar-day.other-month {
@@ -516,10 +626,16 @@ body {
     color: #856404;
 }
 
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
 .loading {
     text-align: center;
     padding: 40px;
     color: #64748b;
+    animation: pulse 1.5s ease-in-out infinite;
 }
 
 @media (max-width: 768px) {
@@ -702,8 +818,7 @@ body {
 }
 
 .calendar-day.trip-day:hover {
-    transform: scale(1.03);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 10;
     border-color: #ff1493;
 }

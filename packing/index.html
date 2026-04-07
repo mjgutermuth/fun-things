@@ -14,29 +14,88 @@
         </div>
         
         <div class="trip-form">
+            <div class="mode-switcher">
+                <button id="standardModeBtn" class="mode-btn active" onclick="setCruiseMode(false)">Standard</button>
+                <button id="cruiseModeBtn" class="mode-btn" onclick="setCruiseMode(true)">🚢 Cruise</button>
+            </div>
+            <p class="cruise-note" id="cruiseNote" style="display:none;">Add each port of call below. Skip sea days — no weather or packing changes needed for days at sea.</p>
+
+            <div id="cruiseDateHeader" style="display:none;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="embarkationDate">Embarkation Date</label>
+                        <input type="date" id="embarkationDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="cruiseNights">Number of Nights</label>
+                        <input type="number" id="cruiseNights" min="1" max="30" placeholder="#">
+                    </div>
+                </div>
+                <div class="day0-toggle">
+                    <input type="checkbox" id="day0Check" onchange="toggleDay0()">
+                    <label for="day0Check">Flying in the day before? Add your departure city.</label>
+                </div>
+                <div id="day0Segment" class="segment day0-segment" style="display:none;">
+                    <div class="segment-title">Day 0 — Departure City</div>
+                    <div class="form-group">
+                        <label for="day0Location">City</label>
+                        <div class="location-wrapper">
+                            <input type="text" id="day0Location" placeholder="your departure city">
+                            <span class="location-status"></span>
+                        </div>
+                        <div class="location-error-msg"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="segment main" id="mainSegment">
                 <div class="segment-header">
                     <div class="segment-title">Main Trip</div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="startDate">Start Date</label>
-                        <input type="date" id="startDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="endDate">End Date</label>
-                        <input type="date" id="endDate" required>
+                <div class="standard-dates">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="startDate">Start Date</label>
+                            <input type="date" id="startDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="endDate">End Date</label>
+                            <input type="date" id="endDate" required>
+                        </div>
                     </div>
                 </div>
+                <div class="cruise-day-label" style="display:none;">Day 1 — Embarkation</div>
                 <div class="form-group">
                     <label for="location">Location</label>
-                    <input type="text" id="location" placeholder="city, state / country" required>
+                    <div class="location-wrapper">
+                        <input type="text" id="location" placeholder="city, state / country" required>
+                        <span class="location-status"></span>
+                    </div>
+                    <div class="location-error-msg"></div>
                 </div>
             </div>
             
             <div id="additionalSegments"></div>
-            
-            <button class="btn btn-add" onclick="addTripSegment()">+ Add Trip Segment</button>
+
+            <button class="btn btn-add" id="addSegmentBtn" onclick="addTripSegment()">+ Add Trip Segment</button>
+
+            <div id="debarkationSection" class="segment day0-segment" style="display:none;">
+                <div class="segment-title">Debarkation Port</div>
+                <div class="day0-toggle">
+                    <input type="checkbox" id="samePortCheck" checked onchange="toggleDebarkationPort()">
+                    <label for="samePortCheck">Same port as embarkation</label>
+                </div>
+                <div id="debarkationPortInput" style="display:none;">
+                    <div class="form-group">
+                        <label for="debarkationPort">Port</label>
+                        <div class="location-wrapper">
+                            <input type="text" id="debarkationPort" placeholder="port city, country">
+                            <span class="location-status"></span>
+                        </div>
+                        <div class="location-error-msg"></div>
+                    </div>
+                </div>
+            </div>
             
             <!-- Advanced Options -->
             <div class="advanced-options">
@@ -45,7 +104,7 @@
                     <span class="toggle-icon" id="advancedToggle">▼</span>
                 </div>
                 <div class="advanced-content" id="advancedContent" style="display: none;">
-                    <p class="advanced-description">Specify special occasions during your trip. Any unspecified days default to casual wear.</p>
+                    <p class="advanced-description" id="advancedDescription">Specify special occasions during your trip. Any unspecified days default to casual wear.</p>
                     
                     <div class="occasion-grid">
                         <div class="occasion-item">
@@ -98,7 +157,7 @@
                             </div>
                         </div>
                         
-                        <div class="occasion-item">
+                        <div class="occasion-item" id="businessOccasionItem">
                             <div class="occasion-checkbox">
                                 <input type="checkbox" id="businessCheck" onchange="toggleOccasionInput('business')">
                                 <label for="businessCheck">Business / Work Days</label>
