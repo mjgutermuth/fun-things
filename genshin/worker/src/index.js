@@ -53,7 +53,6 @@ function md5(str) {
   ).join('');
 }
 
-const SALT = 'okr4obncj8bw5a65hbnn5weg759646a7';
 const BASE_URL = 'https://sg-public-api.hoyolab.com/event/game_record/genshin/api';
 const SERVER_MAP = { '6': 'os_usa', '7': 'os_euro', '9': 'os_cht' };
 
@@ -67,13 +66,6 @@ function getServer(uid) {
   return SERVER_MAP[String(uid)[0]] ?? 'os_asia';
 }
 
-function generateDS(body = '', query = '') {
-  const t = Math.floor(Date.now() / 1000);
-  const alpha = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const r = Array.from({ length: 6 }, () => alpha[Math.floor(Math.random() * alpha.length)]).join('');
-  const h = md5(`salt=${SALT}&t=${t}&r=${r}&b=${body}&q=${query}`);
-  return `${t},${r},${h}`;
-}
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -148,7 +140,56 @@ export default {
       catch { return json({ error: `character/list ${listRes.status}: ${listText.slice(0, 200)}` }, 502); }
       if (listData.retcode !== 0) return json({ error: 'character/list failed', retcode: listData.retcode, message: listData.message });
 
-      return json(listData);
+      // Step 2: fetch full artifact data from /character/detail in batches of 8
+      const characters = listData.data?.list ?? [];
+      const ids = characters.map(c => c.id).filter(Boolean);
+
+      const BATCH = 8;
+      const batches = [];
+      for (let i = 0; i < ids.length; i += BATCH) batches.push(ids.slice(i, i + BATCH));
+
+      const batchResponses = await Promise.all(batches.map(async batchIds => {
+        const detailBody = JSON.stringify({ role_id: uid, server, character_ids: batchIds });
+        const detailRes = await fetch(`${BASE_URL}/character/detail`, {
+          method: 'POST',
+          headers: { ...commonHeaders, 'Content-Type': 'application/json' },
+          body: detailBody,
+        });
+        const detailText = await detailRes.text();
+        try {
+          const d = JSON.parse(detailText);
+          if (d.retcode !== 0) return { list: [], propertyMap: null };
+          return { list: d.data?.list ?? [], propertyMap: d.data?.property_map ?? null };
+        } catch { return { list: [], propertyMap: null }; }
+      }));
+
+      const propertyMap = batchResponses.find(r => r.propertyMap)?.propertyMap ?? {};
+      const propName = type => propertyMap[type]?.name ?? propertyMap[String(type)]?.name ?? String(type);
+
+      const detailMap = {};
+      for (const { list } of batchResponses) {
+        for (const c of list) detailMap[c.base?.id ?? c.id] = c;
+      }
+
+      // Transform detail relics to match the reliquaries format normalizeChar expects
+      const merged = characters.map(c => {
+        const detail = detailMap[c.id];
+        if (!detail) return c;
+        const reliquaries = (detail.relics ?? []).map(r => ({
+          ...r,
+          set: r.set ? { name: r.set.name } : null,
+          main_property: r.main_property
+            ? { name: propName(r.main_property.property_type), value: r.main_property.value }
+            : null,
+          append_prop_list: (r.sub_property_list ?? []).map(s => ({
+            name: propName(s.property_type),
+            value: s.value,
+          })),
+        }));
+        return { ...c, reliquaries };
+      });
+
+      return json({ ...listData, data: { ...listData.data, list: merged } });
     } catch (e) {
       return json({ error: `Worker error: ${e.message}` }, 500);
     }
