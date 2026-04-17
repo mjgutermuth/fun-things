@@ -19,6 +19,9 @@ cr-tracker/*.html
 .vscode/
 .idea/
 
+# Genshin — HoYoLAB cookies (never commit!)
+genshin/config.json
+
 # Beacon scheduler secrets (never commit these!)
 beacon-scheduler/token.json
 beacon-scheduler/credentials.json
@@ -26,3 +29,6 @@ beacon-scheduler/credentials.json
 # Node
 node_modules/
 package-lock.json
+
+# Cloudflare Worker build artifacts
+genshin/worker/.wrangler/

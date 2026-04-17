@@ -1,0 +1,59 @@
+GENSHIN ROSTER
+==============
+
+Your full Genshin Impact character roster — element filters, sort, artifact
+detail on click. Runs as a static web app via a Cloudflare Worker proxy.
+
+
+FIRST-TIME SETUP
+----------------
+
+Step 1 — Deploy the Cloudflare Worker (one time only):
+
+     cd worker
+     npm install
+     npx wrangler login        ← opens browser to authenticate
+     npx wrangler deploy       ← prints your Worker URL when done
+
+     The URL looks like: https://genshin-roster.your-name.workers.dev
+     Copy it for the next step.
+
+Step 2 — Open the app:
+
+     python server.py          ← opens http://localhost:5001
+
+     Or just open index.html directly in your browser.
+
+Step 3 — Fill in the setup form (one time, saved to localStorage):
+
+     Worker URL   → the URL from Step 1
+     ltuid_v2     → from hoyolab.com cookies (see below)
+     ltoken_v2    → from hoyolab.com cookies (see below)
+     UID          → your in-game UID (pause menu, bottom right)
+
+
+GETTING YOUR HOYOLAB COOKIES
+-----------------------------
+
+  1. Go to https://www.hoyolab.com and log in.
+  2. Open DevTools (F12) → Application tab → Cookies → https://www.hoyolab.com
+  3. Copy the values for ltuid_v2 and ltoken_v2.
+
+Cookies expire after a few weeks. When they do, you'll see an error in the
+app — just refresh the cookies via ⚙ Settings and paste the new values.
+
+
+REFRESHING DATA
+---------------
+
+Roster data is cached for 5 minutes. Hit the ↺ button to force a fresh fetch.
+
+
+CLI MODE (optional)
+-------------------
+
+If you prefer a terminal table instead of the web UI:
+
+     pip install -r requirements.txt
+     cp config.example.json config.json   ← fill in cookies + UID
+     python roster.py

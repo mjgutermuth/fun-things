@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genshin Roster — fun things</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- ── SETUP VIEW ── -->
+    <div id="view-setup" class="hidden">
+        <header class="site-header">
+            <a href="../" class="back-link">← fun things</a>
+            <h1>genshin roster</h1>
+            <p class="tagline">one-time setup</p>
+        </header>
+        <main class="setup-main">
+            <div class="setup-form">
+                <div class="setup-group">
+                    <label for="cfg-worker">Worker URL</label>
+                    <input id="cfg-worker" type="url" placeholder="https://genshin-roster.your-name.workers.dev" spellcheck="false" />
+                </div>
+                <div class="setup-group">
+                    <label for="cfg-ltuid">ltuid_v2</label>
+                    <input id="cfg-ltuid" type="text" placeholder="from hoyolab.com cookies" spellcheck="false" />
+                </div>
+                <div class="setup-group">
+                    <label for="cfg-ltoken">ltoken_v2</label>
+                    <input id="cfg-ltoken" type="text" placeholder="from hoyolab.com cookies" spellcheck="false" />
+                </div>
+                <div class="setup-group">
+                    <label for="cfg-uid">UID</label>
+                    <input id="cfg-uid" type="text" placeholder="your in-game UID" spellcheck="false" />
+                </div>
+
+                <details class="setup-help">
+                    <summary>where do I get these?</summary>
+                    <div class="setup-help-body">
+                        <p><strong>Worker URL</strong> — the URL printed by <code>wrangler deploy</code> (ends in <code>.workers.dev</code>)</p>
+                        <p><strong>ltuid_v2 &amp; ltoken_v2</strong> — log into hoyolab.com → F12 → Application tab → Cookies → copy those two values. Expires every few weeks.</p>
+                        <p><strong>UID</strong> — visible in-game on the pause menu, bottom right.</p>
+                    </div>
+                </details>
+
+                <button id="setup-save" class="save-btn">save &amp; load →</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- ── ROSTER VIEW ── -->
+    <div id="view-roster" class="hidden">
+        <header class="site-header">
+            <a href="../" class="back-link">← fun things</a>
+            <h1>genshin impact roster</h1>
+            <p class="tagline">your character list</p>
+        </header>
+
+        <div class="controls">
+            <div id="element-filters" class="element-filters">
+                <button class="filter-btn active" data-element="all">all</button>
+            </div>
+            <div class="controls-right">
+                <div class="sort-group">
+                    <label for="sort-select">sort</label>
+                    <select id="sort-select">
+                        <option value="default">rarity</option>
+                        <option value="level">level</option>
+                        <option value="constellation">constellation</option>
+                        <option value="friendship">friendship</option>
+                        <option value="name">name</option>
+                    </select>
+                </div>
+                <button id="refresh-btn" class="icon-btn" title="Refresh data">↺</button>
+                <button id="settings-btn" class="icon-btn" title="Settings">⚙</button>
+            </div>
+        </div>
+
+        <div id="loading" class="status-msg">fetching roster from HoYoLAB...</div>
+        <div id="error" class="status-msg error hidden"></div>
+        <div id="roster" class="roster hidden"></div>
+        <footer id="footer" class="footer hidden"></footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
