@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audition Analytics — fun things</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="site-header">
+            <a href="../" class="back-link">← fun things</a>
+            <h1>audition analytics</h1>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab active" data-tab="stats">stats</button>
+            <button class="tab" data-tab="log">log</button>
+        </nav>
+
+        <!-- ── STATS VIEW ── -->
+        <div id="view-stats" class="view">
+            <div class="metric-cards" id="metric-cards">
+                <div class="metric-card">
+                    <div class="metric-value" id="m-total">—</div>
+                    <div class="metric-label">submitted</div>
+                </div>
+                <div class="metric-card viewed">
+                    <div class="metric-value" id="m-view-rate">—</div>
+                    <div class="metric-label">view rate</div>
+                </div>
+                <div class="metric-card liked">
+                    <div class="metric-value" id="m-like-rate">—</div>
+                    <div class="metric-label">like rate</div>
+                </div>
+                <div class="metric-card booked">
+                    <div class="metric-value" id="m-book-rate">—</div>
+                    <div class="metric-label">booking rate</div>
+                </div>
+                <div class="metric-card earnings">
+                    <div class="metric-value" id="m-earnings">—</div>
+                    <div class="metric-label">total earnings</div>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h2>funnel</h2>
+                    <div id="funnel" class="funnel"></div>
+                </div>
+
+                <div class="stat-card">
+                    <h2>last 12 months</h2>
+                    <div id="monthly-chart" class="monthly-chart"></div>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h2>by platform</h2>
+                    <table class="breakdown-table" id="platform-table">
+                        <thead>
+                            <tr>
+                                <th>platform</th>
+                                <th>submitted</th>
+                                <th>viewed</th>
+                                <th>liked</th>
+                                <th>booked</th>
+                                <th>earnings</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <div class="stat-card">
+                    <h2>by role type</h2>
+                    <table class="breakdown-table" id="role-type-table">
+                        <thead>
+                            <tr>
+                                <th>type</th>
+                                <th>submitted</th>
+                                <th>viewed</th>
+                                <th>liked</th>
+                                <th>booked</th>
+                                <th>earnings</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── LOG VIEW ── -->
+        <div id="view-log" class="view hidden">
+            <div class="log-toolbar">
+                <div class="filters">
+                    <input type="search" id="filter-search" placeholder="search client, role…" />
+                    <select id="filter-platform">
+                        <option value="">all platforms</option>
+                        <option value="voice123">Voice123</option>
+                        <option value="acx">ACX</option>
+                        <option value="ccc">Casting Call Club</option>
+                    </select>
+                    <select id="filter-role-type">
+                        <option value="">all types</option>
+                        <option value="commercial">commercial</option>
+                        <option value="narration">narration</option>
+                        <option value="character">character</option>
+                        <option value="other">other</option>
+                    </select>
+                    <select id="filter-status">
+                        <option value="">any status</option>
+                        <option value="booked">booked</option>
+                        <option value="liked">liked</option>
+                        <option value="viewed">viewed</option>
+                        <option value="not-viewed">not viewed</option>
+                    </select>
+                </div>
+                <button class="btn-add" id="btn-add">+ add audition</button>
+            </div>
+
+            <div class="table-wrap">
+                <table class="log-table" id="log-table">
+                    <thead>
+                        <tr>
+                            <th data-sort="date_submitted" class="sortable">date <span class="sort-arrow">↕</span></th>
+                            <th data-sort="platform" class="sortable">platform <span class="sort-arrow">↕</span></th>
+                            <th data-sort="client" class="sortable">client <span class="sort-arrow">↕</span></th>
+                            <th data-sort="role" class="sortable">role <span class="sort-arrow">↕</span></th>
+                            <th data-sort="role_type" class="sortable">type <span class="sort-arrow">↕</span></th>
+                            <th>viewed</th>
+                            <th>liked</th>
+                            <th>booked</th>
+                            <th data-sort="pay" class="sortable">pay <span class="sort-arrow">↕</span></th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-body"></tbody>
+                </table>
+            </div>
+            <div id="log-empty" class="empty-state hidden">no auditions found</div>
+        </div>
+    </div>
+
+    <!-- ── MODAL ── -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-title">add audition</h2>
+                <button class="modal-close" id="modal-close">✕</button>
+            </div>
+            <form id="audition-form" class="modal-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="f-platform">platform</label>
+                        <select id="f-platform" name="platform" required>
+                            <option value="voice123">Voice123</option>
+                            <option value="acx">ACX</option>
+                            <option value="ccc">Casting Call Club</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="f-date">date submitted</label>
+                        <input type="date" id="f-date" name="date_submitted" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="f-client">client</label>
+                        <input type="text" id="f-client" name="client" placeholder="company or name" />
+                    </div>
+                    <div class="form-group">
+                        <label for="f-role-type">role type</label>
+                        <select id="f-role-type" name="role_type">
+                            <option value="">— unset —</option>
+                            <option value="commercial">commercial</option>
+                            <option value="narration">narration</option>
+                            <option value="character">character</option>
+                            <option value="other">other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group full">
+                    <label for="f-role">role / project</label>
+                    <input type="text" id="f-role" name="role" placeholder="role or project name" />
+                </div>
+                <div class="form-row status-row">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="f-viewed" name="viewed" />
+                        <span>viewed</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="f-liked" name="liked" />
+                        <span>liked</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="f-booked" name="booked" />
+                        <span>booked</span>
+                    </label>
+                </div>
+                <div class="form-row" id="pay-row" style="display:none">
+                    <div class="form-group">
+                        <label for="f-pay">pay</label>
+                        <input type="number" id="f-pay" name="pay" min="0" step="0.01" placeholder="0.00" />
+                    </div>
+                    <div class="form-group">
+                        <label for="f-currency">currency</label>
+                        <select id="f-currency" name="pay_currency">
+                            <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
+                            <option value="GBP">GBP</option>
+                            <option value="CAD">CAD</option>
+                            <option value="AUD">AUD</option>
+                            <option value="other">other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group full">
+                    <label for="f-notes">notes</label>
+                    <textarea id="f-notes" name="notes" rows="2" placeholder="optional notes"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="btn-cancel">cancel</button>
+                    <button type="submit" class="btn-primary" id="btn-save">save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

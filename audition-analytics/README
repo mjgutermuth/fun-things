@@ -1,0 +1,63 @@
+AUDITION ANALYTICS
+==================
+
+Track voice acting auditions across Voice123, ACX, and Casting Call Club.
+Voice123 data is scraped automatically; ACX and CCC can be entered manually.
+
+
+SETUP
+-----
+
+1. Install dependencies:
+
+     pip install -r requirements.txt
+     playwright install chromium
+
+2. Copy and fill in your credentials:
+
+     cp config.example.json config.json
+
+3. Authenticate with Voice123 (one time — saves session to .v123_session.json):
+
+     python scraper.py --headed
+
+   Log in normally in the browser that opens, then press Enter in the terminal.
+
+4. Start the server:
+
+     python server.py
+
+   App runs at http://localhost:5002
+
+
+SCRAPING
+--------
+
+After the first login, run headlessly:
+
+     python scraper.py
+
+To force re-authentication (e.g. when session expires):
+
+     python scraper.py --login
+
+
+SCHEDULED SCRAPING (Ubuntu server)
+-----------------------------------
+
+Add to crontab (crontab -e) to run every 6 hours:
+
+     0 */6 * * * cd /path/to/audition-analytics && python scraper.py >> scraper.log 2>&1
+
+Or use a systemd timer — see your system's documentation.
+
+
+NOTES
+-----
+
+- Voice123 selectors in scraper.py may need adjustment if Voice123 updates
+  their markup. All selectors are in the SELECTORS section at the top of the file.
+- Scraper does upsert: existing records get their viewed/liked/booked status
+  updated; new auditions are inserted.
+- ACX and CCC auditions can be added manually via the "+ add audition" button
+  in the Log tab.

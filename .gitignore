@@ -22,6 +22,14 @@ cr-tracker/*.html
 # Genshin — HoYoLAB cookies (never commit!)
 genshin/config.json
 
+# Audition analytics — credentials and session tokens (never commit!)
+audition-analytics/config.json
+audition-analytics/.v123_session.json
+audition-analytics/.v123_localstorage.json
+audition-analytics/auditions.db
+audition-analytics/debug_*.json
+audition-analytics/debug_*.html
+
 # Beacon scheduler secrets (never commit these!)
 beacon-scheduler/token.json
 beacon-scheduler/credentials.json
