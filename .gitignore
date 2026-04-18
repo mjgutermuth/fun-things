@@ -23,12 +23,12 @@ cr-tracker/*.html
 genshin/config.json
 
 # Audition analytics — credentials and session tokens (never commit!)
-audition-analytics/config.json
-audition-analytics/.v123_session.json
-audition-analytics/.v123_localstorage.json
-audition-analytics/auditions.db
-audition-analytics/debug_*.json
-audition-analytics/debug_*.html
+analytics-123/config.json
+analytics-123/.v123_session.json
+analytics-123/.v123_localstorage.json
+analytics-123/auditions.db
+analytics-123/debug_*.json
+analytics-123/debug_*.html
 
 # Beacon scheduler secrets (never commit these!)
 beacon-scheduler/token.json
