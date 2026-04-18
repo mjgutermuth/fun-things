@@ -100,11 +100,32 @@ export default {
       return new Response('Use POST', { status: 405, headers: CORS });
     }
 
+    const url = new URL(req.url);
+
     let body;
     try { body = await req.json(); }
     catch { return json({ error: 'Invalid JSON body' }, 400); }
 
     const { ltuid_v2, ltoken_v2, ltmid_v2, uid } = body;
+
+    if (url.pathname === '/uid') {
+      if (!ltuid_v2 || !ltoken_v2) return json({ error: 'Missing ltuid_v2 or ltoken_v2' }, 400);
+      try {
+        const cookie = `ltuid_v2=${ltuid_v2}; ltoken_v2=${ltoken_v2}${ltmid_v2 ? `; ltmid_v2=${ltmid_v2}` : ''}`;
+        const res = await fetch(
+          `https://sg-public-api.hoyolab.com/event/game_record/card/wapi/getGameRecordCard?uid=${ltuid_v2}`,
+          { headers: { Cookie: cookie, 'x-rpc-lang': 'en-us', 'x-rpc-language': 'en-us' } }
+        );
+        const data = await res.json();
+        if (data.retcode !== 0) return json({ error: data.message, retcode: data.retcode }, 400);
+        const genshin = (data.data?.list ?? []).find(g => g.game_id === 2);
+        if (!genshin) return json({ error: 'No Genshin account linked' }, 404);
+        return json({ uid: genshin.game_role_id });
+      } catch (e) {
+        return json({ error: e.message }, 500);
+      }
+    }
+
     if (!ltuid_v2 || !ltoken_v2 || !uid) {
       return json({ error: 'Missing ltuid_v2, ltoken_v2, or uid' }, 400);
     }

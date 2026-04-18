@@ -135,6 +135,46 @@ body {
     background: var(--bg-mid);
 }
 .setup-help-body strong { color: var(--text); }
+
+.setup-steps {
+    margin: 0;
+    padding: 1rem 1rem 1rem 1.75rem;
+    background: var(--bg-mid);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--text-dim);
+}
+.setup-steps li { padding-left: 0.25rem; }
+.setup-steps a { color: var(--accent); }
+.setup-steps strong { color: var(--text); }
+.setup-steps code {
+    background: var(--bg-surface);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    color: var(--accent);
+}
+kbd {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0px 5px;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    font-family: inherit;
+}
+
+.setup-note {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.5;
+}
 .setup-help-body code {
     background: var(--bg-surface);
     padding: 1px 5px;

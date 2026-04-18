@@ -1,3 +1,4 @@
+const WORKER_URL = 'https://genshin-roster.meli327.workers.dev';
 const CACHE_TTL = 5 * 60 * 1000;
 const ELEMENTS = ['Pyro','Hydro','Anemo','Electro','Dendro','Cryo','Geo'];
 const ELEMENT_MAP = {
@@ -392,7 +393,7 @@ function normalizeChar(raw) {
 
 function init() {
   const config = loadConfig();
-  const ok = config && config.workerUrl && config.ltuid_v2 && config.ltoken_v2 && config.uid;
+  const ok = config && config.ltuid_v2 && config.ltoken_v2 && config.uid;
   if (ok) showRoster(config);
   else showSetup();
 }
@@ -404,7 +405,6 @@ function showSetup() {
   document.getElementById('view-setup').classList.remove('hidden');
 
   const config = loadConfig() || {};
-  if (config.workerUrl) document.getElementById('cfg-worker').value = config.workerUrl;
   if (config.ltuid_v2)  document.getElementById('cfg-ltuid').value  = config.ltuid_v2;
   if (config.ltoken_v2) document.getElementById('cfg-ltoken').value = config.ltoken_v2;
   if (config.ltmid_v2)  document.getElementById('cfg-ltmid').value  = config.ltmid_v2;
@@ -412,7 +412,6 @@ function showSetup() {
 
   document.getElementById('setup-save').onclick = () => {
     const cfg = {
-      workerUrl: document.getElementById('cfg-worker').value.trim().replace(/\/$/, ''),
       ltuid_v2:  document.getElementById('cfg-ltuid').value.trim(),
       ltoken_v2: document.getElementById('cfg-ltoken').value.trim(),
       ltmid_v2:  document.getElementById('cfg-ltmid').value.trim(),
@@ -471,7 +470,7 @@ async function loadRoster(config) {
   document.getElementById('footer').classList.add('hidden');
 
   try {
-    const res = await fetch(config.workerUrl, {
+    const res = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ltuid_v2: config.ltuid_v2, ltoken_v2: config.ltoken_v2, ltmid_v2: config.ltmid_v2, uid: config.uid }),

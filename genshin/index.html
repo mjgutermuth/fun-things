@@ -19,35 +19,33 @@
         </header>
         <main class="setup-main">
             <div class="setup-form">
-                <div class="setup-group">
-                    <label for="cfg-worker">Worker URL</label>
-                    <input id="cfg-worker" type="url" placeholder="https://genshin-roster.your-name.workers.dev" spellcheck="false" />
-                </div>
+
+                <ol class="setup-steps">
+                    <li>Go to <a href="https://www.hoyolab.com" target="_blank">hoyolab.com</a> and log in</li>
+                    <li>Open DevTools — <kbd>F12</kbd> on Windows/Linux, <kbd>⌘⌥I</kbd> on Mac</li>
+                    <li>Go to the <strong>Application</strong> tab → <strong>Cookies</strong> → <strong>https://www.hoyolab.com</strong></li>
+                    <li>Find and copy <code>ltuid_v2</code>, <code>ltoken_v2</code>, and <code>ltmid_v2</code> into the fields below</li>
+                    <li>Your <strong>UID</strong> is visible in-game on the pause menu (bottom right)</li>
+                </ol>
+
                 <div class="setup-group">
                     <label for="cfg-ltuid">ltuid_v2</label>
-                    <input id="cfg-ltuid" type="text" placeholder="from hoyolab.com cookies" spellcheck="false" />
+                    <input id="cfg-ltuid" type="text" placeholder="123456789" spellcheck="false" />
                 </div>
                 <div class="setup-group">
                     <label for="cfg-ltoken">ltoken_v2</label>
-                    <input id="cfg-ltoken" type="text" placeholder="from hoyolab.com cookies" spellcheck="false" />
+                    <input id="cfg-ltoken" type="text" placeholder="v2_…" spellcheck="false" />
                 </div>
                 <div class="setup-group">
                     <label for="cfg-ltmid">ltmid_v2</label>
-                    <input id="cfg-ltmid" type="text" placeholder="from hoyolab.com cookies" spellcheck="false" />
+                    <input id="cfg-ltmid" type="text" placeholder="optional" spellcheck="false" />
                 </div>
                 <div class="setup-group">
                     <label for="cfg-uid">UID</label>
-                    <input id="cfg-uid" type="text" placeholder="your in-game UID" spellcheck="false" />
+                    <input id="cfg-uid" type="text" placeholder="8-9 digit in-game UID" spellcheck="false" />
                 </div>
 
-                <details class="setup-help">
-                    <summary>where do I get these?</summary>
-                    <div class="setup-help-body">
-                        <p><strong>Worker URL</strong> — the URL printed by <code>wrangler deploy</code> (ends in <code>.workers.dev</code>)</p>
-                        <p><strong>ltuid_v2 &amp; ltoken_v2</strong> — log into hoyolab.com → F12 → Application tab → Cookies → copy those two values. Expires every few weeks.</p>
-                        <p><strong>UID</strong> — visible in-game on the pause menu, bottom right.</p>
-                    </div>
-                </details>
+                <p class="setup-note">these are stored locally in your browser and never sent anywhere except the HoYoLAB API. they expire every few weeks.</p>
 
                 <button id="setup-save" class="save-btn">save &amp; load →</button>
             </div>
