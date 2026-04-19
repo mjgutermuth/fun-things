@@ -27,6 +27,32 @@ PAGE_SIZE     = 50
 
 CURRENCY_MAP  = {1: 'USD', 2: 'EUR', 3: 'GBP', 4: 'CAD', 5: 'AUD'}
 
+# voice_types IDs observed from the API, mapped to app role_type values.
+# Priority order when multiple types are present: character > narration > commercial.
+VOICE_TYPE_ROLE = {
+    1000: 'commercial',
+    1001: 'narration',
+    1003: 'narration',
+    1004: 'narration',   # audiobook
+    1006: 'narration',   # documentary
+    1008: 'character',   # video games
+    1009: 'narration',   # historical/documentary
+    1012: 'narration',   # corporate case study
+    1013: 'character',   # animation/dialogue
+    1015: 'narration',   # corporate/educational
+    1021: 'character',   # dubbing
+    1023: 'narration',   # medical/patient
+    1026: 'commercial',  # social media / mixed
+}
+_ROLE_PRIORITY = ['character', 'narration', 'commercial']
+
+def infer_role_type(voice_types):
+    mapped = {VOICE_TYPE_ROLE.get(vt) for vt in voice_types} - {None}
+    for rt in _ROLE_PRIORITY:
+        if rt in mapped:
+            return rt
+    return None
+
 
 # ── Token helpers ─────────────────────────────────────────────────────────────
 
@@ -135,6 +161,8 @@ def parse_offer(offer):
 
     date_submitted = (offer.get('created_at') or '')[:10] or None
     role           = project.get('name')
+    proj_sp        = project.get('service_properties') or {}
+    voice_types    = proj_sp.get('voice_types') or []
     viewed         = offer.get('status') == 'reviewed' or bool(sp.get('listened_at'))
     liked          = (offer.get('positive_votes') or 0) > 0
     booked         = bool(offer.get('is_winner'))
@@ -147,7 +175,7 @@ def parse_offer(offer):
         'date_submitted': date_submitted,
         'client':         None,
         'role':           role,
-        'role_type':      None,
+        'role_type':      infer_role_type(voice_types),
         'viewed':         1 if viewed else 0,
         'liked':          1 if liked else 0,
         'booked':         1 if booked else 0,
@@ -170,20 +198,38 @@ def upsert(proposals):
             if row:
                 conn.execute("""
                     UPDATE auditions
-                       SET viewed=?, liked=?, booked=?, updated_at=datetime('now')
+                       SET viewed=?, liked=?, booked=?, role_type=COALESCE(role_type, ?), updated_at=datetime('now')
                      WHERE id=?
-                """, [p['viewed'], p['liked'], p['booked'], row[0]])
+                """, [p['viewed'], p['liked'], p['booked'], p['role_type'], row[0]])
                 updated += 1
             else:
-                conn.execute("""
-                    INSERT INTO auditions
-                        (platform, external_id, date_submitted, client, role,
-                         role_type, viewed, liked, booked, pay, pay_currency)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, [p[k] for k in ('platform', 'external_id', 'date_submitted', 'client',
-                                     'role', 'role_type', 'viewed', 'liked', 'booked',
-                                     'pay', 'pay_currency')])
-                inserted += 1
+                # If this is a booked entry, check for an existing row with the same role
+                # name — Voice123 sometimes returns a separate offer record for the booking.
+                dupe = None
+                if p['booked'] and p['role']:
+                    dupe = conn.execute(
+                        "SELECT id FROM auditions WHERE platform='voice123' AND role=?",
+                        [p['role']]
+                    ).fetchone()
+                if dupe:
+                    conn.execute("""
+                        UPDATE auditions
+                           SET viewed=MAX(viewed, ?), liked=MAX(liked, ?), booked=1,
+                               pay=COALESCE(pay, ?), pay_currency=COALESCE(pay_currency, ?),
+                               role_type=COALESCE(role_type, ?), updated_at=datetime('now')
+                         WHERE id=?
+                    """, [p['viewed'], p['liked'], p['pay'], p['pay_currency'], p['role_type'], dupe[0]])
+                    updated += 1
+                else:
+                    conn.execute("""
+                        INSERT INTO auditions
+                            (platform, external_id, date_submitted, client, role,
+                             role_type, viewed, liked, booked, pay, pay_currency)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, [p[k] for k in ('platform', 'external_id', 'date_submitted', 'client',
+                                         'role', 'role_type', 'viewed', 'liked', 'booked',
+                                         'pay', 'pay_currency')])
+                    inserted += 1
         conn.commit()
     finally:
         conn.close()

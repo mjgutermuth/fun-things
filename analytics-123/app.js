@@ -90,7 +90,7 @@ function renderMonthlyChart(byMonth, totalAll) {
             <div class="month-col" title="${label}: ${m.total} submitted, ${m.booked || 0} booked">
                 <div class="month-bar-wrap">
                     <div class="month-bar total"  style="height:${totalH}px"></div>
-                    <div class="month-bar booked" style="height:${bookedH}px; margin-top:${totalH - bookedH}px; position:relative; top:-${totalH - bookedH}px"></div>
+                    <div class="month-bar booked" style="height:${bookedH}px"></div>
                 </div>
                 <span class="month-label">${shortLbl}</span>
             </div>
