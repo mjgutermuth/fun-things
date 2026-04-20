@@ -346,8 +346,9 @@ def main():
             break
         page += 1
 
-    print(f"[scraper] {len(all_offers)} total offers")
-    parsed = [parse_offer(o) for o in all_offers]
+    submitted = [o for o in all_offers if o.get('samples')]
+    print(f"[scraper] {len(all_offers)} total offers, {len(submitted)} with submitted audio")
+    parsed = [parse_offer(o) for o in submitted]
     inserted, updated = upsert(parsed)
     print(f"[scraper] Done — {inserted} new, {updated} updated")
 
