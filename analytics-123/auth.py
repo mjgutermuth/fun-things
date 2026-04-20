@@ -26,7 +26,12 @@ async def main():
         page    = await context.new_page()
 
         print("[auth] Navigating to Voice123 login...")
-        await page.goto('https://voice123.com/login', wait_until='domcontentloaded')
+        await page.goto('https://voice123.com/login', wait_until='commit', timeout=15000)
+        await page.wait_for_timeout(3000)
+        print(f"[auth] URL: {page.url}")
+        print(f"[auth] Title: {await page.title()}")
+        inputs = await page.query_selector_all('input')
+        print(f"[auth] Inputs found: {[await i.get_attribute('type') or await i.get_attribute('name') for i in inputs]}")
 
         await page.fill('input[type="email"], input[name="email"]', email)
         await page.fill('input[type="password"], input[name="password"]', password)
