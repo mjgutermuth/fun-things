@@ -98,37 +98,44 @@ def refresh_token(rt):
 def get_token():
     storage = load_storage()
     token = storage.get('auth_token', '')
-    rt    = storage.get('rt', '')
+    if not token:
+        raise SystemExit("No auth token found. Run: python3 auth.py")
+    return token, storage
 
-    if token and not is_expired(token):
-        return token
 
-    print("[auth] Access token expired, trying refresh token...")
-    if not rt or is_expired(rt):
-        raise SystemExit("Refresh token also expired. Run: python3 auth.py")
-
+def _do_refresh(storage):
+    rt = storage.get('rt', '')
+    if not rt:
+        raise SystemExit("No refresh token. Run: python3 auth.py")
     result = refresh_token(rt)
     if not result or 'access_token' not in result:
         raise SystemExit("Token refresh failed. Run: python3 auth.py")
-
-    new_token = result['access_token']
-    storage['auth_token'] = new_token
+    storage['auth_token'] = result['access_token']
     if 'refresh_token' in result:
         storage['rt'] = result['refresh_token']
     save_storage(storage)
     print("[auth] Token refreshed and saved.")
-    return new_token
+    return storage['auth_token']
 
 
 # ── API helpers ───────────────────────────────────────────────────────────────
 
-def api_get(path, token, params=None):
+def api_get(path, token, params=None, storage=None):
     url = f'{BASE_API}/{path}'
     if params:
         url += '?' + urllib.parse.urlencode(params)
     req = urllib.request.Request(url, headers={'Authorization': f'Bearer {token}'})
-    with urllib.request.urlopen(req) as resp:
-        return json.loads(resp.read())
+    try:
+        with urllib.request.urlopen(req) as resp:
+            return json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        if e.code == 401 and storage is not None:
+            print("[auth] Token rejected (401), attempting refresh...")
+            new_token = _do_refresh(storage)
+            req2 = urllib.request.Request(url, headers={'Authorization': f'Bearer {new_token}'})
+            with urllib.request.urlopen(req2) as resp:
+                return json.loads(resp.read())
+        raise
 
 
 def get_provider_id(token):
@@ -141,7 +148,7 @@ def get_provider_id(token):
     return None
 
 
-def fetch_offers_page(token, provider_id, page):
+def fetch_offers_page(token, provider_id, page, storage=None):
     return api_get('offers/', token, {
         'page':       page,
         'provider_id': provider_id,
@@ -149,7 +156,7 @@ def fetch_offers_page(token, provider_id, page):
         'trash':      'true',
         'size':       PAGE_SIZE,
         'order':      'newest',
-    })
+    }, storage=storage)
 
 
 # ── Parsing ───────────────────────────────────────────────────────────────────
@@ -306,7 +313,7 @@ def init_db():
 
 def main():
     init_db()
-    token = get_token()
+    token, storage = get_token()
 
     print("[scraper] Fetching provider ID...")
     try:
@@ -324,7 +331,7 @@ def main():
 
     while True:
         try:
-            data = fetch_offers_page(token, provider_id, page)
+            data = fetch_offers_page(token, provider_id, page, storage=storage)
         except Exception as e:
             print(f"  [error] Page {page}: {e}")
             break
