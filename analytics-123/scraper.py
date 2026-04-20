@@ -356,7 +356,7 @@ def main():
         pprint.pprint(all_offers[0] if all_offers else {})
         return
 
-    submitted = [o for o in all_offers if o.get('samples')]
+    submitted = [o for o in all_offers if o.get('custom_sample') or o.get('related_samples')]
     print(f"[scraper] {len(all_offers)} total offers, {len(submitted)} with submitted audio")
     parsed = [parse_offer(o) for o in submitted]
     inserted, updated = upsert(parsed)
