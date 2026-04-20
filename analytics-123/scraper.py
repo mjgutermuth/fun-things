@@ -263,7 +263,7 @@ def upsert(proposals):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-SCHEMA = """
+TABLE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS auditions (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     platform      TEXT NOT NULL,
@@ -285,27 +285,24 @@ CREATE TABLE IF NOT EXISTS auditions (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_external
     ON auditions(platform, external_id)
     WHERE external_id IS NOT NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_project
-    ON auditions(platform, project_id)
-    WHERE project_id IS NOT NULL;
 """
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
-    conn.executescript(SCHEMA)
-    # Migrate existing DBs that don't have the project_id column yet
+    conn.executescript(TABLE_SCHEMA)
     cols = {row[1] for row in conn.execute("PRAGMA table_info(auditions)")}
     if 'project_id' not in cols:
         conn.execute("ALTER TABLE auditions ADD COLUMN project_id TEXT")
-        try:
-            conn.execute("""
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_project
-                    ON auditions(platform, project_id)
-                    WHERE project_id IS NOT NULL
-            """)
-        except sqlite3.OperationalError:
-            pass
         conn.commit()
+    try:
+        conn.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_project
+                ON auditions(platform, project_id)
+                WHERE project_id IS NOT NULL
+        """)
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
     conn.close()
 
 def main():
@@ -347,6 +344,11 @@ def main():
         if len(offers) < PAGE_SIZE:
             break
         page += 1
+
+    if '--debug-offer' in __import__('sys').argv:
+        import pprint
+        pprint.pprint(all_offers[0] if all_offers else {})
+        return
 
     submitted = [o for o in all_offers if o.get('samples')]
     print(f"[scraper] {len(all_offers)} total offers, {len(submitted)} with submitted audio")
