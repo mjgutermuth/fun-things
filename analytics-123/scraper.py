@@ -84,7 +84,6 @@ def refresh_token(rt):
     data = urllib.parse.urlencode({
         'grant_type':    'refresh_token',
         'refresh_token': rt,
-        'client_id':     OAUTH_CLIENT,
     }).encode()
     req = urllib.request.Request(ACCOUNTS_URL, data=data,
                                  headers={'Content-Type': 'application/x-www-form-urlencoded'})
