@@ -218,9 +218,10 @@ def upsert(proposals):
             if row:
                 conn.execute("""
                     UPDATE auditions
-                       SET viewed=MAX(viewed, ?), liked=MAX(liked, ?),
-                           booked=MAX(booked, ?),
-                           pay=COALESCE(pay, ?), pay_currency=COALESCE(pay_currency, ?),
+                       SET viewed=MAX(COALESCE(viewed,0), ?), liked=MAX(COALESCE(liked,0), ?),
+                           booked=MAX(COALESCE(booked,0), ?),
+                           pay=CASE WHEN booked=1 THEN pay ELSE COALESCE(pay, ?) END,
+                           pay_currency=CASE WHEN booked=1 THEN pay_currency ELSE COALESCE(pay_currency, ?) END,
                            project_id=COALESCE(project_id, ?),
                            role_type=COALESCE(role_type, ?), updated_at=datetime('now')
                      WHERE id=?
@@ -234,9 +235,10 @@ def upsert(proposals):
                 if dupe:
                     conn.execute("""
                         UPDATE auditions
-                           SET viewed=MAX(viewed, ?), liked=MAX(liked, ?),
-                               booked=MAX(booked, ?),
-                               pay=COALESCE(pay, ?), pay_currency=COALESCE(pay_currency, ?),
+                           SET viewed=MAX(COALESCE(viewed,0), ?), liked=MAX(COALESCE(liked,0), ?),
+                               booked=MAX(COALESCE(booked,0), ?),
+                               pay=CASE WHEN booked=1 THEN pay ELSE COALESCE(pay, ?) END,
+                               pay_currency=CASE WHEN booked=1 THEN pay_currency ELSE COALESCE(pay_currency, ?) END,
                                project_id=COALESCE(project_id, ?),
                                role_type=COALESCE(role_type, ?), updated_at=datetime('now')
                          WHERE id=?
