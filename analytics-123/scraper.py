@@ -168,10 +168,12 @@ def parse_offer(offer):
     booked         = bool(offer.get('is_winner'))
     pay            = offer.get('price') if booked else None
     currency       = CURRENCY_MAP.get(offer.get('currency', 1), 'USD')
+    project_id     = project.get('id')
 
     return {
         'platform':       'voice123',
         'external_id':    f"v123_{offer['id']}",
+        'project_id':     f"v123_proj_{project_id}" if project_id else None,
         'date_submitted': date_submitted,
         'client':         None,
         'role':           role,
@@ -186,6 +188,24 @@ def parse_offer(offer):
 
 # ── Database ──────────────────────────────────────────────────────────────────
 
+def _find_project_dupe(conn, p):
+    """Find an existing row that represents the same Voice123 project."""
+    if p['project_id']:
+        row = conn.execute(
+            "SELECT id FROM auditions WHERE platform='voice123' AND project_id=?",
+            [p['project_id']]
+        ).fetchone()
+        if row:
+            return row
+    # Fallback: match by role name (handles rows created before project_id was stored)
+    if p['role']:
+        return conn.execute(
+            "SELECT id FROM auditions WHERE platform='voice123' AND role=? AND project_id IS NULL",
+            [p['role']]
+        ).fetchone()
+    return None
+
+
 def upsert(proposals):
     conn = sqlite3.connect(DB_PATH)
     inserted = updated = 0
@@ -198,37 +218,40 @@ def upsert(proposals):
             if row:
                 conn.execute("""
                     UPDATE auditions
-                       SET viewed=?, liked=?, booked=?, role_type=COALESCE(role_type, ?), updated_at=datetime('now')
+                       SET viewed=MAX(viewed, ?), liked=MAX(liked, ?),
+                           booked=MAX(booked, ?),
+                           pay=COALESCE(pay, ?), pay_currency=COALESCE(pay_currency, ?),
+                           project_id=COALESCE(project_id, ?),
+                           role_type=COALESCE(role_type, ?), updated_at=datetime('now')
                      WHERE id=?
-                """, [p['viewed'], p['liked'], p['booked'], p['role_type'], row[0]])
+                """, [p['viewed'], p['liked'], p['booked'], p['pay'], p['pay_currency'],
+                      p['project_id'], p['role_type'], row[0]])
                 updated += 1
             else:
-                # If this is a booked entry, check for an existing row with the same role
-                # name — Voice123 sometimes returns a separate offer record for the booking.
-                dupe = None
-                if p['booked'] and p['role']:
-                    dupe = conn.execute(
-                        "SELECT id FROM auditions WHERE platform='voice123' AND role=?",
-                        [p['role']]
-                    ).fetchone()
+                # Voice123 creates a separate offer record when you win a booking.
+                # Check if we already have a row for this project before inserting.
+                dupe = _find_project_dupe(conn, p)
                 if dupe:
                     conn.execute("""
                         UPDATE auditions
-                           SET viewed=MAX(viewed, ?), liked=MAX(liked, ?), booked=1,
+                           SET viewed=MAX(viewed, ?), liked=MAX(liked, ?),
+                               booked=MAX(booked, ?),
                                pay=COALESCE(pay, ?), pay_currency=COALESCE(pay_currency, ?),
+                               project_id=COALESCE(project_id, ?),
                                role_type=COALESCE(role_type, ?), updated_at=datetime('now')
                          WHERE id=?
-                    """, [p['viewed'], p['liked'], p['pay'], p['pay_currency'], p['role_type'], dupe[0]])
+                    """, [p['viewed'], p['liked'], p['booked'], p['pay'], p['pay_currency'],
+                          p['project_id'], p['role_type'], dupe[0]])
                     updated += 1
                 else:
                     conn.execute("""
                         INSERT INTO auditions
-                            (platform, external_id, date_submitted, client, role,
+                            (platform, external_id, project_id, date_submitted, client, role,
                              role_type, viewed, liked, booked, pay, pay_currency)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, [p[k] for k in ('platform', 'external_id', 'date_submitted', 'client',
-                                         'role', 'role_type', 'viewed', 'liked', 'booked',
-                                         'pay', 'pay_currency')])
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, [p[k] for k in ('platform', 'external_id', 'project_id', 'date_submitted',
+                                         'client', 'role', 'role_type', 'viewed', 'liked',
+                                         'booked', 'pay', 'pay_currency')])
                     inserted += 1
         conn.commit()
     finally:
@@ -243,6 +266,7 @@ CREATE TABLE IF NOT EXISTS auditions (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     platform      TEXT NOT NULL,
     external_id   TEXT,
+    project_id    TEXT,
     date_submitted TEXT,
     client        TEXT,
     role          TEXT,
@@ -259,11 +283,27 @@ CREATE TABLE IF NOT EXISTS auditions (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_external
     ON auditions(platform, external_id)
     WHERE external_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_project
+    ON auditions(platform, project_id)
+    WHERE project_id IS NOT NULL;
 """
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     conn.executescript(SCHEMA)
+    # Migrate existing DBs that don't have the project_id column yet
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(auditions)")}
+    if 'project_id' not in cols:
+        conn.execute("ALTER TABLE auditions ADD COLUMN project_id TEXT")
+        try:
+            conn.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_project
+                    ON auditions(platform, project_id)
+                    WHERE project_id IS NOT NULL
+            """)
+        except sqlite3.OperationalError:
+            pass
+        conn.commit()
     conn.close()
 
 def main():
