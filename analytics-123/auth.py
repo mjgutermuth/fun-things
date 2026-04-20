@@ -1,59 +1,40 @@
 """
-Authenticates with Voice123 via the OpenID Connect password grant and saves
-the token to .v123_localstorage.json for use by scraper.py.
+Opens a browser for Voice123 login and saves the auth token.
+Run this once on a machine with a display, or whenever the scraper says
+the token has expired. Then copy .v123_localstorage.json to the server.
 
 Usage: python3 auth.py
 """
+import asyncio
 import json
-import urllib.parse
-import urllib.request
-import urllib.error
 from pathlib import Path
+from playwright.async_api import async_playwright
 
 LOCALSTORAGE_PATH = Path(__file__).parent / '.v123_localstorage.json'
-CONFIG_PATH       = Path(__file__).parent / 'config.json'
+SESSION_PATH      = Path(__file__).parent / '.v123_session.json'
 
-ACCOUNTS_URL = 'https://accounts.voice123.com/openid/token'
-OAUTH_CLIENT = '450535'
+async def main():
+    async with async_playwright() as pw:
+        browser = await pw.chromium.launch(headless=False)
+        context = await browser.new_context(viewport={'width': 1280, 'height': 900})
+        page    = await context.new_page()
 
+        await page.goto('https://voice123.com', wait_until='domcontentloaded')
+        print("Log in to Voice123 in the browser, then press Enter here.")
+        input()
 
-def main():
-    config   = json.loads(CONFIG_PATH.read_text())
-    email    = config['voice123']['email']
-    password = config['voice123']['password']
+        SESSION_PATH.write_text(json.dumps(await context.cookies()))
+        raw = await page.evaluate(
+            "() => JSON.stringify(Object.fromEntries(Object.entries(window.localStorage)))"
+        )
+        LOCALSTORAGE_PATH.write_text(raw)
 
-    print("[auth] Requesting token...")
-    data = urllib.parse.urlencode({
-        'grant_type': 'password',
-        'username':   email,
-        'password':   password,
-        'client_id':  OAUTH_CLIENT,
-    }).encode()
-    req = urllib.request.Request(
-        ACCOUNTS_URL, data=data,
-        headers={'Content-Type': 'application/x-www-form-urlencoded'}
-    )
-    try:
-        with urllib.request.urlopen(req) as resp:
-            result = json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        body = e.read().decode()
-        print(f"[auth] Failed ({e.code}): {body}")
-        return
+        storage = json.loads(raw)
+        if storage.get('auth_token'):
+            print("Auth token saved.")
+        else:
+            print("WARNING: No auth_token found in localStorage — may not be logged in.")
 
-    access_token  = result.get('access_token')
-    refresh_token = result.get('refresh_token')
+        await browser.close()
 
-    if not access_token:
-        print(f"[auth] No access_token in response: {result}")
-        return
-
-    storage = {'auth_token': access_token}
-    if refresh_token:
-        storage['rt'] = refresh_token
-    LOCALSTORAGE_PATH.write_text(json.dumps(storage))
-    print("[auth] Token saved.")
-
-
-if __name__ == '__main__':
-    main()
+asyncio.run(main())
