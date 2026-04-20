@@ -169,7 +169,7 @@ def parse_offer(offer):
     role           = project.get('name')
     proj_sp        = project.get('service_properties') or {}
     voice_types    = proj_sp.get('voice_types') or []
-    viewed         = offer.get('status') == 'reviewed' or bool(sp.get('listened_at'))
+    viewed         = offer.get('status') in ('reviewed', 'accepted') or bool(sp.get('listened_at'))
     liked          = (offer.get('positive_votes') or 0) > 0
     booked         = bool(offer.get('is_winner'))
     pay            = offer.get('price') if booked else None
@@ -351,12 +351,9 @@ def main():
             break
         page += 1
 
-    if '--debug-offer' in __import__('sys').argv:
-        import pprint
-        pprint.pprint(all_offers[0] if all_offers else {})
-        return
-
-    submitted = [o for o in all_offers if o.get('custom_sample') or o.get('related_samples')]
+    submitted = [o for o in all_offers
+                 if (o.get('custom_sample') or o.get('related_samples'))
+                 and o.get('status') != 'created']
     print(f"[scraper] {len(all_offers)} total offers, {len(submitted)} with submitted audio")
     parsed = [parse_offer(o) for o in submitted]
     inserted, updated = upsert(parsed)
