@@ -369,6 +369,14 @@ def extract_beacon_content(html, week_date):
     one_shot_pattern = r'((?:[A-Z][\w\']+(?:[ \t:]+(?:of|the|and|in|to|a|an|for|II|III|IV|V|VI|\w+))*[ \t]+)One[- ]Shot)'
     one_shot_matches = re.finditer(one_shot_pattern, text)
 
+    # Words that indicate an actual schedule slot vs. promotional/archive text
+    schedule_indicators = re.compile(
+        r'\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|'
+        r'airs|premieres|debuts|new episode|this week|only on beacon|'
+        r'live on beacon|exclusively on beacon|available [a-z]+ on beacon)\b',
+        re.IGNORECASE
+    )
+
     seen_one_shots = set()
     for match in one_shot_matches:
         title = match.group(1).strip()
@@ -380,6 +388,12 @@ def extract_beacon_content(html, week_date):
             continue
         # Skip if this is a superset of an already-seen one-shot (e.g. junk prefix)
         if any(seen in title_lower for seen in seen_one_shots):
+            continue
+        # Require scheduling context nearby — without it, this is likely promo/archive text
+        context_start = max(0, match.start() - 300)
+        context_end = min(len(text), match.end() + 300)
+        context = text[context_start:context_end]
+        if not schedule_indicators.search(context):
             continue
         seen_one_shots.add(title_lower)
 
