@@ -364,10 +364,13 @@ def extract_beacon_content(html, week_date):
         })
 
     # Pattern 11: One-Shots
-    # Matches: "Kingdom Come: Deliverance II One-Shot" or similar titled one-shots
-    # Requires a proper title (capitalized words) before "One-Shot" to avoid nav/menu junk
-    one_shot_pattern = r'((?:[A-Z][\w\']+(?:[ \t:]+(?:of|the|and|in|to|a|an|for|II|III|IV|V|VI|\w+))*[ \t]+)One[- ]Shot)'
-    one_shot_matches = re.finditer(one_shot_pattern, text)
+    # Use newline-separated text so the event title is on its own line, isolated from
+    # description prose that also mentions "One-Shot". The old inline regex broke on
+    # titles containing punctuation like "!" (e.g. "Hubris! A Darrington Brigade One-Shot")
+    # and would fall through to match promo copy in the description instead.
+    text_nl = soup.get_text(separator='\n')
+    # Match whole lines: starts with a capital letter, ends with "One-Shot" / "One Shot"
+    one_shot_pattern = r'^([A-Z][^\n]*?One[- ]Shot)\s*$'
 
     # Words that indicate an actual schedule slot vs. promotional/archive text
     schedule_indicators = re.compile(
@@ -377,25 +380,34 @@ def extract_beacon_content(html, week_date):
         re.IGNORECASE
     )
 
-    seen_one_shots = set()
-    for match in one_shot_matches:
+    # Dedup by the last two words before "One-Shot" (the series name), so that
+    # "Hubris! A Darrington Brigade One-Shot" and "NEW Darrington Brigade One-Shot"
+    # (which appears in description prose) are treated as the same event.
+    seen_one_shot_series = set()
+    for match in re.finditer(one_shot_pattern, text_nl, re.MULTILINE):
         title = match.group(1).strip()
-        title_lower = title.lower()
-        if title_lower in seen_one_shots:
+        if len(title) < 15:
             continue
-        # Skip if title is too short or contains newlines (nav/menu junk)
-        if len(title) < 15 or '\n' in title:
+
+        # Extract series key: the last two words before "One-Shot"
+        series_match = re.search(r'(.+?)\s+One[- ]Shot$', title, re.IGNORECASE)
+        if not series_match:
             continue
-        # Skip if this is a superset of an already-seen one-shot (e.g. junk prefix)
-        if any(seen in title_lower for seen in seen_one_shots):
+        words_before = series_match.group(1).strip().split()
+        series_key = ' '.join(words_before[-2:]).lower()
+
+        if series_key in seen_one_shot_series:
             continue
-        # Require scheduling context nearby — without it, this is likely promo/archive text
-        context_start = max(0, match.start() - 300)
-        context_end = min(len(text), match.end() + 300)
-        context = text[context_start:context_end]
+
+        # Require scheduling context nearby — use a wider window since the newline
+        # separator adds chars and the date line may be several elements away
+        context_start = max(0, match.start() - 400)
+        context_end = min(len(text_nl), match.end() + 400)
+        context = text_nl[context_start:context_end]
         if not schedule_indicators.search(context):
             continue
-        seen_one_shots.add(title_lower)
+
+        seen_one_shot_series.add(series_key)
 
         content.append({
             'week_date': week_date.strftime('%Y-%m-%d'),
