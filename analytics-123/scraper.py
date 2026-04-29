@@ -138,8 +138,8 @@ def api_get(path, token, params=None, storage=None):
         raise
 
 
-def get_provider_id(token):
-    data = api_get('users/me', token)
+def get_provider_id(token, storage=None):
+    data = api_get('users/me', token, storage=storage)
     if data.get('provider_id'):
         return data['provider_id']
     for svc in data.get('services', []):
@@ -317,7 +317,7 @@ def main():
 
     print("[scraper] Fetching provider ID...")
     try:
-        provider_id = get_provider_id(token)
+        provider_id = get_provider_id(token, storage=storage)
         if not provider_id:
             raise ValueError("Could not determine provider ID from /api/users/me")
         print(f"[scraper] Provider ID: {provider_id}")
