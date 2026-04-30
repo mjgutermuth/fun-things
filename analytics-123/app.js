@@ -52,7 +52,7 @@ function renderFunnel(t) {
     const max = t.all || 1;
     const rows = [
         { label: 'submitted', count: t.all,    cls: 'submitted', pct: 1 },
-        { label: 'viewed',    count: t.viewed,  cls: 'viewed',    pct: t.viewed  / max },
+        { label: 'listened',  count: t.viewed,  cls: 'viewed',    pct: t.viewed  / max },
         { label: 'liked',     count: t.liked,   cls: 'liked',     pct: t.liked   / max },
         { label: 'booked',    count: t.booked,  cls: 'booked',    pct: t.booked  / max },
     ];
@@ -157,7 +157,7 @@ async function loadLog() {
             <td>${r.client || '—'}</td>
             <td>${r.role   || '—'}</td>
             <td><span class="type-badge">${r.role_type || '—'}</span></td>
-            <td><span class="status-dot ${r.viewed ? 'viewed-on' : 'off'}" title="${r.viewed ? 'viewed' : 'not viewed'}"></span></td>
+            <td><span class="status-dot ${r.viewed ? 'viewed-on' : 'off'}" title="${r.viewed ? 'listened' : 'not listened'}"></span></td>
             <td><span class="status-dot ${r.liked  ? 'liked-on'  : 'off'}" title="${r.liked  ? 'liked'  : 'not liked'}"></span></td>
             <td><span class="status-dot ${r.booked ? 'on'        : 'off'}" title="${r.booked ? 'booked' : 'not booked'}"></span></td>
             <td>${r.booked && r.pay ? formatPay(r.pay, r.pay_currency) : '—'}</td>
