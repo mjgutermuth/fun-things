@@ -165,6 +165,13 @@ def parse_offer(offer):
     project = offer.get('project') or {}
     sp      = offer.get('service_properties') or {}
 
+    if project.get('status') == 'closed':
+        import json
+        print(f"[debug closed] offer keys: {list(offer.keys())}")
+        print(f"[debug closed] project keys: {list(project.keys())}")
+        print(f"[debug closed] offer snippet: {json.dumps({k: offer.get(k) for k in ('id','status','is_winner','positive_votes','winner')}, default=str)}")
+        print(f"[debug closed] project snippet: {json.dumps({k: project.get(k) for k in ('id','status','winner','is_awarded','awarded_to')}, default=str)}")
+
     date_submitted = (offer.get('created_at') or '')[:10] or None
     role           = project.get('name')
     proj_sp        = project.get('service_properties') or {}
