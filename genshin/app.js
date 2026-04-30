@@ -13,57 +13,57 @@ const DOMAINS = [
   {
     name: 'Forsaken Rift', region: 'Mondstadt',
     slots: [
-      { days: [1,4], book: 'Freedom',    chars: ['Amber','Kaeya','Lisa','Razor','Fischl','Mika'] },
-      { days: [2,5], book: 'Resistance', chars: ['Barbara','Noelle','Jean','Sucrose','Bennett','Diluc'] },
-      { days: [3,6], book: 'Ballad',     chars: ['Venti','Klee','Albedo','Mona','Rosaria','Eula','Kazuha','Durin'] },
+      { days: [1,4], book: 'Freedom',    chars: ['Amber','Barbara','Klee','Sucrose','Diona'] },
+      { days: [2,5], book: 'Resistance', chars: ['Jean','Diluc','Razor','Bennett','Noelle','Mona','Eula'] },
+      { days: [3,6], book: 'Ballad',     chars: ['Lisa','Kaeya','Venti','Fischl','Albedo','Rosaria','Mika','Durin'] },
     ],
   },
   {
     name: 'Taishan Mansion', region: 'Liyue',
     slots: [
-      { days: [1,4], book: 'Prosperity', chars: ['Xiangling','Chongyun','Beidou','Ningguang','Keqing','Qiqi','Xinyan','Yun Jin','Gaming'] },
-      { days: [2,5], book: 'Diligence',  chars: ['Xiao','Ganyu','Hu Tao','Yanfei','Shenhe','Yelan','Baizhu'] },
-      { days: [3,6], book: 'Gold',       chars: ['Xingqiu','Zhongli','Xianyun','Zibai'] },
+      { days: [1,4], book: 'Prosperity', chars: ['Xiao','Ningguang','Qiqi','Keqing','Shenhe','Yelan','Gaming'] },
+      { days: [2,5], book: 'Diligence',  chars: ['Xiangling','Chongyun','Ganyu','Hu Tao','Kazuha','Yun Jin','Yaoyao','Lan Yan'] },
+      { days: [3,6], book: 'Gold',       chars: ['Beidou','Xingqiu','Zhongli','Xinyan','Yanfei','Baizhu','Xianyun','Zibai'] },
     ],
   },
   {
     name: 'Violet Court', region: 'Inazuma',
     slots: [
-      { days: [1,4], book: 'Transience', chars: ['Kamisato Ayaka','Yoimiya','Thoma','Sayu','Gorou'] },
-      { days: [2,5], book: 'Elegance',   chars: ['Kokomi','Yae Miko','Kujou Sara','Kuki Shinobu','Kirara'] },
-      { days: [3,6], book: 'Light',      chars: ['Raiden Shogun','Itto','Wanderer','Heizou'] },
+      { days: [1,4], book: 'Transience', chars: ['Yoimiya','Thoma','Kokomi','Heizou','Kirara','Mizuki'] },
+      { days: [2,5], book: 'Elegance',   chars: ['Kamisato Ayaka','Kujou Sara','Itto','Kamisato Ayato','Kuki Shinobu'] },
+      { days: [3,6], book: 'Light',      chars: ['Yae Miko','Sayu','Gorou','Raiden Shogun','Chiori'] },
     ],
   },
   {
     name: 'Steeple of Ignorance', region: 'Sumeru',
     slots: [
-      { days: [1,4], book: 'Admonition', chars: ['Collei','Tighnari','Cyno','Dori'] },
-      { days: [2,5], book: 'Ingenuity',  chars: ['Nahida','Layla','Sethos','Nilou'] },
-      { days: [3,6], book: 'Praxis',     chars: ['Alhaitham','Kaveh','Faruzan','Dehya'] },
+      { days: [1,4], book: 'Admonition', chars: ['Cyno','Tighnari','Candace','Faruzan'] },
+      { days: [2,5], book: 'Ingenuity',  chars: ['Nahida','Layla','Dori','Alhaitham','Kaveh'] },
+      { days: [3,6], book: 'Praxis',     chars: ['Wanderer','Collei','Dehya','Nilou','Sethos'] },
     ],
   },
   {
     name: 'Pale Forgotten Glory', region: 'Fontaine',
     slots: [
-      { days: [1,4], book: 'Equity',   chars: ['Lynette','Charlotte','Freminet'] },
-      { days: [2,5], book: 'Justice',  chars: ['Lyney','Furina','Clorinde','Sigewinne','Navia'] },
-      { days: [3,6], book: 'Order',    chars: ['Neuvillette','Wriothesley','Chevreuse','Emilie','Escoffier'] },
+      { days: [1,4], book: 'Equity',   chars: ['Lyney','Navia','Sigewinne','Neuvillette'] },
+      { days: [2,5], book: 'Justice',  chars: ['Charlotte','Freminet','Furina','Clorinde','Escoffier'] },
+      { days: [3,6], book: 'Order',    chars: ['Lynette','Arlecchino','Wriothesley','Emilie','Chevreuse'] },
     ],
   },
   {
     name: 'Lightless Capital', region: 'Nod-Krai',
     slots: [
-      { days: [1,4], book: 'Moonlight', chars: ['Lauma','Columbina'] },
+      { days: [1,4], book: 'Vagrancy',  chars: ['Jahoda','Flins','Linnea'] },
       { days: [2,5], book: 'Elysium',   chars: ['Nefer','Aino','Illuga'] },
-      { days: [3,6], book: 'Vagrancy',  chars: ['Jahoda','Flins','Linnea'] },
+      { days: [3,6], book: 'Moonlight', chars: ['Lauma','Columbina'] },
     ],
   },
   {
     name: 'Blazing Ruins', region: 'Natlan',
     slots: [
-      { days: [1,4], book: 'Conflict',   chars: ['Xilonen','Chasca','Ifa'] },
-      { days: [2,5], book: 'Kindling',   chars: ['Mualani','Kinich','Lan Yan'] },
-      { days: [3,6], book: 'Contention', chars: ['Citlali','Mavuika','Ororon','Varesa'] },
+      { days: [1,4], book: 'Contention', chars: ['Skirk','Mualani','Mavuika'] },
+      { days: [2,5], book: 'Kindling',   chars: ['Kinich','Citlali','Xilonen','Ororon'] },
+      { days: [3,6], book: 'Conflict',   chars: ['Kachina','Chasca','Ifa','Varesa'] },
     ],
   },
 ];
@@ -72,218 +72,8 @@ const CHAR_DOMAIN = Object.fromEntries(
   DOMAINS.flatMap(d => d.slots.flatMap(s => s.chars.map(c => [c, { domain: d.name, book: s.book, days: s.days }])))
 );
 
-const TEAM_ARCHETYPES = [
-  {
-    name: 'Neuvillette Hypercarry', tags: ['Hydro'],
-    notes: 'Furina dramatically boosts damage via HP fluctuation. Anemo for resistance shred.',
-    roles: [
-      { label: 'DPS',    chars: ['Neuvillette'] },
-      { label: 'Archon', chars: ['Furina'] },
-      { label: 'Anemo',  chars: ['Kazuha','Venti','Sucrose'] },
-      { label: 'Flex',   chars: ['Zhongli','Charlotte','Layla','Nahida','Fischl'] },
-    ],
-  },
-  {
-    name: 'Hu Tao Double Hydro', tags: ['Vaporize'],
-    notes: 'Run both Xingqiu and Yelan for consistent Vaporize. Zhongli shields protect Hu Tao.',
-    roles: [
-      { label: 'DPS',     chars: ['Hu Tao'] },
-      { label: 'Hydro 1', chars: ['Yelan','Xingqiu'] },
-      { label: 'Hydro 2', chars: ['Xingqiu','Yelan'] },
-      { label: 'Support', chars: ['Zhongli','Layla','Albedo'] },
-    ],
-  },
-  {
-    name: 'Raiden National', tags: ['Overloaded'],
-    notes: 'Raiden recharges everyone\'s bursts. Reliable all-content team.',
-    roles: [
-      { label: 'Electro', chars: ['Raiden Shogun'] },
-      { label: 'Pyro',    chars: ['Xiangling'] },
-      { label: 'Hydro',   chars: ['Xingqiu','Yelan'] },
-      { label: 'Buffer',  chars: ['Bennett'] },
-    ],
-  },
-  {
-    name: 'Ayaka Freeze', tags: ['Freeze'],
-    notes: 'Freeze keeps enemies locked. Venti/Kazuha group and shred resistance.',
-    roles: [
-      { label: 'DPS',   chars: ['Kamisato Ayaka'] },
-      { label: 'Hydro', chars: ['Kokomi','Mona','Barbara'] },
-      { label: 'Cryo',  chars: ['Shenhe','Rosaria','Diona'] },
-      { label: 'Anemo', chars: ['Kazuha','Venti'] },
-    ],
-  },
-  {
-    name: 'Ganyu Freeze', tags: ['Freeze'],
-    notes: 'Long-range AoE Cryo with Venti for mass grouping. Very consistent against hordes.',
-    roles: [
-      { label: 'DPS',   chars: ['Ganyu'] },
-      { label: 'Hydro', chars: ['Kokomi','Mona','Barbara'] },
-      { label: 'Anemo', chars: ['Venti','Kazuha'] },
-      { label: 'Cryo',  chars: ['Shenhe','Diona','Rosaria'] },
-    ],
-  },
-  {
-    name: 'Hyperbloom', tags: ['Hyperbloom'],
-    notes: 'Electro-triggered Dendro seeds deal huge AoE damage. Kokomi for field Hydro.',
-    roles: [
-      { label: 'Dendro',  chars: ['Nahida','Collei','Kirara','Yaoyao'] },
-      { label: 'Hydro',   chars: ['Kokomi','Yelan','Xingqiu','Barbara','Furina'] },
-      { label: 'Electro', chars: ['Raiden Shogun','Fischl','Kuki Shinobu','Beidou'] },
-      { label: 'Flex',    chars: ['Kazuha','Zhongli','Nahida','Baizhu'] },
-    ],
-  },
-  {
-    name: 'Nilou Bloom', tags: ['Bloom'],
-    notes: 'Full Hydro+Dendro only — no other elements. Nilou boosts Bloom damage significantly.',
-    roles: [
-      { label: 'Core',   chars: ['Nilou'] },
-      { label: 'Dendro', chars: ['Nahida','Baizhu','Yaoyao'] },
-      { label: 'Healer', chars: ['Kokomi','Baizhu','Barbara'] },
-      { label: 'Dendro', chars: ['Collei','Nahida','Kirara'] },
-    ],
-  },
-  {
-    name: 'Wanderer Hypercarry', tags: ['Anemo'],
-    notes: 'Faruzan is essentially required. Furina or Bennett provide big multipliers.',
-    roles: [
-      { label: 'DPS',     chars: ['Wanderer'] },
-      { label: 'Buffer',  chars: ['Faruzan'] },
-      { label: 'Support', chars: ['Furina','Bennett','Zhongli','Layla'] },
-      { label: 'Flex',    chars: ['Zhongli','Layla','Fischl','Nahida'] },
-    ],
-  },
-  {
-    name: 'Xiao Hypercarry', tags: ['Anemo', 'Plunge'],
-    notes: 'Xianyun enables buffed plunge attacks. Faruzan shreds Anemo resistance.',
-    roles: [
-      { label: 'DPS',     chars: ['Xiao'] },
-      { label: 'Buffer',  chars: ['Faruzan'] },
-      { label: 'Jump',    chars: ['Xianyun','Jean'] },
-      { label: 'Support', chars: ['Furina','Bennett','Zhongli','Layla'] },
-    ],
-  },
-  {
-    name: 'Itto Mono Geo', tags: ['Geo'],
-    notes: 'Gorou is essential for Itto — triple Geo unlocks all Gorou buffs.',
-    roles: [
-      { label: 'DPS',      chars: ['Arataki Itto'] },
-      { label: 'Buffer',   chars: ['Gorou'] },
-      { label: 'Geo 3rd',  chars: ['Albedo','Zhongli','Ningguang'] },
-      { label: 'Flex Geo', chars: ['Zhongli','Albedo','Ningguang'] },
-    ],
-  },
-  {
-    name: 'Yae Miko Aggravate', tags: ['Aggravate'],
-    notes: 'Nahida applies Dendro off-field; Kazuha boosts Electro DMG bonus.',
-    roles: [
-      { label: 'DPS',     chars: ['Yae Miko'] },
-      { label: 'Electro', chars: ['Fischl','Raiden Shogun','Beidou'] },
-      { label: 'Dendro',  chars: ['Nahida','Collei'] },
-      { label: 'Anemo',   chars: ['Kazuha','Sucrose'] },
-    ],
-  },
-  {
-    name: 'Clorinde Aggravate', tags: ['Aggravate'],
-    notes: 'High single-target Electro DPS; Kazuha amplifies and groups.',
-    roles: [
-      { label: 'DPS',     chars: ['Clorinde'] },
-      { label: 'Electro', chars: ['Fischl','Raiden Shogun'] },
-      { label: 'Dendro',  chars: ['Nahida','Collei'] },
-      { label: 'Anemo',   chars: ['Kazuha','Sucrose'] },
-    ],
-  },
-  {
-    name: 'Cyno Aggravate', tags: ['Aggravate'],
-    notes: 'Long burst window; Nahida keeps Dendro applied throughout Cyno\'s field time.',
-    roles: [
-      { label: 'DPS',     chars: ['Cyno'] },
-      { label: 'Dendro',  chars: ['Nahida'] },
-      { label: 'Electro', chars: ['Fischl','Beidou','Raiden Shogun'] },
-      { label: 'Support', chars: ['Zhongli','Kazuha','Baizhu'] },
-    ],
-  },
-  {
-    name: 'Lyney Vaporize', tags: ['Pyro', 'Vaporize'],
-    notes: 'Furina and Bennett amplify charged attack damage. Xiangling for off-field Pyro.',
-    roles: [
-      { label: 'DPS',    chars: ['Lyney'] },
-      { label: 'Buffer', chars: ['Bennett'] },
-      { label: 'Archon', chars: ['Furina'] },
-      { label: 'Pyro',   chars: ['Xiangling','Chevreuse','Kazuha'] },
-    ],
-  },
-  {
-    name: 'Navia Geo', tags: ['Geo'],
-    notes: 'Fischl generates Crystalize off-field; Zhongli shreds and shields.',
-    roles: [
-      { label: 'DPS',     chars: ['Navia'] },
-      { label: 'Geo',     chars: ['Zhongli','Albedo'] },
-      { label: 'Electro', chars: ['Fischl','Beidou'] },
-      { label: 'Flex',    chars: ['Furina','Kazuha','Bennett'] },
-    ],
-  },
-  {
-    name: 'Wriothesley Freeze', tags: ['Freeze'],
-    notes: 'Furina synergizes with Wriothesley\'s low-HP mechanic for big multipliers.',
-    roles: [
-      { label: 'DPS',   chars: ['Wriothesley'] },
-      { label: 'Hydro', chars: ['Furina','Kokomi'] },
-      { label: 'Cryo',  chars: ['Shenhe','Rosaria','Diona'] },
-      { label: 'Anemo', chars: ['Kazuha','Venti'] },
-    ],
-  },
-  {
-    name: 'Mavuika Natlan', tags: ['Pyro', 'Natlan'],
-    notes: 'Citlali provides Cryo shred. Xilonen gives Pyro RES shred and healing.',
-    roles: [
-      { label: 'DPS',    chars: ['Mavuika'] },
-      { label: 'Cryo',   chars: ['Citlali'] },
-      { label: 'Natlan', chars: ['Xilonen','Chasca','Kinich','Mualani','Ifa'] },
-      { label: 'Flex',   chars: ['Bennett','Kazuha','Furina','Zhongli'] },
-    ],
-  },
-  {
-    name: 'Mualani Vaporize', tags: ['Hydro', 'Vaporize'],
-    notes: 'Furina dramatically boosts Mualani\'s shark bite damage.',
-    roles: [
-      { label: 'DPS',    chars: ['Mualani'] },
-      { label: 'Archon', chars: ['Furina'] },
-      { label: 'Pyro',   chars: ['Bennett','Xiangling'] },
-      { label: 'Anemo',  chars: ['Kazuha','Venti','Sucrose'] },
-    ],
-  },
-  {
-    name: 'Kinich Dendro', tags: ['Dendro', 'Natlan'],
-    notes: 'Nahida enables consistent Dendro reactions. Furina boosts off-field scaling.',
-    roles: [
-      { label: 'DPS',    chars: ['Kinich'] },
-      { label: 'Dendro', chars: ['Nahida','Collei'] },
-      { label: 'Support',chars: ['Furina','Zhongli'] },
-      { label: 'Flex',   chars: ['Bennett','Kazuha','Xilonen'] },
-    ],
-  },
-  {
-    name: 'Nefer Lunar Bloom', tags: ['Lunar Bloom', 'Dendro'],
-    notes: 'Lauma converts Bloom cores into Lunar Cores; Columbina amplifies all Lunar Reactions. Nilou triggers immediate detonation.',
-    roles: [
-      { label: 'DPS',    chars: ['Nefer'] },
-      { label: 'Buffer', chars: ['Lauma'] },
-      { label: 'Hydro',  chars: ['Columbina','Nilou','Kokomi','Aino'] },
-      { label: 'Flex',   chars: ['Nilou','Nahida','Sucrose','Kokomi'] },
-    ],
-  },
-  {
-    name: 'Bennett Xiangling Core', tags: ['Vaporize', 'Pyro'],
-    notes: 'Flexible core that slots into dozens of teams. Run with any Hydro carry.',
-    roles: [
-      { label: 'Buffer',   chars: ['Bennett'] },
-      { label: 'Sub DPS',  chars: ['Xiangling'] },
-      { label: 'Hydro',    chars: ['Xingqiu','Yelan'] },
-      { label: 'Flex DPS', chars: ['Raiden Shogun','Eula','Beidou','Fischl','Clorinde'] },
-    ],
-  },
-];
+
+let teamsPromise = null;
 
 let allChars = [];
 let activeElement = 'all';
@@ -336,6 +126,7 @@ function setPriorityTarget(name, val) {
   const p = loadPriority();
   if (p[name]) { p[name].targetLevel = +val; savePriority(p); }
 }
+
 
 // ── TABS ──
 
@@ -392,6 +183,7 @@ function normalizeChar(raw) {
 // ── INIT ──
 
 function init() {
+  teamsPromise = Promise.resolve(typeof TEAMS_DATA !== 'undefined' ? TEAMS_DATA : []);
   const config = loadConfig();
   const ok = config && config.ltuid_v2 && config.ltoken_v2 && config.uid;
   if (ok) showRoster(config);
@@ -625,7 +417,7 @@ function charRow(char, priority = {}) {
       <img class="row-icon ${rc}" src="${char.icon}" alt="${char.name}" loading="lazy" onerror="this.style.display='none'">
       <span class="row-name">${char.name}</span>
       ${char.element ? `<span class="element-pill ${char.element}">${char.element}</span>` : ''}
-      <span class="row-level">${char.level != null ? `${char.level}/${char.max_level}` : '—'}</span>
+      <span class="row-level">${char.level != null ? `${char.level}${char.max_level != null ? `/${char.max_level}` : ''}` : '—'}</span>
       <span class="row-weapon">${w ? w.name : '—'}</span>
       <span class="row-const">C${char.constellation}</span>
       <button class="priority-star${isPriority ? ' active' : ''}" data-name="${char.name}" title="${isPriority ? 'remove from queue' : 'add to queue'}">★</button>
@@ -650,7 +442,7 @@ function charCard(char, priority = {}) {
             ${char.rarity ? `<span class="stars ${rc}">${stars(char.rarity)}</span>` : ''}
           </div>
           <div class="char-stats">
-            ${char.level != null ? `<div class="stat-chip"><span class="val">${char.level}/${char.max_level}</span><span class="lbl">level</span></div>` : ''}
+            ${char.level != null ? `<div class="stat-chip"><span class="val">${char.level}${char.max_level != null ? `/${char.max_level}` : ''}</span><span class="lbl">level</span></div>` : ''}
             <div class="stat-chip"><span class="val">C${char.constellation}</span><span class="lbl">const</span></div>
             ${char.friendship ? `<div class="stat-chip"><span class="val">${char.friendship}</span><span class="lbl">friend</span></div>` : ''}
           </div>
@@ -680,11 +472,12 @@ function toggleExpand(name) {
 
 // ── TEAMS TAB ──
 
-function renderTeamsTab() {
+async function renderTeamsTab() {
+  const archetypes = await teamsPromise;
   const charNames = new Set(allChars.map(c => c.name));
-  const scored = TEAM_ARCHETYPES
+  const scored = archetypes
     .map(t => ({ ...t, score: t.roles.filter(r => r.chars.some(c => charNames.has(c))).length }))
-    .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+    .sort((a, b) => b.score - a.score || (a.tier ?? 99) - (b.tier ?? 99) || a.name.localeCompare(b.name));
 
   document.getElementById('tab-teams').innerHTML = scored.map(t => teamCard(t, charNames)).join('');
 }
@@ -719,6 +512,7 @@ function teamCard(team, charNames) {
     <div class="team-card">
       <div class="team-header">
         <span class="team-name">${team.name}</span>
+        ${team.tier != null ? `<span class="team-tier">T${team.tier}</span>` : ''}
         <span class="team-tags">${team.tags.map(t => `<span class="team-tag">${t}</span>`).join('')}</span>
         <span class="team-status ${statusClass}">${statusLabel}</span>
       </div>
@@ -801,7 +595,7 @@ function renderQueueSection(priority) {
     const icon = char
       ? `<img src="${char.icon}" alt="${name}" class="prio-icon ${rc}" onerror="this.style.display='none'">`
       : `<div class="prio-icon-placeholder"></div>`;
-    const levelDisplay = char ? `lv ${char.level}/${char.max_level}` : '';
+    const levelDisplay = char ? `lv ${char.level}${char.max_level != null ? `/${char.max_level}` : ''}` : '';
     const domain = CHAR_DOMAIN[name];
     const domainInfo = domain ? `${domain.domain} · ${domain.book}` : '—';
     const targetOpts = TARGET_LEVELS
