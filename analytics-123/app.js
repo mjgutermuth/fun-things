@@ -169,6 +169,7 @@ async function loadLog() {
             <td><span class="status-dot ${r.viewed ? 'viewed-on' : 'off'}" title="${r.viewed ? 'listened' : 'not listened'}"></span></td>
             <td><span class="status-dot ${r.liked  ? 'liked-on'  : 'off'}" title="${r.liked  ? 'liked'  : 'not liked'}"></span></td>
             <td><span class="status-dot ${r.booked ? 'on'        : 'off'}" title="${r.booked ? 'booked' : 'not booked'}"></span></td>
+            <td>${r.project_status === 'closed' && !r.booked ? '<span class="status-closed">closed</span>' : ''}</td>
             <td>${r.booked && r.pay ? formatPay(r.pay, r.pay_currency) : '—'}</td>
             <td>
                 <div class="row-actions">

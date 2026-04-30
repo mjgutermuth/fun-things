@@ -362,6 +362,16 @@ h1 {
     font-style: italic;
 }
 
+.status-closed {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #ef4444;
+    background: #fef2f2;
+    border-radius: 4px;
+    padding: 0.15rem 0.4rem;
+    letter-spacing: 0.02em;
+}
+
 .status-dot {
     display: inline-block;
     width: 10px; height: 10px;
