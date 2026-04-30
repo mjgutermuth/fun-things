@@ -305,6 +305,15 @@ h1 {
 .btn-add:hover { opacity: 0.88; }
 
 /* ── Log table ── */
+.log-table th:first-child { min-width: 100px; }
+.log-table th:nth-child(6),
+.log-table th:nth-child(7),
+.log-table th:nth-child(8),
+.log-table th:nth-child(9) { width: 56px; text-align: center; }
+.log-table td:nth-child(6),
+.log-table td:nth-child(7),
+.log-table td:nth-child(8),
+.log-table td:nth-child(9) { text-align: center; }
 .table-wrap {
     background: white;
     border-radius: 16px;
