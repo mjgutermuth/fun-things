@@ -305,7 +305,8 @@ h1 {
 .btn-add:hover { opacity: 0.88; }
 
 /* ── Log table ── */
-.log-table th:first-child { min-width: 100px; }
+.log-table th:first-child,
+.log-table td:first-child { white-space: nowrap; }
 .log-table th:nth-child(6),
 .log-table th:nth-child(7),
 .log-table th:nth-child(8),
