@@ -243,7 +243,6 @@ kbd {
 .filter-btn[data-element="Dendro"].active   { background: var(--dendro);  color: #0a1a00; }
 .filter-btn[data-element="Cryo"].active     { background: var(--cryo);    color: #001a1f; }
 .filter-btn[data-element="Geo"].active      { background: var(--geo);     color: #1a0f00; }
-
 .controls-right {
     display: flex;
     align-items: center;

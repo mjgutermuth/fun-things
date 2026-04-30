@@ -361,6 +361,7 @@ function setElement(elem) {
 
 function sortedChars() {
   let chars = activeElement === 'all' ? allChars : allChars.filter(c => c.element === activeElement);
+  if (activeSort === 'meta') chars = chars.filter(c => META_CHARS.has(c.name));
   if (activeSearch) chars = chars.filter(c => c.name.toLowerCase().includes(activeSearch));
   return [...chars].sort((a, b) => {
     switch (activeSort) {
