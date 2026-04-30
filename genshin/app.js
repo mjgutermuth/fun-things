@@ -73,10 +73,15 @@ const CHAR_DOMAIN = Object.fromEntries(
 );
 
 
+const META_CHARS = typeof TEAMS_DATA !== 'undefined'
+  ? new Set(TEAMS_DATA.flatMap(t => t.roles.flatMap(r => r.chars)))
+  : new Set();
+
 let teamsPromise = null;
 
 let allChars = [];
 let activeElement = 'all';
+let activeSearch = '';
 let activeSort = 'default';
 let activeView = 'grid';
 let activeTab = 'roster';
@@ -234,6 +239,10 @@ function showRoster(config) {
     document.getElementById('view-btn').textContent = activeView === 'grid' ? '☰' : '⊞';
     renderRoster();
   };
+  document.getElementById('search-input').oninput = e => {
+    activeSearch = e.target.value.toLowerCase();
+    renderRoster();
+  };
   document.getElementById('sort-select').onchange = e => {
     activeSort = e.target.value;
     renderRoster();
@@ -252,7 +261,7 @@ async function loadRoster(config) {
     renderFilters();
     renderRoster();
     document.getElementById('loading').classList.add('hidden');
-    setFooter(cached.uid, allChars.length, true);
+    setFooter(cached.uid, allChars, true);
     return;
   }
 
@@ -286,7 +295,7 @@ async function loadRoster(config) {
     renderFilters();
     renderRoster();
     document.getElementById('loading').classList.add('hidden');
-    setFooter(config.uid, allChars.length, false);
+    setFooter(config.uid, allChars, false);
   } catch {
     showError('Request failed. Check that your Worker URL is correct and the Worker is deployed.');
   }
@@ -315,9 +324,10 @@ function showError(msg) {
   el.classList.remove('hidden');
 }
 
-function setFooter(uid, count, fromCache) {
+function setFooter(uid, chars, fromCache) {
+  const fiveStars = chars.filter(c => c.rarity === 5).length;
   const el = document.getElementById('footer');
-  el.textContent = `${count} characters · UID ${uid}${fromCache ? ' · cached' : ''}`;
+  el.textContent = `${chars.length} characters · ${fiveStars} five-stars · UID ${uid}${fromCache ? ' · cached' : ''}`;
   el.classList.remove('hidden');
 }
 
@@ -350,7 +360,8 @@ function setElement(elem) {
 // ── RENDER ──
 
 function sortedChars() {
-  const chars = activeElement === 'all' ? allChars : allChars.filter(c => c.element === activeElement);
+  let chars = activeElement === 'all' ? allChars : allChars.filter(c => c.element === activeElement);
+  if (activeSearch) chars = chars.filter(c => c.name.toLowerCase().includes(activeSearch));
   return [...chars].sort((a, b) => {
     switch (activeSort) {
       case 'level':         return b.level - a.level || b.rarity - a.rarity;
@@ -420,6 +431,8 @@ function charRow(char, priority = {}) {
       <span class="row-level">${char.level != null ? `${char.level}${char.max_level != null ? `/${char.max_level}` : ''}` : '—'}</span>
       <span class="row-weapon">${w ? w.name : '—'}</span>
       <span class="row-const">C${char.constellation}</span>
+      <span class="row-book">${CHAR_DOMAIN[char.name] ? CHAR_DOMAIN[char.name].book.toLowerCase() : '—'}</span>
+      ${META_CHARS.has(char.name) ? `<span class="row-meta" title="used in a meta team">meta</span>` : '<span></span>'}
       <button class="priority-star${isPriority ? ' active' : ''}" data-name="${char.name}" title="${isPriority ? 'remove from queue' : 'add to queue'}">★</button>
     </div>`;
 }
@@ -440,12 +453,14 @@ function charCard(char, priority = {}) {
           <div class="char-meta">
             ${char.element ? `<span class="element-pill ${char.element}">${char.element}</span>` : ''}
             ${char.rarity ? `<span class="stars ${rc}">${stars(char.rarity)}</span>` : ''}
+            ${META_CHARS.has(char.name) ? `<span class="meta-badge">meta</span>` : ''}
           </div>
           <div class="char-stats">
             ${char.level != null ? `<div class="stat-chip"><span class="val">${char.level}${char.max_level != null ? `/${char.max_level}` : ''}</span><span class="lbl">level</span></div>` : ''}
             <div class="stat-chip"><span class="val">C${char.constellation}</span><span class="lbl">const</span></div>
             ${char.friendship ? `<div class="stat-chip"><span class="val">${char.friendship}</span><span class="lbl">friend</span></div>` : ''}
           </div>
+          ${CHAR_DOMAIN[char.name] ? `<div class="char-book">book of ${CHAR_DOMAIN[char.name].book.toLowerCase()}</div>` : ''}
         </div>
       </div>
       ${w ? `
@@ -522,6 +537,18 @@ function teamCard(team, charNames) {
 }
 
 // ── PRIORITY TAB ──
+
+function nextFarmDay(name) {
+  const today = new Date().getDay();
+  const domain = CHAR_DOMAIN[name];
+  if (!domain) return null;
+  if (today === 0 || domain.days.includes(today)) return 'today';
+  for (let offset = 1; offset <= 6; offset++) {
+    const d = (today + offset) % 7;
+    if (d === 0 || domain.days.includes(d)) return d === 0 ? 'sunday' : DAY_NAMES[d];
+  }
+  return null;
+}
 
 function charMiniPill(name, char) {
   const rc = char ? (char.rarity === 5 ? 'r5' : 'r4') : '';
@@ -608,6 +635,7 @@ function renderQueueSection(priority) {
           <div class="prio-name">${name}</div>
           ${levelDisplay ? `<div class="prio-level">${levelDisplay}</div>` : ''}
           <div class="prio-domain">${domainInfo}</div>
+          ${nextFarmDay(name) ? `<div class="prio-next${nextFarmDay(name) === 'today' ? ' is-today' : ''}">farm ${nextFarmDay(name)}</div>` : ''}
         </div>
         <div class="prio-controls">
           <label class="target-label">target
@@ -625,11 +653,52 @@ function renderQueueSection(priority) {
     </section>`;
 }
 
+function renderWeekSection(priority) {
+  const priorityNames = new Set(Object.keys(priority));
+  if (priorityNames.size === 0) return '';
+
+  const DAY_PAIRS = [
+    { key: 1, label: 'mon · thu' },
+    { key: 2, label: 'tue · fri' },
+    { key: 3, label: 'wed · sat' },
+  ];
+
+  const rows = DAY_PAIRS.map(pair => {
+    const slots = DOMAINS.flatMap(d =>
+      d.slots
+        .filter(s => s.days.includes(pair.key))
+        .map(s => ({ book: s.book, chars: s.chars.filter(c => priorityNames.has(c)) }))
+        .filter(s => s.chars.length > 0)
+    );
+    return { label: pair.label, slots };
+  }).filter(row => row.slots.length > 0);
+
+  if (rows.length === 0) return '';
+
+  const html = rows.map(pair => `
+    <div class="week-pair">
+      <div class="week-day-label">${pair.label}</div>
+      <div class="week-slots">
+        ${pair.slots.map(slot => `
+          <div class="week-slot">
+            <div class="week-book">book of ${slot.book.toLowerCase()}</div>
+            <div class="week-chars">${slot.chars.map(n => charMiniPill(n, allChars.find(c => c.name === n))).join('')}</div>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  return `
+    <section class="priority-section">
+      <div class="priority-section-head">week ahead</div>
+      <div class="week-grid">${html}</div>
+    </section>`;
+}
+
 function renderPriorityTab() {
   const priority = loadPriority();
   const today = new Date().getDay();
   const container = document.getElementById('tab-priority');
-  container.innerHTML = renderTodaySection(today, priority) + renderQueueSection(priority);
+  container.innerHTML = renderTodaySection(today, priority) + renderWeekSection(priority) + renderQueueSection(priority);
   container.querySelectorAll('.target-select').forEach(sel => {
     sel.onchange = () => setPriorityTarget(sel.dataset.name, sel.value);
   });
