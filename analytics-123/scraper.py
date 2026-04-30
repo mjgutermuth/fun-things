@@ -165,9 +165,6 @@ def parse_offer(offer):
     project = offer.get('project') or {}
     sp      = offer.get('service_properties') or {}
 
-    if project.get('status') == 'closed':
-        import json
-        print(f"[debug closed] offer {offer.get('id')}: is_winner={offer.get('is_winner')} closing_reason={project.get('closing_reason')!r} winner_selected={project.get('winner_selected')!r} charge_status={project.get('charge_status')!r}")
 
     date_submitted = (offer.get('created_at') or '')[:10] or None
     role           = project.get('name')
@@ -193,7 +190,7 @@ def parse_offer(offer):
         'booked':         1 if booked else 0,
         'pay':            pay,
         'pay_currency':   currency,
-        'project_status': project.get('status'),
+        'project_status': 'awarded' if project.get('winner_selected') else project.get('status'),
     }
 
 

@@ -155,9 +155,9 @@ def get_stats():
                 SUM(liked)                                       AS liked,
                 SUM(booked)                                      AS booked,
                 COALESCE(SUM(CASE WHEN booked=1 THEN pay END),0) AS earnings,
-                SUM(CASE WHEN booked=0 AND COALESCE(project_status,'active') = 'active'
+                SUM(CASE WHEN booked=0 AND COALESCE(project_status,'active') != 'awarded'
                          THEN 1 ELSE 0 END)                      AS active,
-                SUM(CASE WHEN booked=0 AND project_status = 'closed'
+                SUM(CASE WHEN booked=0 AND project_status = 'awarded'
                          THEN 1 ELSE 0 END)                      AS confirmed_rejections
             FROM auditions
         """).fetchone()
