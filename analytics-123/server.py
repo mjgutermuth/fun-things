@@ -155,10 +155,9 @@ def get_stats():
                 SUM(liked)                                       AS liked,
                 SUM(booked)                                      AS booked,
                 COALESCE(SUM(CASE WHEN booked=1 THEN pay END),0) AS earnings,
-                SUM(CASE WHEN booked=0
-                          AND LOWER(COALESCE(project_status,'')) NOT LIKE '%completed%booking%'
+                SUM(CASE WHEN booked=0 AND COALESCE(project_status,'active') = 'active'
                          THEN 1 ELSE 0 END)                      AS active,
-                SUM(CASE WHEN LOWER(COALESCE(project_status,'')) LIKE '%completed%booking%'
+                SUM(CASE WHEN booked=0 AND project_status = 'closed'
                          THEN 1 ELSE 0 END)                      AS confirmed_rejections
             FROM auditions
         """).fetchone()
@@ -238,4 +237,4 @@ def get_stats():
 
 if __name__ == '__main__':
     init_db()
-    app.run(host='0.0.0.0', port=5002, debug=False)
+    app.run(host='0.0.0.0', port=5004, debug=False)
