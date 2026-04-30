@@ -33,14 +33,23 @@ async function loadStats() {
     const data = await api('/api/stats');
     if (!data) return;
 
-    const { totals, rates, by_platform, by_role_type, by_month } = data;
+    const { totals, rates, derived, by_platform, by_role_type, by_month } = data;
 
-    // Metric cards
+    // Metric cards — row 1
     setText('m-total',     totals.all);
     setText('m-view-rate', pct(rates.view));
     setText('m-like-rate', pct(rates.like));
     setText('m-book-rate', pct(rates.booking));
     setText('m-earnings',  formatPay(totals.earnings, 'USD'));
+    setText('m-earn-per-booking',  derived.earnings_per_booking  != null ? formatPay(derived.earnings_per_booking,  'USD') : '—');
+    setText('m-earn-per-audition', derived.earnings_per_audition != null ? formatPay(derived.earnings_per_audition, 'USD') : '—');
+
+    // Metric cards — row 2
+    setText('m-liked-of-listened',    pct(rates.liked_of_listened));
+    setText('m-booked-of-listened',   pct(rates.booked_of_listened));
+    setText('m-auditions-per-booking', derived.auditions_per_booking != null ? derived.auditions_per_booking : '—');
+    setText('m-active',               totals.active);
+    setText('m-confirmed-rejections', totals.confirmed_rejections);
 
     renderFunnel(totals);
     renderMonthlyChart(by_month, totals.all);

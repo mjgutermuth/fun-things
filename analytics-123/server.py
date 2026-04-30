@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS auditions (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     platform      TEXT NOT NULL,
     external_id   TEXT,
+    project_id    TEXT,
     date_submitted TEXT,
     client        TEXT,
     role          TEXT,
@@ -19,6 +20,7 @@ CREATE TABLE IF NOT EXISTS auditions (
     booked        INTEGER DEFAULT 0,
     pay           REAL,
     pay_currency  TEXT DEFAULT 'USD',
+    project_status TEXT,
     notes         TEXT,
     created_at    TEXT DEFAULT (datetime('now')),
     updated_at    TEXT DEFAULT (datetime('now'))
@@ -29,8 +31,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_external
 """
 
 VALID_SORTS = {'date_submitted', 'client', 'role', 'role_type', 'platform', 'pay', 'created_at'}
-FIELDS = ['platform', 'external_id', 'date_submitted', 'client', 'role', 'role_type',
-          'viewed', 'liked', 'booked', 'pay', 'pay_currency', 'notes']
+FIELDS = ['platform', 'external_id', 'project_id', 'date_submitted', 'client', 'role',
+          'role_type', 'viewed', 'liked', 'booked', 'pay', 'pay_currency', 'project_status', 'notes']
 
 
 def get_db():
@@ -42,6 +44,18 @@ def get_db():
 def init_db():
     with get_db() as conn:
         conn.executescript(SCHEMA)
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(auditions)")}
+        for col, defn in [('project_id', 'TEXT'), ('project_status', 'TEXT')]:
+            if col not in cols:
+                conn.execute(f"ALTER TABLE auditions ADD COLUMN {col} {defn}")
+        try:
+            conn.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_project
+                    ON auditions(platform, project_id)
+                    WHERE project_id IS NOT NULL
+            """)
+        except Exception:
+            pass
 
 
 @app.route('/')
@@ -140,7 +154,12 @@ def get_stats():
                 SUM(viewed)                                      AS viewed,
                 SUM(liked)                                       AS liked,
                 SUM(booked)                                      AS booked,
-                COALESCE(SUM(CASE WHEN booked=1 THEN pay END),0) AS earnings
+                COALESCE(SUM(CASE WHEN booked=1 THEN pay END),0) AS earnings,
+                SUM(CASE WHEN booked=0
+                          AND LOWER(COALESCE(project_status,'')) NOT LIKE '%completed%booking%'
+                         THEN 1 ELSE 0 END)                      AS active,
+                SUM(CASE WHEN LOWER(COALESCE(project_status,'')) LIKE '%completed%booking%'
+                         THEN 1 ELSE 0 END)                      AS confirmed_rejections
             FROM auditions
         """).fetchone()
 
@@ -183,20 +202,32 @@ def get_stats():
         return round((n or 0) / d, 4) if d else 0
 
     t = dict(totals)
-    total = t['all_count'] or 0
+    total   = t['all_count'] or 0
+    viewed  = t['viewed']    or 0
+    booked  = t['booked']    or 0
+    earnings = round(t['earnings'] or 0, 2)
 
     return jsonify({
         'totals': {
             'all':      total,
-            'viewed':   t['viewed']   or 0,
-            'liked':    t['liked']    or 0,
-            'booked':   t['booked']   or 0,
-            'earnings': round(t['earnings'] or 0, 2),
+            'viewed':   viewed,
+            'liked':    t['liked']  or 0,
+            'booked':   booked,
+            'earnings': earnings,
+            'active':              t['active']              or 0,
+            'confirmed_rejections': t['confirmed_rejections'] or 0,
         },
         'rates': {
-            'view':    rate(t['viewed'],  total),
-            'like':    rate(t['liked'],   total),
-            'booking': rate(t['booked'],  total),
+            'view':               rate(viewed,         total),
+            'like':               rate(t['liked'],     total),
+            'booking':            rate(booked,         total),
+            'liked_of_listened':  rate(t['liked'],     viewed),
+            'booked_of_listened': rate(booked,         viewed),
+        },
+        'derived': {
+            'auditions_per_booking': round(total / booked, 1) if booked else None,
+            'earnings_per_booking':  round(earnings / booked, 2) if booked else None,
+            'earnings_per_audition': round(earnings / total, 2) if total else None,
         },
         'by_platform':  [dict(r) for r in by_platform],
         'by_role_type': [dict(r) for r in by_role_type],

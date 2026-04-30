@@ -189,6 +189,7 @@ def parse_offer(offer):
         'booked':         1 if booked else 0,
         'pay':            pay,
         'pay_currency':   currency,
+        'project_status': project.get('status'),
     }
 
 
@@ -229,10 +230,12 @@ def upsert(proposals):
                            pay=CASE WHEN booked=1 THEN pay ELSE COALESCE(pay, ?) END,
                            pay_currency=CASE WHEN booked=1 THEN pay_currency ELSE COALESCE(pay_currency, ?) END,
                            project_id=COALESCE(project_id, ?),
-                           role_type=COALESCE(role_type, ?), updated_at=datetime('now')
+                           role_type=COALESCE(role_type, ?),
+                           project_status=COALESCE(?, project_status),
+                           updated_at=datetime('now')
                      WHERE id=?
                 """, [p['viewed'], p['liked'], p['booked'], p['pay'], p['pay_currency'],
-                      p['project_id'], p['role_type'], row[0]])
+                      p['project_id'], p['role_type'], p['project_status'], row[0]])
                 updated += 1
             else:
                 # Voice123 creates a separate offer record when you win a booking.
@@ -246,20 +249,22 @@ def upsert(proposals):
                                pay=CASE WHEN booked=1 THEN pay ELSE COALESCE(pay, ?) END,
                                pay_currency=CASE WHEN booked=1 THEN pay_currency ELSE COALESCE(pay_currency, ?) END,
                                project_id=COALESCE(project_id, ?),
-                               role_type=COALESCE(role_type, ?), updated_at=datetime('now')
+                               role_type=COALESCE(role_type, ?),
+                               project_status=COALESCE(?, project_status),
+                               updated_at=datetime('now')
                          WHERE id=?
                     """, [p['viewed'], p['liked'], p['booked'], p['pay'], p['pay_currency'],
-                          p['project_id'], p['role_type'], dupe[0]])
+                          p['project_id'], p['role_type'], p['project_status'], dupe[0]])
                     updated += 1
                 else:
                     conn.execute("""
                         INSERT INTO auditions
                             (platform, external_id, project_id, date_submitted, client, role,
-                             role_type, viewed, liked, booked, pay, pay_currency)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                             role_type, viewed, liked, booked, pay, pay_currency, project_status)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, [p[k] for k in ('platform', 'external_id', 'project_id', 'date_submitted',
                                          'client', 'role', 'role_type', 'viewed', 'liked',
-                                         'booked', 'pay', 'pay_currency')])
+                                         'booked', 'pay', 'pay_currency', 'project_status')])
                     inserted += 1
         conn.commit()
     finally:
@@ -284,6 +289,7 @@ CREATE TABLE IF NOT EXISTS auditions (
     booked        INTEGER DEFAULT 0,
     pay           REAL,
     pay_currency  TEXT DEFAULT 'USD',
+    project_status TEXT,
     notes         TEXT,
     created_at    TEXT DEFAULT (datetime('now')),
     updated_at    TEXT DEFAULT (datetime('now'))
@@ -299,6 +305,9 @@ def init_db():
     cols = {row[1] for row in conn.execute("PRAGMA table_info(auditions)")}
     if 'project_id' not in cols:
         conn.execute("ALTER TABLE auditions ADD COLUMN project_id TEXT")
+        conn.commit()
+    if 'project_status' not in cols:
+        conn.execute("ALTER TABLE auditions ADD COLUMN project_status TEXT")
         conn.commit()
     try:
         conn.execute("""

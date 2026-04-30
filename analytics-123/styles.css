@@ -85,10 +85,12 @@ h1 {
     box-shadow: 0 2px 12px rgba(0,0,0,0.06);
     border-top: 3px solid #e5e7eb;
 }
-.metric-card.viewed   { border-top-color: #60a5fa; }
-.metric-card.liked    { border-top-color: #f472b6; }
-.metric-card.booked   { border-top-color: #34d399; }
-.metric-card.earnings { border-top-color: #a78bfa; }
+.metric-card.viewed    { border-top-color: #60a5fa; }
+.metric-card.liked     { border-top-color: #f472b6; }
+.metric-card.booked    { border-top-color: #34d399; }
+.metric-card.earnings  { border-top-color: #a78bfa; }
+.metric-card.active    { border-top-color: #fbbf24; }
+.metric-card.rejected  { border-top-color: #f87171; }
 
 .metric-value {
     font-size: 1.8rem;
@@ -100,6 +102,17 @@ h1 {
     font-size: 0.72rem;
     color: #6c757d;
     margin-top: 0.3rem;
+}
+
+.metric-sub {
+    font-size: 0.65rem;
+    color: #9ca3af;
+    margin-top: 0.4rem;
+    line-height: 1.4;
+}
+
+.metric-cards-secondary {
+    grid-template-columns: repeat(5, 1fr);
 }
 
 /* ── Stat cards grid ── */
@@ -504,11 +517,13 @@ h1 {
 /* ── Responsive ── */
 @media (max-width: 800px) {
     .metric-cards { grid-template-columns: repeat(3, 1fr); }
+    .metric-cards-secondary { grid-template-columns: repeat(3, 1fr); }
     .stats-grid   { grid-template-columns: 1fr; }
 }
 @media (max-width: 560px) {
     body { padding: 1rem; }
     .metric-cards { grid-template-columns: repeat(2, 1fr); }
+    .metric-cards-secondary { grid-template-columns: repeat(2, 1fr); }
     .form-row     { grid-template-columns: 1fr; }
     .filters input[type="search"] { width: 100%; }
 }
