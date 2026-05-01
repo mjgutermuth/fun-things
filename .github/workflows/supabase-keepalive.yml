@@ -1,0 +1,18 @@
+name: Supabase Keepalive
+
+on:
+  schedule:
+    - cron: '0 12 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping cr_sync table
+        run: |
+          curl -sf -o /dev/null \
+            "https://wkqjgakouqjvfoyseaui.supabase.co/rest/v1/cr_sync?limit=1" \
+            -H "apikey: sb_publishable_SjeQmp9d-N8gqZAO_16znw_IylMNfzO" \
+            -H "authorization: Bearer sb_publishable_SjeQmp9d-N8gqZAO_16znw_IylMNfzO"
+          echo "Ping successful"
