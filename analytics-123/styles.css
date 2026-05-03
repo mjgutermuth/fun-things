@@ -31,6 +31,17 @@ body {
 }
 .back-link:hover { color: #a78bfa; }
 
+.auth-link {
+    display: inline-block;
+    float: right;
+    color: #a78bfa;
+    text-decoration: none;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    transition: color 0.15s;
+}
+.auth-link:hover { color: #7c3aed; }
+
 h1 {
     font-size: 2rem;
     font-weight: 700;
