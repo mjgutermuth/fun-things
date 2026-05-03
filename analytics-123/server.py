@@ -352,6 +352,8 @@ def save_auth():
         return jsonify({'error': 'no auth_token found — make sure you are logged in'}), 400
     LOCALSTORAGE_PATH.write_text(json.dumps(storage))
     expiry = _token_expiry()
+    if expiry and expiry <= datetime.now(timezone.utc):
+        return jsonify({'error': 'token is already expired — reload voice123.com and copy again'}), 400
     exp_str = expiry.strftime('%Y-%m-%d %H:%M UTC') if expiry else 'unknown'
     return jsonify({'message': f'token saved — expires {exp_str}'})
 

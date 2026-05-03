@@ -100,7 +100,9 @@ def get_token():
     storage = load_storage()
     token = storage.get('auth_token', '')
     if not token:
-        raise SystemExit("No auth token found. Run: python3 auth.py")
+        raise SystemExit("No auth token found. Visit /auth to save one.")
+    if is_expired(token):
+        raise SystemExit("Token is expired. Visit /auth and paste a fresh one from voice123.com.")
     return token, storage
 
 
