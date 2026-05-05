@@ -102,7 +102,8 @@ def get_token():
     if not token:
         raise SystemExit("No auth token found. Visit /auth to save one.")
     if is_expired(token):
-        raise SystemExit("Token is expired. Visit /auth and paste a fresh one from voice123.com.")
+        print("[auth] Access token expired, attempting refresh...")
+        token = _do_refresh(storage)
     return token, storage
 
 
