@@ -430,7 +430,7 @@
     <div id="search-area">
       <label for="search-input">Search Events</label>
       <input type="text" id="search-input" placeholder="Type event name..." autocomplete="off">
-      <div id="search-hint">Type at least 2 characters to search</div>
+      <div id="search-hint">Searches title, game system, and event type</div>
     </div>
     <div id="results-list">
       <div class="empty-state">
@@ -477,6 +477,42 @@ const EVENT_COLORS = [
 ];
 
 
+// ---- IndexedDB Cache ----
+const DB_NAME = 'gencon-planner';
+const DB_STORE = 'events-file';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(DB_STORE);
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+async function saveToCache(buf) {
+  try {
+    const db = await openDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).put({ buf, date: new Date().toISOString() }, 'last');
+      tx.oncomplete = resolve;
+      tx.onerror = e => reject(e.target.error);
+    });
+  } catch (e) { /* cache failure is non-fatal */ }
+}
+
+async function loadFromCache() {
+  try {
+    const db = await openDB();
+    return await new Promise((resolve, reject) => {
+      const req = db.transaction(DB_STORE, 'readonly').objectStore(DB_STORE).get('last');
+      req.onsuccess = e => resolve(e.target.result || null);
+      req.onerror = e => reject(e.target.error);
+    });
+  } catch (e) { return null; }
+}
+
 // ---- State ----
 let allEvents = [];       // parsed rows
 let groupedEvents = {};   // title -> [event, ...]
@@ -497,19 +533,19 @@ const fileInput     = document.getElementById('file-input');
 
 // ---- Data Loading ----
 
-function parseXlsx(buf) {
+function parseXlsx(buf, uploadDate) {
   try {
     const wb = XLSX.read(buf, { type: 'array', cellDates: true });
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(ws, { raw: false });
-    processRows(rows);
+    processRows(rows, uploadDate);
   } catch (e) {
     setStatus('error', 'PARSE ERROR: ' + e.message);
     showEmptyState('Could not parse spreadsheet.', 'Make sure you\'re uploading the official events.xlsx from gencon.com.');
   }
 }
 
-function processRows(rows) {
+function processRows(rows, uploadDate) {
   if (!rows.length) {
     setStatus('error', 'NO DATA FOUND IN FILE');
     return;
@@ -566,7 +602,8 @@ function processRows(rows) {
   }
 
   dataLoaded = true;
-  setStatus('ok', `LOADED ${allEvents.length.toLocaleString()} EVENTS`);
+  const dateStr = uploadDate ? ' · uploaded ' + new Date(uploadDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+  setStatus('ok', `${allEvents.length.toLocaleString()} EVENTS${dateStr}`);
   renderGrid();
   if (searchInput.value.length >= 2) doSearch();
   else showEmptyState('Ready!', 'Search for events above to start building your wishlist.');
@@ -614,7 +651,14 @@ searchInput.addEventListener('input', () => {
 
 function doSearch() {
   const q = searchInput.value.trim().toLowerCase();
-  const matches = Object.keys(groupedEvents).filter(t => t.toLowerCase().includes(q));
+  const matches = Object.keys(groupedEvents).filter(title => {
+    if (title.toLowerCase().includes(q)) return true;
+    const slots = groupedEvents[title];
+    return slots.some(s =>
+      s.system.toLowerCase().includes(q) ||
+      s.type.toLowerCase().includes(q)
+    );
+  });
 
   if (!matches.length) {
     showEmptyState('No results', `No events matching "${searchInput.value.trim()}" found.`);
@@ -959,13 +1003,24 @@ fileInput.addEventListener('change', e => {
   if (!file) return;
   setStatus('loading', 'PARSING...');
   const reader = new FileReader();
-  reader.onload = ev => parseXlsx(ev.target.result);
+  reader.onload = async ev => {
+    const buf = ev.target.result;
+    await saveToCache(buf);
+    parseXlsx(buf, new Date().toISOString());
+  };
   reader.readAsArrayBuffer(file);
 });
 
-// ---- Initial render ----
+// ---- Initial render + cache check ----
 renderGrid();
 renderWishlist();
+
+loadFromCache().then(cached => {
+  if (cached) {
+    setStatus('loading', 'LOADING SAVED DATA...');
+    parseXlsx(cached.buf, cached.date);
+  }
+});
 </script>
 </body>
 </html>
