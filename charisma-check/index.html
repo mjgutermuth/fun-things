@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charisma Check</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Space Mono', monospace;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #fef6e4 0%, #fff1f8 50%, #e8f4f8 100%);
+            padding: 2rem;
+        }
+
+        .container { max-width: 800px; margin: 0 auto; }
+
+        .back-link {
+            display: inline-block;
+            color: #6c757d;
+            text-decoration: none;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+        .back-link:hover { color: #1a1a2e; }
+
+        header { text-align: center; margin-bottom: 2.5rem; }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff6b9d, #a78bfa, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle { color: #6c757d; font-size: 0.85rem; }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            margin-bottom: 1.25rem;
+        }
+
+        .section-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+        }
+
+        .sample-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .sample-label { font-size: 0.78rem; color: #9ca3af; }
+
+        .sample-btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.65rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background: white;
+            color: #6c757d;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .sample-btn:hover { border-color: #a78bfa; color: #a78bfa; background: #faf5ff; }
+
+        textarea {
+            font-family: 'Space Mono', monospace;
+            width: 100%;
+            height: 200px;
+            padding: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            line-height: 1.65;
+            resize: vertical;
+            color: #1a1a2e;
+            transition: border-color 0.2s;
+        }
+        textarea:focus { outline: none; border-color: #a78bfa; }
+        textarea::placeholder { color: #9ca3af; }
+
+        .btn-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .btn-primary {
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 0.9rem;
+            padding: 0.7rem 1.75rem;
+            background: linear-gradient(135deg, #ff6b9d, #a78bfa);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+        .btn-primary:active { transform: none; }
+
+        .btn-secondary {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            padding: 0.7rem 1.2rem;
+            background: white;
+            color: #6c757d;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-secondary:hover { border-color: #9ca3af; color: #1a1a2e; }
+
+        .word-count { margin-left: auto; font-size: 0.8rem; color: #9ca3af; }
+
+        /* Results */
+        #results { display: none; }
+        #results.visible { display: block; }
+
+        /* Balance bar */
+        .balance-bar-outer {
+            height: 32px;
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            position: relative;
+            margin-bottom: 0.65rem;
+        }
+
+        .bar-warmth {
+            background: linear-gradient(90deg, #ff6b9d, #ff8fab);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            transition: width 0.5s cubic-bezier(.4,0,.2,1);
+            overflow: hidden;
+        }
+
+        .bar-competence {
+            background: linear-gradient(90deg, #6dd5cc, #4ecdc4);
+            display: flex;
+            align-items: center;
+            padding-left: 10px;
+            transition: width 0.5s cubic-bezier(.4,0,.2,1);
+            overflow: hidden;
+        }
+
+        .bar-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: white;
+            white-space: nowrap;
+        }
+
+        .midline {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(255,255,255,0.55);
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+
+        .balance-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .balance-feedback {
+            padding: 0.7rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        .feedback-good    { background: #f0fdf4; color: #15803d; }
+        .feedback-warm    { background: #fdf4ff; color: #7e22ce; }
+        .feedback-cold    { background: #eff6ff; color: #1d4ed8; }
+        .feedback-neutral { background: #f9fafb; color: #6b7280; }
+
+        /* Score cards */
+        .score-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .score-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem 1rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .score-card-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.4rem;
+        }
+
+        .score-card-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 0.3rem;
+        }
+
+        .score-card-detail { font-size: 0.72rem; color: #9ca3af; line-height: 1.4; }
+
+        .score-card.warmth     .score-card-label { color: #ff6b9d; }
+        .score-card.warmth     .score-card-value { color: #ff6b9d; }
+        .score-card.competence .score-card-label { color: #0d9488; }
+        .score-card.competence .score-card-value { color: #0d9488; }
+        .score-card.hedge      .score-card-label { color: #d97706; }
+        .score-card.hedge      .score-card-value { color: #d97706; }
+
+        /* Annotated text */
+        .annotated-text {
+            font-size: 0.95rem;
+            line-height: 2;
+            color: #1a1a2e;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        mark {
+            border-radius: 3px;
+            padding: 1px 2px;
+            font-style: normal;
+        }
+        mark.w { background: #ffd6e7; color: inherit; }
+        mark.c { background: #b2f0eb; color: inherit; }
+        mark.h { background: #fef3c7; color: inherit; text-decoration: underline wavy #f59e0b 1px; }
+
+        .legend {
+            display: flex;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .swatch { width: 14px; height: 14px; border-radius: 3px; }
+
+        /* Signals */
+        .signals-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+        }
+
+        .signal-group-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.6rem;
+        }
+        .signal-group-label.warmth     { color: #ff6b9d; }
+        .signal-group-label.competence { color: #0d9488; }
+        .signal-group-label.hedge      { color: #d97706; }
+
+        .tag-cloud { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+        .tag { font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 20px; }
+        .tag.warmth     { background: #ffd6e7; color: #9d174d; }
+        .tag.competence { background: #b2f0eb; color: #134e4a; }
+        .tag.hedge      { background: #fef3c7; color: #92400e; }
+
+        .none-msg { font-size: 0.8rem; color: #d1d5db; font-style: italic; }
+
+        .hedge-row {
+            grid-column: 1 / -1;
+            padding-top: 1rem;
+            border-top: 1px solid #f3f4f6;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-bottom: 2rem;
+            font-size: 0.8rem;
+            color: #9ca3af;
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.7rem; }
+            .score-grid { grid-template-columns: 1fr; }
+            .signals-grid { grid-template-columns: 1fr; }
+            .hedge-row { grid-column: 1; border-top: none; padding-top: 0; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a href="../" class="back-link">← back</a>
+
+    <header>
+        <h1>Charisma Check</h1>
+        <p class="subtitle">warmth + competence analysis · based on Vanessa Van Edwards</p>
+    </header>
+
+    <div class="card">
+        <div class="sample-row">
+            <span class="sample-label">try a sample:</span>
+            <button class="sample-btn" data-sample="warm">too warm</button>
+            <button class="sample-btn" data-sample="cold">too cold</button>
+            <button class="sample-btn" data-sample="balanced">balanced</button>
+        </div>
+        <textarea id="textInput" placeholder="Paste an email, bio, speech, or any text here..."></textarea>
+        <div class="btn-row">
+            <button class="btn-primary" id="analyzeBtn">Analyze</button>
+            <button class="btn-secondary" id="clearBtn">Clear</button>
+            <span class="word-count" id="wordCount">0 words</span>
+        </div>
+    </div>
+
+    <div id="results">
+        <div class="card">
+            <div class="section-label">Warmth / Competence Balance</div>
+            <div class="balance-bar-outer">
+                <div class="bar-warmth" id="barW" style="width:50%">
+                    <span class="bar-label" id="barWLabel">50%</span>
+                </div>
+                <div class="bar-competence" id="barC" style="width:50%">
+                    <span class="bar-label" id="barCLabel">50%</span>
+                </div>
+                <div class="midline"></div>
+            </div>
+            <div class="balance-row">
+                <span style="color:#ff6b9d;font-weight:700;font-size:0.8rem;">warmth</span>
+                <span style="color:#9ca3af;font-size:0.75rem;">— ideal: 50/50 —</span>
+                <span style="color:#0d9488;font-weight:700;font-size:0.8rem;">competence</span>
+            </div>
+            <div class="balance-feedback" id="balanceFeedback"></div>
+        </div>
+
+        <div class="score-grid">
+            <div class="score-card warmth">
+                <div class="score-card-label">Warmth</div>
+                <div class="score-card-value" id="warmthVal">0</div>
+                <div class="score-card-detail" id="warmthDetail"></div>
+            </div>
+            <div class="score-card competence">
+                <div class="score-card-label">Competence</div>
+                <div class="score-card-value" id="compVal">0</div>
+                <div class="score-card-detail" id="compDetail"></div>
+            </div>
+            <div class="score-card hedge">
+                <div class="score-card-label">Hedges</div>
+                <div class="score-card-value" id="hedgeVal">0</div>
+                <div class="score-card-detail" id="hedgeDetail"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-label">Annotated Text</div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="swatch" style="background:#ffd6e7;"></div>
+                    <span>warmth</span>
+                </div>
+                <div class="legend-item">
+                    <div class="swatch" style="background:#b2f0eb;"></div>
+                    <span>competence</span>
+                </div>
+                <div class="legend-item">
+                    <div class="swatch" style="background:#fef3c7;border:1px solid #f59e0b;"></div>
+                    <span>hedge (watch out)</span>
+                </div>
+            </div>
+            <div class="annotated-text" id="annotatedText"></div>
+        </div>
+
+        <div class="card">
+            <div class="section-label">Signals Detected</div>
+            <div class="signals-grid">
+                <div class="signal-group">
+                    <div class="signal-group-label warmth">Warmth</div>
+                    <div class="tag-cloud" id="warmthTags"></div>
+                </div>
+                <div class="signal-group">
+                    <div class="signal-group-label competence">Competence</div>
+                    <div class="tag-cloud" id="compTags"></div>
+                </div>
+                <div class="signal-group hedge-row">
+                    <div class="signal-group-label hedge">Hedge words (weaken authority)</div>
+                    <div class="tag-cloud" id="hedgeTags"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>based on Vanessa Van Edwards' warmth + competence framework</footer>
+</div>
+
+<script>
+const WARMTH_WORDS = [
+    "we","our","us","together","togetherness","team","teaming",
+    "collaborate","collaboration","collaborative","partner","partnership",
+    "ally","alliance","unified","unite","community","belong","belonging",
+    "include","inclusive","inclusion",
+    "happy","happiness","joy","joyful","excited","excitement",
+    "enthusiastic","enthusiasm","passionate","passion","cheerful",
+    "delight","delightful","fun","enjoy","wonderful","amazing",
+    "great","good","better","bright","brighter","glad","pleased",
+    "love","care","caring","kind","kindness","warm","warmth",
+    "empathy","empathetic","compassion","compassionate",
+    "understand","understanding","supportive","support","generous",
+    "generosity","heartfelt","sincere","sincerely","genuine",
+    "authentic","authenticity","human","humanity","personal","personalized",
+    "open","openness","honest","honesty","transparent","transparency",
+    "trust","trustworthy","safe","safety","rapport","bond","bonding",
+    "welcome","welcoming","invite","inviting","celebrate","celebration",
+    "grateful","gratitude","thankful","appreciate","appreciation",
+    "encourage","encouragement","inspire","inspiring",
+    "friend","friendly","relationship","connect","connection","share",
+    "sharing","both","best",
+    "hope","hopeful","optimistic","optimism","motivated","positive",
+    "comfortable","ease","easy","harmony","harmonious"
+];
+
+const HIGH_WARMTH = new Set(["we","our","us"]);
+
+const COMPETENCE_WORDS = [
+    "efficient","efficiency","productive","productivity","effective",
+    "effectiveness","results","result","outcome","outcomes","performance",
+    "benchmark","optimize","optimized","optimization",
+    "achieve","achievement","accomplish","accomplished","deliver",
+    "delivered","delivery","complete","completed","finish","finished",
+    "launch","launched","execute","execution","implement","implemented",
+    "milestone","track","tracked",
+    "lead","leading","leader","leadership","manage","management",
+    "managed","direct","directed","responsible","accountability",
+    "accountable","ownership","own","owned","initiative",
+    "strategy","strategic","strategize","plan","planned","planning",
+    "priority","prioritize","goal","goals","objective","framework",
+    "methodology","method","approach","process","structured","systematic",
+    "analyze","analysis","analytical","data","metrics","measure",
+    "measured","research","study","tested","verified","validated",
+    "proven","proof","evidence",
+    "build","built","create","created","develop","developed",
+    "development","design","designed","architect","innovative",
+    "innovation","solution","solutions","solve","solved",
+    "expert","expertise","experienced","specialize","specialized",
+    "skills","skilled","proficient","mastery","confident","confidence",
+    "certain","certainty","decisive","decision","committed","commitment",
+    "improve","improvement","improved","increase","increased","drive",
+    "driven","advance","advanced","accelerate","accelerated","progress",
+    "forward","onward","onwards","ready","scale","scaled",
+    "grow","growth",
+    "impact","value","revenue","profit","cost","budget","roi",
+    "brainstorm","brainstorming","focus","focused","deadline"
+];
+
+const HEDGE_WORDS = [
+    "um","uh","basically","literally",
+    "maybe","perhaps","hopefully","possibly","might",
+    "somewhat","fairly","quite","rather","sort",
+    "helped","assisted","tried","attempted","worked"
+];
+
+const SAMPLES = {
+    warm: "I'm so grateful to be here with all of you! I truly hope we can connect, share ideas, and build something wonderful together. Our community means everything to me, and I genuinely care about each and every one of you. Let's make this a joyful, welcoming space where everyone belongs and feels appreciated! I'm excited and enthusiastic about the journey ahead — hopefully we can make it work!",
+    cold: "I led the team that achieved 43% revenue growth in Q3. I implemented a strategic framework that optimized operational efficiency and delivered results within budget. My approach to data-driven decision-making has consistently proven effective. I built and executed a scalable solution architecture that reduced costs by $2.1M. I hold accountability for all outcomes and maintain decisive leadership standards.",
+    balanced: "Our team achieved 43% revenue growth last quarter, and I'm genuinely excited about what we can build together. I care deeply about our shared success and I'm proud of the data-driven approach we developed collectively. Let's bring both the numbers and the energy — together, I believe we can create something that performs and feels great to be part of."
+};
+
+function escapeHtml(str) {
+    return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function findWordMatches(text, wordList, type) {
+    const matches = [];
+    for (const word of wordList) {
+        const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const re = new RegExp(`\\b${escaped}\\b`, "gi");
+        let m;
+        while ((m = re.exec(text)) !== null) {
+            matches.push({
+                start: m.index,
+                end: m.index + m[0].length,
+                word,
+                matched: m[0],
+                type,
+                weight: (type === "warmth" && HIGH_WARMTH.has(word)) ? 2 : 1
+            });
+        }
+    }
+    return matches;
+}
+
+function analyze(text) {
+    const warmthMatches = findWordMatches(text, WARMTH_WORDS, "warmth");
+    const compMatches   = findWordMatches(text, COMPETENCE_WORDS, "competence");
+    const hedgeMatches  = findWordMatches(text, HEDGE_WORDS, "hedge");
+
+    let m;
+
+    // Exclamation points → warmth
+    const exclRe = /!/g;
+    while ((m = exclRe.exec(text)) !== null) {
+        warmthMatches.push({ start: m.index, end: m.index + 1, word: "!", matched: "!", type: "warmth", weight: 1 });
+    }
+
+    // Numbers / percentages / dollar amounts → competence
+    const numRe = /\d+%?|\$\d+/g;
+    while ((m = numRe.exec(text)) !== null) {
+        compMatches.push({ start: m.index, end: m.index + m[0].length, word: m[0], matched: m[0], type: "competence", weight: 1 });
+    }
+
+    const warmthScore = warmthMatches.reduce((s, x) => s + x.weight, 0);
+    const compScore   = compMatches.reduce((s, x) => s + x.weight, 0);
+    const hedgeScore  = hedgeMatches.length;
+
+    // Build annotated HTML — merge all matches, deduplicate by position
+    const allMatches = [...warmthMatches, ...compMatches, ...hedgeMatches]
+        .sort((a, b) => a.start - b.start);
+
+    const deduped = [];
+    let cursor = 0;
+    for (const match of allMatches) {
+        if (match.start >= cursor) {
+            deduped.push(match);
+            cursor = match.end;
+        }
+    }
+
+    let html = "";
+    let pos = 0;
+    for (const match of deduped) {
+        if (match.start > pos) html += escapeHtml(text.slice(pos, match.start));
+        const cls = match.type === "warmth" ? "w" : match.type === "competence" ? "c" : "h";
+        html += `<mark class="${cls}" title="${match.type}">${escapeHtml(match.matched)}</mark>`;
+        pos = match.end;
+    }
+    html += escapeHtml(text.slice(pos));
+
+    return { warmthMatches, compMatches, hedgeMatches, warmthScore, compScore, hedgeScore, html };
+}
+
+function countUniq(matches) {
+    const map = {};
+    for (const m of matches) {
+        const k = m.word.toLowerCase();
+        map[k] = (map[k] || 0) + 1;
+    }
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+}
+
+function renderTags(entries, type, containerId) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = "";
+    if (entries.length === 0) {
+        el.innerHTML = '<span class="none-msg">none detected</span>';
+        return;
+    }
+    for (const [word, count] of entries) {
+        const span = document.createElement("span");
+        span.className = `tag ${type}`;
+        span.textContent = count > 1 ? `${word} ×${count}` : word;
+        el.appendChild(span);
+    }
+}
+
+function display(result) {
+    const { warmthMatches, compMatches, hedgeMatches, warmthScore, compScore, hedgeScore, html } = result;
+
+    const total = warmthScore + compScore;
+    const wPct  = total === 0 ? 50 : Math.round(warmthScore / total * 100);
+    const cPct  = 100 - wPct;
+
+    document.getElementById("barW").style.width = wPct + "%";
+    document.getElementById("barC").style.width = cPct + "%";
+    document.getElementById("barWLabel").textContent = wPct + "%";
+    document.getElementById("barCLabel").textContent = cPct + "%";
+
+    const fb = document.getElementById("balanceFeedback");
+    if (total === 0) {
+        fb.textContent = "No signals detected. Try adding more text.";
+        fb.className = "balance-feedback feedback-neutral";
+    } else if (wPct >= 45 && wPct <= 55) {
+        fb.textContent = "Excellent balance — your message projects warmth and competence in equal measure.";
+        fb.className = "balance-feedback feedback-good";
+    } else if (wPct > 65) {
+        fb.textContent = "Your message leads with heart. Try adding specific data, outcomes, or confident assertions to boost credibility.";
+        fb.className = "balance-feedback feedback-warm";
+    } else if (cPct > 65) {
+        fb.textContent = "You sound capable and driven. Adding inclusive language, empathy, or personal touches would increase warmth and likability.";
+        fb.className = "balance-feedback feedback-cold";
+    } else if (wPct > 55) {
+        fb.textContent = "Slightly warmth-leaning. Consider adding a specific result, number, or decisive statement.";
+        fb.className = "balance-feedback feedback-warm";
+    } else {
+        fb.textContent = 'Slightly competence-leaning. A touch of inclusive language ("we", "together") or genuine enthusiasm would balance this out.';
+        fb.className = "balance-feedback feedback-cold";
+    }
+
+    document.getElementById("warmthVal").textContent = warmthScore;
+    document.getElementById("compVal").textContent   = compScore;
+    document.getElementById("hedgeVal").textContent  = hedgeScore;
+
+    const wordWarmth = warmthMatches.filter(m => m.word !== "!");
+    const excls      = warmthMatches.filter(m => m.word === "!").length;
+    const hasWeight  = wordWarmth.some(m => m.weight === 2);
+    let wDetail = `${wordWarmth.length} word signal${wordWarmth.length !== 1 ? "s" : ""}`;
+    if (excls) wDetail += ` + ${excls} !`;
+    if (hasWeight) wDetail += " · we/our/us ×2";
+    document.getElementById("warmthDetail").textContent = wDetail;
+
+    const wordComp = compMatches.filter(m => !/^[\d$]/.test(m.word));
+    const nums     = compMatches.filter(m => /^[\d$]/.test(m.word)).length;
+    let cDetail = `${wordComp.length} word signal${wordComp.length !== 1 ? "s" : ""}`;
+    if (nums) cDetail += ` + ${nums} numeric ref${nums !== 1 ? "s" : ""}`;
+    document.getElementById("compDetail").textContent = cDetail;
+
+    document.getElementById("hedgeDetail").textContent = hedgeScore === 0
+        ? "none detected ✓"
+        : `${hedgeScore} word${hedgeScore !== 1 ? "s" : ""} weaken your authority signal`;
+
+    document.getElementById("annotatedText").innerHTML = html;
+
+    renderTags(countUniq(warmthMatches), "warmth",     "warmthTags");
+    renderTags(countUniq(compMatches),   "competence", "compTags");
+    renderTags(countUniq(hedgeMatches),  "hedge",      "hedgeTags");
+
+    document.getElementById("results").classList.add("visible");
+    document.getElementById("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+// Event listeners
+const input = document.getElementById("textInput");
+
+input.addEventListener("input", () => {
+    const words = input.value.trim().split(/\s+/).filter(Boolean).length;
+    document.getElementById("wordCount").textContent = `${words} word${words !== 1 ? "s" : ""}`;
+});
+
+document.getElementById("analyzeBtn").addEventListener("click", () => {
+    const text = input.value.trim();
+    if (!text) return;
+    display(analyze(text));
+});
+
+document.getElementById("clearBtn").addEventListener("click", () => {
+    input.value = "";
+    document.getElementById("wordCount").textContent = "0 words";
+    document.getElementById("results").classList.remove("visible");
+});
+
+document.querySelectorAll(".sample-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        input.value = SAMPLES[btn.dataset.sample];
+        input.dispatchEvent(new Event("input"));
+    });
+});
+</script>
+</body>
+</html>
