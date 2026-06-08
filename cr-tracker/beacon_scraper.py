@@ -255,7 +255,26 @@ def extract_beacon_content(html, week_date):
             'notes': 'Talk show series'
         })
 
-    # Pattern 7: Get Your Sheet Together
+    # Pattern 7: Inside The Legend of Vox Machina
+    # Matches: "Inside The Legend of Vox Machina: Episodes 1-6"
+    lovm_inside_pattern = r'Inside\s+The\s+Legend\s+of\s+Vox\s+Machina.*?Episodes?\s+([\d\-]+)'
+    lovm_inside_matches = re.finditer(lovm_inside_pattern, text, re.IGNORECASE)
+
+    for match in lovm_inside_matches:
+        episode_range = match.group(1)
+
+        content.append({
+            'week_date': week_date.strftime('%Y-%m-%d'),
+            'show_type': 'Beacon Exclusive',
+            'series': 'Inside The Legend of Vox Machina',
+            'campaign': '',
+            'episode_number': episode_range,
+            'title': f'Inside The Legend of Vox Machina: Episodes {episode_range}',
+            'release_date': week_date.strftime('%Y-%m-%d'),
+            'notes': 'Talkback show for LoVM Season 4'
+        })
+
+    # Pattern 8: Get Your Sheet Together
     gyst_pattern = r'Get\s+Your\s+Sheet\s+Together.*?Episode\s+(\d+)'
     gyst_matches = re.finditer(gyst_pattern, text, re.IGNORECASE)
 
@@ -273,7 +292,7 @@ def extract_beacon_content(html, week_date):
             'notes': 'Beacon exclusive series'
         })
 
-    # Pattern 8: Previously On...
+    # Pattern 9: Previously On...
     # Matches: "Previously On… | The Soldier's Table" or "Meet The Characters of Campaign 4 | Ep 1-4 Recap"
     # Arc names typically end with "Table" so we capture up to that
     previously_on_patterns = [
@@ -666,6 +685,7 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
             'Backstage Pass': 'Backstage Pass',
             'The Long Rest': 'Webseries',
             'Inside The Mighty Nein': 'Talk Show',
+            'Inside The Legend of Vox Machina': 'Talk Show',
             'Get Your Sheet Together': 'Webseries',
             'Previously On...': 'Talk Show',
             'Tale Gate': 'Talk Show',
