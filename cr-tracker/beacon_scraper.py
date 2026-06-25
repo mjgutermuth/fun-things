@@ -122,7 +122,8 @@ def extract_beacon_content(html, week_date):
     
     # Look for the main content area
     text = soup.get_text()
-    
+    text_nl = soup.get_text(separator='\n')
+
     # Pattern 1: Critical Role Cooldown (simplified)
     # Matches: "Critical Cooldown: Campaign 3, Episode 96" or similar
     cooldown_pattern = r'Critical\s+(?:Role\s+)?Cooldown.*?Campaign\s+(\d+).*?Episode\s+(\d+)'
@@ -145,8 +146,9 @@ def extract_beacon_content(html, week_date):
     
     # Pattern 2: Fireside Chat (simplified)
     # Matches: "Fireside Chat LIVE Oops All Crew | Jan 2026" or "Fireside Chat with [guest]"
-    fireside_pattern = r'Fireside\s+Chat(?:\s+LIVE)?(?:\s+Oops\s+All\s+Crew\s*\|\s*(\w+\s+\d+)|\s+with\s+([\w\s&,]+?))?(?=\s|$)'
-    fireside_matches = list(re.finditer(fireside_pattern, text, re.IGNORECASE))
+    # Uses newline-separated text so the guest name captures to end-of-line, not just first word.
+    fireside_pattern = r'Fireside\s+Chat(?:\s+LIVE)?(?:\s+Oops\s+All\s+Crew\s*\|\s*(\w+\s+\d+)|\s+with\s+(.+?))?(?=[\n\r]|$)'
+    fireside_matches = list(re.finditer(fireside_pattern, text_nl, re.IGNORECASE))
 
     for match in fireside_matches:
         # Check if this is an "Oops All Crew" special
@@ -387,7 +389,6 @@ def extract_beacon_content(html, week_date):
     # description prose that also mentions "One-Shot". The old inline regex broke on
     # titles containing punctuation like "!" (e.g. "Hubris! A Darrington Brigade One-Shot")
     # and would fall through to match promo copy in the description instead.
-    text_nl = soup.get_text(separator='\n')
     # Match whole lines: starts with a capital letter, ends with "One-Shot" / "One Shot"
     one_shot_pattern = r'^([A-Z][^\n]*?One[- ]Shot)\s*$'
 
@@ -626,12 +627,11 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
                     campaign_prefix = 'c3'
                 existing_cooldowns.add((campaign_prefix, match.group(1)))
 
-        # Track Fireside Chats by guest name (normalized)
+        # Track Fireside Chats by full guest name (normalized)
         if 'fireside' in campaign.lower() or 'fireside' in title:
-            # Extract guest name
-            guest_match = re.search(r'with\s+(\w+)', title, re.IGNORECASE)
+            guest_match = re.search(r'with\s+(.+)', title, re.IGNORECASE)
             if guest_match:
-                existing_fireside_chats.add(guest_match.group(1).lower())
+                existing_fireside_chats.add(guest_match.group(1).strip().lower())
 
         # Track Weird Kids by episode number
         if 'weird kids' in campaign.lower() or 'weird kids' in title:
@@ -742,11 +742,11 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
                 skipped.append(f"{item['title']} (cooldown already exists for {cooldown_prefix} ep {ep_num})")
                 continue
 
-        # Check Fireside Chats - skip if we already have one with this guest
+        # Check Fireside Chats - skip if we already have one with this exact guest combination
         if series_name == 'Fireside Chat':
-            guest_match = re.search(r'with\s+(\w+)', item['title'], re.IGNORECASE)
+            guest_match = re.search(r'with\s+(.+)', item['title'], re.IGNORECASE)
             if guest_match:
-                guest_name = guest_match.group(1).lower()
+                guest_name = guest_match.group(1).strip().lower()
                 if guest_name in existing_fireside_chats:
                     skipped.append(f"{item['title']} (fireside chat with {guest_name} already exists)")
                     continue
@@ -829,9 +829,9 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
         if series_name == 'Critical Role Cooldown' and ep_num:
             existing_cooldowns.add((cooldown_prefix, ep_num))
         if series_name == 'Fireside Chat':
-            guest_match = re.search(r'with\s+(\w+)', item['title'], re.IGNORECASE)
+            guest_match = re.search(r'with\s+(.+)', item['title'], re.IGNORECASE)
             if guest_match:
-                existing_fireside_chats.add(guest_match.group(1).lower())
+                existing_fireside_chats.add(guest_match.group(1).strip().lower())
         if series_name == 'Weird Kids' and ep_num:
             existing_weird_kids.add(ep_num)
         if series_name == 'Tale Gate':

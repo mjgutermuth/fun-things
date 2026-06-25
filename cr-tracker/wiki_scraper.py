@@ -133,10 +133,21 @@ def parse_campaign_episodes(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
     episodes = []
 
-    # Get all tables
-    tables = soup.find_all('table', class_='wikitable')
+    # Sanity-check: how many wikitables did we get?
+    all_tables = soup.find_all('table', class_='wikitable')
+    print(f"\n[DIAG] Total wikitable elements found: {len(all_tables)}")
+    if not all_tables:
+        print("[DIAG] WARNING: No wikitables found — page may not have loaded correctly")
+        return episodes
 
-    for table in tables:
+    # Log the page title to confirm we got the right page
+    page_title = soup.find('title')
+    if page_title:
+        print(f"[DIAG] Page title: {page_title.get_text().strip()}")
+
+    arc_filter_rejections = []
+
+    for table in all_tables:
         # Find the preceding h3 header (arc header)
         prev_h3 = table.find_previous('h3')
         if not prev_h3:
@@ -168,6 +179,7 @@ def parse_campaign_episodes(html_content):
         # Make sure this arc belongs to a main campaign (not animated, specials, etc)
         # by checking that the arc header contains "Arc" or "Campaign Four Arc"
         if 'Arc' not in arc_name and 'Campaign Four' not in arc_name:
+            arc_filter_rejections.append(f"  REJECTED: campaign='{campaign_header}' arc='{arc_name}'")
             continue
 
         # Get table headers
@@ -177,6 +189,8 @@ def parse_campaign_episodes(html_content):
 
         headers = [clean_text(th.get_text()).lower() for th in header_row.find_all('th')]
         header_map = {h: i for i, h in enumerate(headers)}
+
+        episodes_before = len(episodes)
 
         # Parse rows
         for row in table.find_all('tr')[1:]:
@@ -244,6 +258,19 @@ def parse_campaign_episodes(html_content):
             if episode['title'] and episode['episode_number']:
                 episodes.append(episode)
 
+        episodes_added = len(episodes) - episodes_before
+        print(f"[DIAG] Parsed arc '{arc_name}' ({campaign_name}): "
+              f"headers={headers}, {episodes_added} episodes")
+        if episodes_added == 0:
+            print(f"[DIAG] WARNING: Arc '{arc_name}' matched filter but yielded 0 episodes — "
+                  f"possible column name mismatch (found: {headers})")
+
+    if arc_filter_rejections:
+        print(f"\n[DIAG] Arc filter rejected {len(arc_filter_rejections)} table(s) "
+              f"(under a known campaign but arc name lacked 'Arc'):")
+        for msg in arc_filter_rejections:
+            print(msg)
+
     return episodes
 
 
@@ -277,6 +304,9 @@ def merge_into_main_csv(new_episodes, main_csv='cr_episodes_series_airdates.csv'
     # Find new episodes and update placeholders
     added = []
     updated = []
+    wiki_episode_numbers = {ep['episode_number'] for ep in new_episodes
+                            if ep.get('campaign') == 'Campaign Four'}
+
     for ep in new_episodes:
         key = (ep['campaign'], ep['episode_number'])
         if key not in existing_episodes:
@@ -332,6 +362,32 @@ def merge_into_main_csv(new_episodes, main_csv='cr_episodes_series_airdates.csv'
 
     if not added and not updated:
         print("\nNo new main campaign episodes to add or update")
+
+    # Report any Campaign Four placeholders that the wiki didn't resolve
+    unresolved = []
+    for i, row in enumerate(existing_rows):
+        if (row.get('show_type') == 'Main Campaign'
+                and row.get('campaign') == 'Campaign Four'
+                and is_placeholder_title(row.get('title', ''))):
+            ep_num = row.get('episode_number', '?')
+            if ep_num not in wiki_episode_numbers:
+                unresolved.append(f"  E{ep_num}: '{row['title']}' (airdate: {row.get('airdate', '?')})")
+
+    if unresolved:
+        print(f"\n[DIAG] {len(unresolved)} Campaign Four placeholder(s) not found on wiki "
+              f"(wiki scraper didn't return them):")
+        for msg in unresolved:
+            print(msg)
+        if not wiki_episode_numbers:
+            print("[DIAG] Wiki returned 0 Campaign Four episodes — fetch may have failed or "
+                  "Campaign Four is no longer on the list page.")
+        else:
+            max_wiki_ep = max(int(n) for n in wiki_episode_numbers if n.isdigit())
+            print(f"[DIAG] Highest Campaign Four episode on wiki this run: E{max_wiki_ep}")
+
+    if not added and not updated and not unresolved:
+        return 0
+    if not added and not updated:
         return 0
 
     if updated:
@@ -356,9 +412,20 @@ def main():
     print("CRITICAL ROLE WIKI EPISODE SCRAPER")
     print("=" * 80)
 
-    # Fetch and parse
-    html = fetch_episode_list()
-    episodes = parse_campaign_episodes(html)
+    # Fetch and parse — catch errors explicitly so the cause is visible in logs
+    # even though the GitHub Actions step uses `|| true`
+    try:
+        html = fetch_episode_list()
+    except Exception as e:
+        print(f"\n[ERROR] Failed to fetch wiki page: {e}")
+        print("[ERROR] Scraper cannot continue — no episodes will be added or updated.")
+        return 0
+
+    try:
+        episodes = parse_campaign_episodes(html)
+    except Exception as e:
+        print(f"\n[ERROR] Failed to parse wiki HTML: {e}")
+        return 0
 
     print(f"\nFound {len(episodes)} main campaign episodes on wiki")
 
@@ -373,8 +440,11 @@ def main():
     print("\nLatest episodes by campaign:")
     for campaign, eps in sorted(by_campaign.items()):
         if eps:
-            latest = max(eps, key=lambda x: int(x['episode_number']))
-            print(f"  {campaign}: E{latest['episode_number']} - {latest['title']}")
+            try:
+                latest = max(eps, key=lambda x: int(x['episode_number']))
+                print(f"  {campaign}: E{latest['episode_number']} - {latest['title']}")
+            except ValueError:
+                print(f"  {campaign}: (could not determine latest — non-numeric episode numbers)")
 
     # Merge into main CSV
     print("\n" + "=" * 80)
