@@ -392,6 +392,11 @@ def extract_beacon_content(html, week_date):
     # Match whole lines: starts with a capital letter, ends with "One-Shot" / "One Shot"
     one_shot_pattern = r'^([A-Z][^\n]*?One[- ]Shot)\s*$'
 
+    # Pattern 12: Live Shows
+    # Matches lines like "Bells Hells & the Maelstrom Kingdom | Atlanta Live Show 2026"
+    # These are one-off live event specials that don't end in "One-Shot"
+    live_show_pattern = r'^([A-Z][^\n]*?Live Show \d{4})\s*$'
+
     # Words that indicate an actual schedule slot vs. promotional/archive text
     schedule_indicators = re.compile(
         r'\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|'
@@ -438,6 +443,32 @@ def extract_beacon_content(html, week_date):
             'title': title,
             'release_date': week_date.strftime('%Y-%m-%d'),
             'notes': 'One-shot adventure'
+        })
+
+    seen_live_shows = set()
+    for match in re.finditer(live_show_pattern, text_nl, re.MULTILINE):
+        title = match.group(1).strip()
+
+        if title.lower() in seen_live_shows:
+            continue
+
+        context_start = max(0, match.start() - 400)
+        context_end = min(len(text_nl), match.end() + 400)
+        context = text_nl[context_start:context_end]
+        if not schedule_indicators.search(context):
+            continue
+
+        seen_live_shows.add(title.lower())
+
+        content.append({
+            'week_date': week_date.strftime('%Y-%m-%d'),
+            'show_type': 'Special',
+            'series': 'Live Show',
+            'campaign': '',
+            'episode_number': '',
+            'title': title,
+            'release_date': week_date.strftime('%Y-%m-%d'),
+            'notes': 'CR live show'
         })
 
     return content
@@ -690,13 +721,17 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
             'Previously On...': 'Talk Show',
             'Tale Gate': 'Talk Show',
             'Campaign Four': 'Main Campaign',
-            'One-Shot': 'One-Shot'
+            'One-Shot': 'One-Shot',
+            'Live Show': 'Special'
         }
 
-        # Handle Campaign 4 main episodes differently
+        # Handle series that need a campaign name different from the series name
         if series_name == 'Campaign Four':
             show_type = 'Main Campaign'
             campaign = 'Campaign Four'
+        elif series_name == 'Live Show':
+            show_type = 'Special'
+            campaign = 'Specials'
         else:
             show_type = show_type_mapping.get(series_name, 'Webseries')
             campaign = series_name
