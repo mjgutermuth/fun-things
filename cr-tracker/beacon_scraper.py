@@ -592,14 +592,52 @@ def validate_episode_number(ep_num, series_name, existing_episodes):
     return True, None
 
 
+def normalize_text(text):
+    """
+    Normalize scraped text for duplicate-detection comparisons.
+    Source pages inconsistently use non-breaking spaces, curly quotes/dashes,
+    and inconsistent capitalization between scrapes of the same content, which
+    defeats plain exact-string dedup. This folds all of that away so identical
+    content compares equal regardless of which scrape produced it.
+    """
+    if not text:
+        return ''
+    t = text.replace('\xa0', ' ')
+    t = t.replace('‘', "'").replace('’', "'")
+    t = t.replace('–', '-').replace('—', '-')
+    t = re.sub(r'\s+', ' ', t)
+    return t.strip().lower()
+
+
 def extract_arc_name(title):
     """
     Extract the arc/episode name from titles with pipe separators.
     Works for "Previously On... | Arc Name" and "Tale Gate | Arc Name" formats.
     """
     if '|' in title:
-        return title.split('|', 1)[1].strip().lower()
-    return title.lower()
+        return normalize_text(title.split('|', 1)[1])
+    return normalize_text(title)
+
+
+def extract_fireside_guests(title):
+    """
+    Extract a normalized, order-independent guest key from a Fireside Chat title.
+    Guards against duplicate rows caused by cosmetic differences between scrapes:
+    guest order ("A & B" vs "B & A"), separator ("&" vs "and"), trailing punctuation
+    ("!"), dangling fragments ("... from"), trailing "| Month Year" suffixes, and
+    curly vs straight apostrophes. Returns a sorted tuple of guest names, or None.
+    """
+    match = re.search(r'with\s+(.+)', title, re.IGNORECASE)
+    if not match:
+        return None
+    guests = normalize_text(match.group(1))
+    guests = re.sub(r'\|\s*\w+\s+\d{4}\s*$', '', guests)  # trailing "| Month Year"
+    guests = re.sub(r'[!.]+\s*$', '', guests)
+    guests = re.sub(r'\bfrom\s*$', '', guests, flags=re.IGNORECASE)
+    guests = guests.strip()
+    parts = re.split(r'\s*(?:&|,|\band\b)\s*', guests, flags=re.IGNORECASE)
+    parts = tuple(sorted(p.strip().lower() for p in parts if p.strip()))
+    return parts or None
 
 
 def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.csv'):
@@ -621,8 +659,10 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
         print(f"Error: {main_csv} not found")
         return 0
 
-    # Build set of existing episode IDs
+    # Build set of existing episode IDs (exact and normalized, so cosmetic scrape
+    # drift like non-breaking spaces or curly quotes doesn't create a duplicate row)
     existing_ids = {row['episode_id'] for row in existing_rows if row['episode_id']}
+    existing_ids_normalized = {normalize_text(row['episode_id']) for row in existing_rows if row['episode_id']}
 
     # Build additional lookup sets for smarter duplicate detection
     # For Cooldowns: check if we already have a cooldown for that episode number
@@ -658,11 +698,11 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
                     campaign_prefix = 'c3'
                 existing_cooldowns.add((campaign_prefix, match.group(1)))
 
-        # Track Fireside Chats by full guest name (normalized)
+        # Track Fireside Chats by normalized, order-independent guest set
         if 'fireside' in campaign.lower() or 'fireside' in title:
-            guest_match = re.search(r'with\s+(.+)', title, re.IGNORECASE)
-            if guest_match:
-                existing_fireside_chats.add(guest_match.group(1).strip().lower())
+            guests = extract_fireside_guests(row.get('title', ''))
+            if guests:
+                existing_fireside_chats.add(guests)
 
         # Track Weird Kids by episode number
         if 'weird kids' in campaign.lower() or 'weird kids' in title:
@@ -672,18 +712,18 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
         # Track Tale Gate by arc name (use simple pipe split for robustness)
         if 'tale gate' in campaign.lower() or 'tale gate' in title:
             arc_name = extract_arc_name(title)
-            if arc_name and arc_name != title.lower():  # Only add if we extracted something
+            if arc_name and arc_name != normalize_text(title):  # Only add if we extracted something
                 existing_tale_gates.add(arc_name)
             # Also track normalized title to catch duplicates with different episode numbers
-            existing_normalized_titles.add(('tale gate', title))
+            existing_normalized_titles.add(('tale gate', normalize_text(title)))
 
         # Track Previously On... by arc name (use simple pipe split for robustness)
         if 'previously on' in campaign.lower() or 'previously on' in title:
             arc_name = extract_arc_name(title)
-            if arc_name and arc_name != title.lower():  # Only add if we extracted something
+            if arc_name and arc_name != normalize_text(title):  # Only add if we extracted something
                 existing_previously_on.add(arc_name)
             # Also track normalized title to catch duplicates with different episode numbers
-            existing_normalized_titles.add(('previously on', title))
+            existing_normalized_titles.add(('previously on', normalize_text(title)))
 
         # Track Campaign 4 main episodes by episode number
         if show_type == 'Main Campaign' and ('campaign four' in campaign.lower() or 'campaign 4' in campaign.lower()):
@@ -694,11 +734,11 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
         if 'backstage pass' in campaign.lower() or 'backstage pass' in title:
             event_match = re.search(r'backstage pass\s*-\s*(.+)', title, re.IGNORECASE)
             if event_match:
-                existing_backstage_pass.add(event_match.group(1).strip().lower())
+                existing_backstage_pass.add(normalize_text(event_match.group(1)))
 
         # Track One-Shots by normalized title
         if 'one-shot' in campaign.lower() or 'one-shot' in title or 'one shot' in title:
-            existing_one_shots.add(title.strip().lower())
+            existing_one_shots.add(normalize_text(title))
 
     # Convert scraped content to main CSV format and check for duplicates
     new_rows = []
@@ -739,8 +779,9 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
         # Generate episode_id
         episode_id = f"{show_type}|{campaign}|{item['episode_number']}|{item['title']}"
 
-        # Skip if already exists (exact match)
-        if episode_id in existing_ids:
+        # Skip if already exists (exact match, or same after normalizing cosmetic
+        # scrape drift like non-breaking spaces, curly quotes, or capitalization)
+        if episode_id in existing_ids or normalize_text(episode_id) in existing_ids_normalized:
             skipped.append(item['title'])
             continue
 
@@ -777,14 +818,12 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
                 skipped.append(f"{item['title']} (cooldown already exists for {cooldown_prefix} ep {ep_num})")
                 continue
 
-        # Check Fireside Chats - skip if we already have one with this exact guest combination
+        # Check Fireside Chats - skip if we already have one with this guest combination
         if series_name == 'Fireside Chat':
-            guest_match = re.search(r'with\s+(.+)', item['title'], re.IGNORECASE)
-            if guest_match:
-                guest_name = guest_match.group(1).strip().lower()
-                if guest_name in existing_fireside_chats:
-                    skipped.append(f"{item['title']} (fireside chat with {guest_name} already exists)")
-                    continue
+            guests = extract_fireside_guests(item['title'])
+            if guests and guests in existing_fireside_chats:
+                skipped.append(f"{item['title']} (fireside chat with {', '.join(guests)} already exists)")
+                continue
 
         # Check Weird Kids - skip if we already have this episode
         if series_name == 'Weird Kids' and ep_num:
@@ -795,22 +834,20 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
         # Check Tale Gate - skip if we already have this arc or same title
         if series_name == 'Tale Gate':
             arc_name = extract_arc_name(item['title'])
-            title_lower = item['title'].lower()
             if arc_name in existing_tale_gates:
                 skipped.append(f"{item['title']} (tale gate for {arc_name} already exists)")
                 continue
-            if ('tale gate', title_lower) in existing_normalized_titles:
+            if ('tale gate', normalize_text(item['title'])) in existing_normalized_titles:
                 skipped.append(f"{item['title']} (tale gate with same title already exists)")
                 continue
 
         # Check Previously On... - skip if we already have this arc or same title
         if series_name == 'Previously On...':
             arc_name = extract_arc_name(item['title'])
-            title_lower = item['title'].lower()
             if arc_name in existing_previously_on:
                 skipped.append(f"{item['title']} (previously on for {arc_name} already exists)")
                 continue
-            if ('previously on', title_lower) in existing_normalized_titles:
+            if ('previously on', normalize_text(item['title'])) in existing_normalized_titles:
                 skipped.append(f"{item['title']} (previously on with same title already exists)")
                 continue
 
@@ -824,16 +861,16 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
         if series_name == 'Backstage Pass':
             event_match = re.search(r'backstage pass\s*-\s*(.+)', item['title'], re.IGNORECASE)
             if event_match:
-                event_name = event_match.group(1).strip().lower()
+                event_name = normalize_text(event_match.group(1))
                 if event_name in existing_backstage_pass:
                     skipped.append(f"{item['title']} (backstage pass for {event_name} already exists)")
                     continue
 
         # Check One-Shots - skip if we already have this title (or a substring match)
         if series_name == 'One-Shot':
-            title_lower = item['title'].strip().lower()
-            if title_lower in existing_one_shots or any(
-                existing in title_lower or title_lower in existing
+            title_norm = normalize_text(item['title'])
+            if title_norm in existing_one_shots or any(
+                existing in title_norm or title_norm in existing
                 for existing in existing_one_shots
             ):
                 skipped.append(f"{item['title']} (one-shot already exists)")
@@ -859,32 +896,33 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
 
         new_rows.append(new_row)
         existing_ids.add(episode_id)
+        existing_ids_normalized.add(normalize_text(episode_id))
 
         # Update tracking sets to prevent duplicates within the same scrape
         if series_name == 'Critical Role Cooldown' and ep_num:
             existing_cooldowns.add((cooldown_prefix, ep_num))
         if series_name == 'Fireside Chat':
-            guest_match = re.search(r'with\s+(.+)', item['title'], re.IGNORECASE)
-            if guest_match:
-                existing_fireside_chats.add(guest_match.group(1).strip().lower())
+            guests = extract_fireside_guests(item['title'])
+            if guests:
+                existing_fireside_chats.add(guests)
         if series_name == 'Weird Kids' and ep_num:
             existing_weird_kids.add(ep_num)
         if series_name == 'Tale Gate':
             arc_name = extract_arc_name(item['title'])
             existing_tale_gates.add(arc_name)
-            existing_normalized_titles.add(('tale gate', item['title'].lower()))
+            existing_normalized_titles.add(('tale gate', normalize_text(item['title'])))
         if series_name == 'Previously On...':
             arc_name = extract_arc_name(item['title'])
             existing_previously_on.add(arc_name)
-            existing_normalized_titles.add(('previously on', item['title'].lower()))
+            existing_normalized_titles.add(('previously on', normalize_text(item['title'])))
         if series_name == 'Campaign Four' and ep_num:
             existing_c4_episodes.add(ep_num)
         if series_name == 'Backstage Pass':
             event_match = re.search(r'backstage pass\s*-\s*(.+)', item['title'], re.IGNORECASE)
             if event_match:
-                existing_backstage_pass.add(event_match.group(1).strip().lower())
+                existing_backstage_pass.add(normalize_text(event_match.group(1)))
         if series_name == 'One-Shot':
-            existing_one_shots.add(item['title'].strip().lower())
+            existing_one_shots.add(normalize_text(item['title']))
 
     if skipped:
         print(f"\nSkipped {len(skipped)} existing episodes:")

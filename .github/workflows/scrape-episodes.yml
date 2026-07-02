@@ -35,7 +35,7 @@ jobs:
       - name: Run Beacon scraper (Beacon-exclusive content)
         run: |
           cd cr-tracker
-          python3 beacon_scraper.py 2024-05-06 > beacon_scraper_output.log 2>&1 || true
+          python3 beacon_scraper.py > beacon_scraper_output.log 2>&1 || true
           cat beacon_scraper_output.log
 
       - name: Check for changes
