@@ -260,10 +260,11 @@ def extract_beacon_content(html, week_date):
     # Pattern 7: Inside The Legend of Vox Machina
     # Matches: "Inside The Legend of Vox Machina: Episodes 1-6"
     lovm_inside_pattern = r'Inside\s+The\s+Legend\s+of\s+Vox\s+Machina.*?Episodes?\s+([\d\-]+)'
-    lovm_inside_matches = re.finditer(lovm_inside_pattern, text, re.IGNORECASE)
+    lovm_matched_spans = []
 
-    for match in lovm_inside_matches:
+    for match in re.finditer(lovm_inside_pattern, text, re.IGNORECASE):
         episode_range = match.group(1)
+        lovm_matched_spans.append(match.span())
 
         content.append({
             'week_date': week_date.strftime('%Y-%m-%d'),
@@ -272,6 +273,26 @@ def extract_beacon_content(html, week_date):
             'campaign': '',
             'episode_number': episode_range,
             'title': f'Inside The Legend of Vox Machina: Episodes {episode_range}',
+            'release_date': week_date.strftime('%Y-%m-%d'),
+            'notes': 'Talkback show for LoVM Season 4'
+        })
+
+    # Pattern 7b: Inside The Legend of Vox Machina season finale
+    # The finale installment isn't labeled with an "Episodes N-M" range like the
+    # earlier ones - the schedule copy just says "...our finale episode of
+    # Inside The Legend of Vox Machina...", so Pattern 7 silently drops it.
+    lovm_finale_pattern = r'Inside\s+The\s+Legend\s+of\s+Vox\s+Machina.{0,200}?finale'
+    for match in re.finditer(lovm_finale_pattern, text, re.IGNORECASE):
+        if any(start <= match.start() < end for start, end in lovm_matched_spans):
+            continue  # already captured by the numbered-range pattern above
+
+        content.append({
+            'week_date': week_date.strftime('%Y-%m-%d'),
+            'show_type': 'Beacon Exclusive',
+            'series': 'Inside The Legend of Vox Machina',
+            'campaign': '',
+            'episode_number': '',
+            'title': 'Inside The Legend of Vox Machina: Season Finale',
             'release_date': week_date.strftime('%Y-%m-%d'),
             'notes': 'Talkback show for LoVM Season 4'
         })
