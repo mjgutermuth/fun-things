@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 import time
 import csv
+from itertools import permutations
 
 # Try Playwright first, fall back to requests
 USE_PLAYWRIGHT = True
@@ -661,6 +662,25 @@ def extract_fireside_guests(title):
     return parts or None
 
 
+def _fireside_names_match(name_a, name_b):
+    """A guest may be scraped as just a first name before the full name is
+    announced (e.g. "Whitney" vs "Whitney Moore" for the same chat)."""
+    if name_a == name_b:
+        return True
+    return name_a.startswith(name_b + ' ') or name_b.startswith(name_a + ' ')
+
+
+def fireside_guests_match(guests_a, guests_b):
+    """Check whether two guest tuples (from extract_fireside_guests) refer to
+    the same lineup, tolerating first-name-only vs full-name mismatches."""
+    if len(guests_a) != len(guests_b):
+        return False
+    return any(
+        all(_fireside_names_match(a, b) for a, b in zip(guests_a, perm))
+        for perm in permutations(guests_b)
+    )
+
+
 def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.csv'):
     """
     Merge scraped Beacon content into the main episodes CSV
@@ -842,7 +862,7 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
         # Check Fireside Chats - skip if we already have one with this guest combination
         if series_name == 'Fireside Chat':
             guests = extract_fireside_guests(item['title'])
-            if guests and guests in existing_fireside_chats:
+            if guests and any(fireside_guests_match(guests, existing) for existing in existing_fireside_chats):
                 skipped.append(f"{item['title']} (fireside chat with {', '.join(guests)} already exists)")
                 continue
 
