@@ -5,7 +5,6 @@ beacon_scheduler.py - Extract Beacon.tv programming schedule and add to Google C
 
 import requests
 from bs4 import BeautifulSoup
-import json
 import re
 from datetime import datetime, timedelta
 from typing import List, Dict
@@ -20,31 +19,29 @@ from googleapiclient.errors import HttpError
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
+# critrole.com sits behind Cloudflare, which 403s requests without a browser-like UA
+REQUEST_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
+                  '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+}
+
 def fetch_schedule(url: str) -> tuple:
-    """Fetch the HTML from Beacon.tv, handling URL format variations
+    """Fetch the HTML from critrole.com
 
     Returns: (html, actual_url_used)
     """
     urls_to_try = [url]
 
-    # Add alternate URL formats to try
-    # Sometimes Beacon uses a prefixed URL format
-    if '/content/programming-schedule-' in url:
-        prefixed_url = url.replace('/content/programming-schedule-', '/content/https-critrole-com-programming-schedule-')
-        urls_to_try.append(prefixed_url)
-
-    # Also try previous year variants for each URL (for early January edge cases)
+    # Also try previous year variant (for early January edge cases)
     current_year = str(datetime.now().year)
     prev_year = str(datetime.now().year - 1)
 
     if current_year in url:
         urls_to_try.append(url.replace(current_year, prev_year))
-        if len(urls_to_try) > 1:  # If we added a prefixed URL
-            urls_to_try.append(urls_to_try[1].replace(current_year, prev_year))
 
     last_response = None
     for attempt_url in urls_to_try:
-        last_response = requests.get(attempt_url)
+        last_response = requests.get(attempt_url, headers=REQUEST_HEADERS)
         if last_response.status_code == 200:
             return last_response.text, attempt_url
         elif last_response.status_code == 404:
@@ -76,65 +73,48 @@ def get_this_weeks_monday_url() -> tuple:
     else:
         suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
     
-    url = f"https://beacon.tv/content/programming-schedule-week-of-{month}-{day}{suffix}-{year}"
+    url = f"https://critrole.com/programming-schedule-week-of-{month}-{day}{suffix}-{year}/"
     return url, this_monday
 
-def extract_next_data(html: str) -> dict:
-    """Extract the __NEXT_DATA__ JSON from the page"""
-    soup = BeautifulSoup(html, 'html.parser')
-    script_tag = soup.find('script', {'id': '__NEXT_DATA__'})
-    
-    if not script_tag:
-        raise ValueError("Could not find __NEXT_DATA__ script tag")
-    
-    return json.loads(script_tag.string)
+def parse_schedule(html: str) -> List[Dict]:
+    """Parse the schedule from the page HTML.
 
-def parse_schedule(next_data: dict) -> List[Dict]:
-    """Parse the schedule from __NEXT_DATA__ JSON"""
+    The page is a WordPress/Elementor post: each show is an <h3> title
+    followed by a <ul> of <li> lines with the release day/date/time text.
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    content = soup.find('div', class_='qt-the-content')
+
+    if not content:
+        raise ValueError("Could not find schedule content container")
+
     events = []
-    
-    # Navigate to the RichText content
-    try:
-        apollo_state = next_data['props']['pageProps']['__APOLLO_STATE__']
-        
-        # Find the RichText block (contains the schedule)
-        richtext_key = None
-        for key in apollo_state.keys():
-            if key.startswith('RichText:'):
-                richtext_key = key
-                break
-        
-        if not richtext_key:
-            raise ValueError("Could not find RichText block")
-        
-        content = apollo_state[richtext_key]['content']
-        
-        # Parse the content blocks
-        current_series = None
-        for block in content:
-            block_type = block.get('type')
-            children = block.get('children', [])
-            
-            # h2 blocks are series names
-            if block_type == 'h2':
-                current_series = ''.join(child.get('text', '') for child in children)
-            
-            # ul blocks contain the episode and time info
-            elif block_type == 'ul' and current_series:
-                for item in children:
-                    if item.get('type') == 'li':
-                        li_children = item.get('children', [])
-                        info_text = ''.join(child.get('text', '') for child in li_children)
-                        
-                        # Parse episode and time from the text
-                        event = parse_event_text(current_series, info_text)
-                        if event:
-                            events.append(event)
-    
-    except (KeyError, IndexError) as e:
-        raise ValueError(f"Error parsing schedule structure: {e}")
-    
+    current_series = None
+    for element in content.find_all(['h3', 'ul']):
+        if element.name == 'h3':
+            current_series = element.get_text(strip=True)
+        elif element.name == 'ul' and current_series:
+            for li in element.find_all('li', recursive=False):
+                info_text = li.get_text(separator=' ', strip=True)
+
+                event = parse_event_text(current_series, info_text)
+                if event:
+                    events.append(event)
+
     return events
+
+def is_beacon_premiere(text: str) -> bool:
+    """True if this schedule line is a first-run release on Beacon.
+
+    Excludes lines whose only platforms are YouTube/Twitch/podcast (already
+    covered by the corresponding Beacon release) and rebroadcasts/reruns.
+    """
+    lowered = text.lower()
+    if 'beacon' not in lowered:
+        return False
+    if any(keyword in lowered for keyword in ('rebroadcast', 'rerun', 're-run', 'repeat broadcast')):
+        return False
+    return True
 
 def parse_event_text(series: str, text: str) -> Dict | None:
     """
@@ -168,6 +148,11 @@ def parse_event_text(series: str, text: str) -> Dict | None:
     # Return None if we couldn't parse required fields
     if not all([month, day_num, hour, am_pm]):
         print(f"  Warning: Could not parse event: {text[:80]}...")
+        return None
+
+    # Only keep first-run releases on Beacon; skip YouTube/Twitch-only drops and reruns
+    if not is_beacon_premiere(text):
+        print(f"  Skipped (not a Beacon premiere): {text[:80]}...")
         return None
 
     return {
@@ -351,14 +336,11 @@ def main():
     html, actual_url = fetch_schedule(url)
     
     # Extract the actual year from the URL we successfully fetched
-    actual_year = int(actual_url.split('-')[-1])
+    actual_year = int(actual_url.rstrip('/').split('-')[-1])
     print(f"Using year: {actual_year}\n")
-    
-    print("Extracting data...")
-    next_data = extract_next_data(html)
-    
+
     print("Parsing schedule...")
-    events = parse_schedule(next_data)
+    events = parse_schedule(html)
     print(f"Found {len(events)} events\n")
     
     # Authenticate with Google Calendar
