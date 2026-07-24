@@ -91,6 +91,37 @@ def clean_text(text):
     return text.strip()
 
 
+def parse_date(date_str):
+    """Parse various date formats into YYYY-MM-DD.
+
+    The wiki currently renders airdates as ISO already, but has used other
+    formats in the past (and non-date text like "Forthcoming" shows up in
+    some cells), so this normalizes whatever format we're handed instead of
+    assuming ISO. Returns the input unchanged if it doesn't match a known
+    date format.
+    """
+    if not date_str:
+        return ''
+
+    date_str = clean_text(date_str)
+
+    formats = [
+        '%B %d, %Y',    # January 16, 2026
+        '%b %d, %Y',    # Jan 16, 2026
+        '%Y-%m-%d',     # 2026-01-16
+        '%d %B %Y',     # 16 January 2026
+        '%d %b %Y',     # 16 Jan 2026
+    ]
+
+    for fmt in formats:
+        try:
+            return datetime.strptime(date_str, fmt).strftime('%Y-%m-%d')
+        except ValueError:
+            continue
+
+    return date_str  # Return as-is if parsing fails
+
+
 def parse_runtime(runtime_str):
     if not runtime_str:
         return ''
@@ -170,9 +201,10 @@ def parse_arc_episodes(html, campaign_name, arc_page_title):
             for date_header in ['original airdate', 'airdate', 'air date', 'date']:
                 if date_header in header_map and header_map[date_header] < len(cells):
                     raw_date = clean_text(cells[header_map[date_header]].get_text())
+                    parsed_date = parse_date(raw_date)
                     # Keep valid ISO dates; skip "Forthcoming" etc.
-                    if re.match(r'^\d{4}-\d{2}-\d{2}$', raw_date):
-                        episode['airdate'] = raw_date
+                    if re.match(r'^\d{4}-\d{2}-\d{2}$', parsed_date):
+                        episode['airdate'] = parsed_date
                     break
 
             for runtime_header in ['runtime', 'length', 'duration']:

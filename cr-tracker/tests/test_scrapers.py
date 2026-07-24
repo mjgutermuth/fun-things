@@ -12,7 +12,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from wiki_scraper import clean_text, parse_date, parse_runtime
-from beacon_scraper import generate_schedule_urls, extract_beacon_content
+from beacon_scraper import generate_schedule_urls, extract_beacon_content, normalize_live_show_title
 
 
 class TestWikiScraperHelpers(unittest.TestCase):
@@ -161,6 +161,32 @@ class TestBeaconContentExtraction(unittest.TestCase):
         """
         content = extract_beacon_content(html, datetime(2024, 5, 13))
         self.assertEqual(len(content), 0)
+
+
+class TestLiveShowDedup(unittest.TestCase):
+    """Tests for normalize_live_show_title, which folds away cosmetic reworking
+    of a live show's title between weekly critrole.com schedule postings so the
+    same release doesn't get added to the CSV twice."""
+
+    def test_strips_critical_role_filler_segment(self):
+        a = 'Oaths & Ash | Critical Role | Indianapolis Live Show 2025'
+        b = 'Oaths & Ash | Indianapolis Live Show 2025'
+        self.assertEqual(normalize_live_show_title(a), normalize_live_show_title(b))
+
+    def test_keeps_cooldown_distinct_from_main_show(self):
+        main = 'Oaths & Ash | Indianapolis Live Show 2025'
+        cooldown = 'Critical Role Cooldown | Oaths & Ash | Indianapolis Live Show 2025'
+        self.assertNotEqual(normalize_live_show_title(main), normalize_live_show_title(cooldown))
+
+    def test_keeps_distinct_backstage_pieces_separate(self):
+        vip_access = 'Darktow | Beacon Backstage Pass – VIP Access: Edinburgh Live Show 2026'
+        road_to = 'Darktow | Beacon Backstage Pass – Road To Edinburgh Live Show 2026'
+        self.assertNotEqual(normalize_live_show_title(vip_access), normalize_live_show_title(road_to))
+
+    def test_keeps_main_show_distinct_from_cooldown_multi_segment(self):
+        main = 'Darktow | | Echoes of Exandria | Edinburgh Live Show 2026'
+        cooldown = 'Critical Role Cooldown | Darktow | Edinburgh Live Show 2026'
+        self.assertNotEqual(normalize_live_show_title(main), normalize_live_show_title(cooldown))
 
 
 class TestDataValidation(unittest.TestCase):

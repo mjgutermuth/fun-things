@@ -641,6 +641,25 @@ def extract_arc_name(title):
     return normalize_text(title)
 
 
+def normalize_live_show_title(title):
+    """
+    Normalize a Live Show title for duplicate detection.
+
+    critrole.com re-promotes the same live show release across multiple weekly
+    schedule pages, and the blurb is sometimes reworded slightly between
+    postings (e.g. a "| Critical Role |" segment gets added or dropped). That
+    defeats plain exact-string dedup, producing a second row for what's really
+    the same release. Dropping empty/filler pipe-segments (just "critical
+    role") folds those cosmetic rewrites away, while still keeping distinct
+    same-event pieces (e.g. a Backstage Pass teaser vs. its later "Road To..."
+    follow-up, or the main show vs. its Cooldown) as separate segments so they
+    aren't incorrectly collapsed together.
+    """
+    segments = [normalize_text(s) for s in title.split('|')]
+    segments = [s for s in segments if s and s != 'critical role']
+    return '|'.join(segments)
+
+
 def extract_fireside_guests(title):
     """
     Extract a normalized, order-independent guest key from a Fireside Chat title.
@@ -713,6 +732,7 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
     existing_tale_gates = set()  # Track by arc name
     existing_previously_on = set()  # Track by arc name
     existing_c4_episodes = set()  # Track Campaign 4 episodes by number
+    existing_live_shows = set()  # Track by normalized (filler-stripped) title
     existing_backstage_pass = set()  # Track by event name
     existing_one_shots = set()  # Track by normalized title
     # Track normalized titles to catch duplicates with different episode numbers
@@ -780,6 +800,11 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
         # Track One-Shots by normalized title
         if 'one-shot' in campaign.lower() or 'one-shot' in title or 'one shot' in title:
             existing_one_shots.add(normalize_text(title))
+
+        # Track Live Shows by filler-stripped title (catches re-promoted events
+        # whose blurb was reworded slightly between weekly schedule postings)
+        if show_type == 'Special':
+            existing_live_shows.add(normalize_live_show_title(row.get('title', '')))
 
     # Convert scraped content to main CSV format and check for duplicates
     new_rows = []
@@ -917,6 +942,14 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
                 skipped.append(f"{item['title']} (one-shot already exists)")
                 continue
 
+        # Check Live Shows - skip if we already have this event/piece under a
+        # cosmetically reworded title (e.g. with/without a "Critical Role" segment)
+        if series_name == 'Live Show':
+            live_show_key = normalize_live_show_title(item['title'])
+            if live_show_key in existing_live_shows:
+                skipped.append(f"{item['title']} (live show already exists)")
+                continue
+
         # Create new row
         new_row = {
             'episode_id': episode_id,
@@ -964,6 +997,8 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
                 existing_backstage_pass.add(normalize_text(event_match.group(1)))
         if series_name == 'One-Shot':
             existing_one_shots.add(normalize_text(item['title']))
+        if series_name == 'Live Show':
+            existing_live_shows.add(normalize_live_show_title(item['title']))
 
     if skipped:
         print(f"\nSkipped {len(skipped)} existing episodes:")
