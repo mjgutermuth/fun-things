@@ -42,12 +42,12 @@ jobs:
         id: check_changes
         run: |
           cd cr-tracker
-          if git diff --quiet cr_episodes_series_airdates.csv; then
+          if git diff --quiet -- cr_episodes_series_airdates.csv CHANGELOG.md; then
             echo "changes=false" >> $GITHUB_OUTPUT
             echo "No changes detected"
           else
             echo "changes=true" >> $GITHUB_OUTPUT
-            echo "Changes detected in CSV"
+            echo "Changes detected in CSV/CHANGELOG.md"
           fi
 
       - name: Commit and push changes
@@ -56,6 +56,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add cr-tracker/cr_episodes_series_airdates.csv
+          git add cr-tracker/CHANGELOG.md
           git add cr-tracker/beacon_exclusives.csv || true
           git commit -m "Auto-update: Weekly episode scrape $(date +%Y-%m-%d)"
           git push

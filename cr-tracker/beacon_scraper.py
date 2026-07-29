@@ -908,12 +908,15 @@ def fireside_guests_match(guests_a, guests_b):
 
 def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.csv'):
     """
-    Merge scraped Beacon content into the main episodes CSV
-    Returns number of new episodes added
+    Merge scraped Beacon content into the main episodes CSV.
+    Returns (new_rows, skipped) - the rows actually added, and a list of
+    human-readable reasons for everything that was skipped as a duplicate -
+    so a caller (e.g. the weekly changelog) can report exactly what happened
+    without re-deriving it.
     """
     if not scraped_content:
         print("\nNo new content to merge")
-        return 0
+        return [], []
 
     # Read existing CSV
     try:
@@ -923,7 +926,7 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
             fieldnames = reader.fieldnames
     except FileNotFoundError:
         print(f"Error: {main_csv} not found")
-        return 0
+        return [], []
 
     # Build set of existing episode IDs (exact and normalized, so cosmetic scrape
     # drift like non-breaking spaces or curly quotes doesn't create a duplicate row)
@@ -1244,7 +1247,7 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
 
     if not new_rows:
         print("\nNo new episodes to add")
-        return 0
+        return [], skipped
 
     # Add new rows and sort by airdate
     all_rows = existing_rows + new_rows
@@ -1260,7 +1263,56 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
     for row in new_rows:
         print(f"  + {row['campaign']} #{row['episode_number']}: {row['title']}")
 
-    return len(new_rows)
+    return new_rows, skipped
+
+
+_CHANGELOG_HEADER = (
+    "# Changelog\n\n"
+    "Weekly scraper runs - which critrole.com schedule pages were checked and what "
+    "got added, so you can open the same page and compare it against what the "
+    "scraper actually did that week.\n\n"
+)
+
+
+def write_changelog_entry(week_urls, new_rows, skipped, changelog_path='CHANGELOG.md'):
+    """
+    Prepend a dated entry to CHANGELOG.md summarizing a scraper run. Newest
+    entry goes right after the fixed header, so recent weeks are always at
+    the top without re-reading/re-ordering the whole file.
+    """
+    lines = [f"## Run: {datetime.now().strftime('%Y-%m-%d')}", ""]
+
+    if week_urls:
+        lines.append("Checked:")
+        lines.extend(f"- {url}" for url in week_urls)
+        lines.append("")
+
+    if new_rows:
+        lines.append(f"Added ({len(new_rows)}):")
+        for row in sorted(new_rows, key=lambda r: r['airdate'] or ''):
+            lines.append(f"- [{row['airdate']}] {row['title']}")
+    else:
+        lines.append("Added: none")
+    lines.append("")
+    lines.append(f"Skipped as already tracked: {len(skipped)}")
+    lines.append("")
+
+    entry = "\n".join(lines) + "\n"
+
+    try:
+        with open(changelog_path, encoding='utf-8') as f:
+            existing = f.read()
+    except FileNotFoundError:
+        existing = ''
+    if not existing.startswith(_CHANGELOG_HEADER):
+        existing = _CHANGELOG_HEADER + existing
+
+    body = existing[len(_CHANGELOG_HEADER):]
+    with open(changelog_path, 'w', encoding='utf-8') as f:
+        f.write(_CHANGELOG_HEADER + entry + body)
+
+    print(f"\n✓ Wrote changelog entry to {changelog_path}")
+
 
 if __name__ == '__main__':
     # Default to only check the last 4 weeks (current + 3 prior)
@@ -1294,9 +1346,19 @@ if __name__ == '__main__':
     print("\n" + "=" * 80)
     print("MERGING INTO MAIN CSV")
     print("=" * 80)
-    new_count = merge_into_main_csv(content)
+    new_rows, skipped = merge_into_main_csv(content)
 
-    if new_count > 0:
-        print(f"\n✓ Successfully added {new_count} new episode(s) to the tracker!")
+    if new_rows:
+        print(f"\n✓ Successfully added {len(new_rows)} new episode(s) to the tracker!")
     else:
         print("\n✓ No new episodes found - CSV is up to date!")
+
+    # critrole.com URLs actually covered by this run, for the changelog - lets
+    # a human open the same page and eyeball-compare it against what got added.
+    urls_start = datetime.strptime(start_date, '%Y-%m-%d')
+    urls_end = datetime.strptime(end_date, '%Y-%m-%d') if end_date else datetime.now()
+    week_urls = sorted({
+        url for _, url, source in generate_schedule_urls(urls_start, urls_end)
+        if source == 'critrole'
+    })
+    write_changelog_entry(week_urls, new_rows, skipped)
