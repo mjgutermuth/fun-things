@@ -676,6 +676,39 @@ def normalize_live_show_title(title):
     return '|'.join(segments)
 
 
+# Live Show rows whose stored `title` was manually rewritten from the raw
+# scraped pipe-delimited form into a cleaner, reworded sentence (segments
+# collapsed/reordered, "Critical Role Cooldown" shortened to "Cooldown:",
+# etc). normalize_live_show_title() compares segment-for-segment, so once a
+# title is reworded like this it no longer matches what a fresh scrape of
+# the same event produces - the segments and their order are gone. Rather
+# than fuzzy-match on word overlap (tried and rejected: a show and its own
+# Cooldown score 0.90 similarity by word-overlap, since "Cooldown:" is a
+# single differing word among many shared ones - a generic similarity
+# threshold cannot safely tell them apart), each already-cleaned-up event is
+# listed explicitly here as a set of required keywords, checked against the
+# RAW incoming scraped title (case-insensitive substring match on every
+# keyword). This is intentionally an allowlist of known past events, not a
+# general heuristic - safe by construction, but needs a new entry whenever
+# another Live Show row's title gets manually cleaned up like this.
+_MANUALLY_REWORDED_LIVE_SHOWS = [
+    ('atlanta', 'maelstrom', 'cooldown'),   # Cooldown: The Maelstrom Kingdom – Atlanta Live Show 2026
+    ('atlanta', 'maelstrom', 'bells hells'),  # Bells Hells & the Maelstrom Kingdom – Atlanta Live Show 2026 (now One-Shot)
+    ('berlin', 'funball', 'cooldown'),       # Cooldown: [PROJEKT] Funball – Berlin Live Show 2026
+    ('berlin', 'funball'),                   # [PROJEKT] Funball – Berlin Live Show 2026 (now One-Shot)
+    ('edinburgh', 'darktow', 'cooldown'),    # Cooldown: Darktow – Edinburgh Live Show 2026
+    ('edinburgh', 'darktow', 'echoes'),      # Echoes of Exandria: Darktow – Edinburgh Live Show 2026 (now One-Shot)
+    ('edinburgh', 'darktow', 'vip'),         # Darktow Backstage Pass – VIP Access: Edinburgh Live Show 2026
+    ('edinburgh', 'darktow', 'road'),        # Darktow Backstage Pass – Road to Edinburgh Live Show 2026
+]
+
+
+def is_manually_reworded_live_show_duplicate(scraped_title):
+    """Check a raw scraped Live Show title against the allowlist above."""
+    t = scraped_title.lower()
+    return any(all(kw in t for kw in keywords) for keywords in _MANUALLY_REWORDED_LIVE_SHOWS)
+
+
 def extract_fireside_guests(title):
     """
     Extract a normalized, order-independent guest key from a Fireside Chat title.
@@ -818,8 +851,15 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
             existing_one_shots.add(normalize_text(title))
 
         # Track Live Shows by filler-stripped title (catches re-promoted events
-        # whose blurb was reworded slightly between weekly schedule postings)
-        if show_type == 'Special':
+        # whose blurb was reworded slightly between weekly schedule postings).
+        # Scraped Live Show items always land as show_type='Special', but a row
+        # can get manually recategorized afterward (the live show itself into
+        # One-Shot, or its Cooldown into Talk Show/Critical Role Cooldown) -
+        # keep tracking those too so a rescrape doesn't re-add them as a
+        # fresh 'Special' duplicate under the old wording.
+        if show_type == 'Special' or show_type == 'One-Shot' or (
+            show_type == 'Talk Show' and campaign == 'Critical Role Cooldown' and 'live show' in title
+        ):
             existing_live_shows.add(normalize_live_show_title(row.get('title', '')))
 
     # Convert scraped content to main CSV format and check for duplicates
@@ -964,6 +1004,9 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
             live_show_key = normalize_live_show_title(item['title'])
             if live_show_key in existing_live_shows:
                 skipped.append(f"{item['title']} (live show already exists)")
+                continue
+            if is_manually_reworded_live_show_duplicate(item['title']):
+                skipped.append(f"{item['title']} (live show already exists, manually reworded)")
                 continue
 
         # Create new row
