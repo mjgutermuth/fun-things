@@ -493,6 +493,73 @@ def extract_beacon_content(html, week_date):
             'notes': 'CR live show'
         })
 
+    # Pattern 13: Generic fallback for anything not caught by the patterns above.
+    # Patterns 1-12 only recognize a fixed set of known series; anything else on
+    # the schedule page (a brand-new miniseries, a webseries with no dedicated
+    # pattern, etc.) was previously silently dropped. Default to including it
+    # instead - see EXCLUDED_TITLE_KEYWORDS for the explicit, narrow opt-out list.
+    def _widget_already_claimed(widget_text, widget_text_nl):
+        """Would any of patterns 1-12 above already match this widget's own
+        text? If so, they already produced a (correctly tuned) row for it
+        elsewhere in this function, and the fallback must not add a second one."""
+        checks = [
+            (cooldown_pattern, widget_text, re.IGNORECASE),
+            (fireside_pattern, widget_text_nl, re.IGNORECASE),
+            (weird_pattern, widget_text, re.IGNORECASE),
+            (backstage_pattern, widget_text, re.DOTALL | re.IGNORECASE),
+            (long_rest_pattern, widget_text, re.IGNORECASE),
+            (mighty_nein_pattern, widget_text, re.IGNORECASE),
+            (lovm_inside_pattern, widget_text, re.IGNORECASE),
+            (lovm_finale_pattern, widget_text, re.IGNORECASE),
+            (gyst_pattern, widget_text, re.IGNORECASE),
+            (previously_on_patterns[0], widget_text, re.IGNORECASE),
+            (previously_on_patterns[1], widget_text, re.IGNORECASE),
+            (tale_gate_pattern, widget_text, re.IGNORECASE),
+            (c4_episode_pattern, widget_text, re.IGNORECASE),
+            (one_shot_pattern, widget_text_nl, re.MULTILINE),
+            (live_show_pattern, widget_text_nl, re.MULTILINE),
+        ]
+        return any(re.search(pattern, t, flags) for pattern, t, flags in checks)
+
+    for widget in soup.find_all('div', class_='elementor-widget-container'):
+        h3 = widget.find('h3')
+        ul = widget.find('ul')
+        if not h3 or not ul:
+            continue  # not a schedule item (e.g. the page's intro blurb widget)
+
+        widget_text = widget.get_text()
+        widget_text_nl = widget.get_text(separator='\n')
+
+        if _widget_already_claimed(widget_text, widget_text_nl):
+            continue  # a tuned pattern above already extracted this
+
+        raw_title = h3.get_text(separator=' ', strip=True)
+        if not raw_title or is_excluded_from_generic_fallback(raw_title):
+            continue
+
+        first_li = ul.find('li')
+        first_li_text = first_li.get_text(' ', strip=True) if first_li else ''
+
+        is_cooldown, series_key, episode_number = parse_generic_title(raw_title)
+        release_date = parse_release_date_from_li(first_li_text, week_date)
+
+        note = ('Added from Beacon schedule (auto-detected, please verify)'
+                if episode_number else
+                'Added from Beacon schedule (auto-detected, non-standard title - '
+                'please verify this belongs in the tracker)')
+
+        content.append({
+            'week_date': week_date.strftime('%Y-%m-%d'),
+            'show_type': 'Beacon Exclusive',
+            'series': 'Critical Role Cooldown' if is_cooldown else series_key,
+            'campaign': series_key,
+            'episode_number': episode_number,
+            'title': raw_title,
+            'release_date': release_date,
+            'notes': note,
+            'is_generic_fallback': True,
+        })
+
     return content
 
 def scrape_beacon_exclusives(start_date_str, end_date_str=None):
@@ -709,6 +776,96 @@ def is_manually_reworded_live_show_duplicate(scraped_title):
     return any(all(kw in t for kw in keywords) for keywords in _MANUALLY_REWORDED_LIVE_SHOWS)
 
 
+# Same problem as _MANUALLY_REWORDED_LIVE_SHOWS above, but for rows the generic
+# fallback pass (Pattern 13 in extract_beacon_content) added and that were then
+# hand-cleaned into a nicer title/campaign/arc split. Keyed on (required
+# keywords in the RAW scraped title, episode_number) since the fallback's own
+# dedup can't rely on a cleaned-up title matching the raw scrape anymore.
+# Add a new entry here whenever a generic-fallback row's title gets rewritten.
+_MANUALLY_REWORDED_GENERIC_ROWS = [
+    (('age of umbra', 'sallowlands'), '1'),  # -> "Sallowlands: Scattered Pilgrims"
+    (('age of umbra', 'sallowlands'), '2'),  # -> "Sallowlands: The Onyx Spire"
+    (('age of umbra', 'sallowlands'), '3'),  # -> "Sallowlands: Horizon of Promise"
+]
+
+
+def is_manually_reworded_generic_duplicate(scraped_title, episode_number):
+    t = scraped_title.lower()
+    return any(ep == episode_number and all(kw in t for kw in keywords)
+               for keywords, ep in _MANUALLY_REWORDED_GENERIC_ROWS)
+
+
+def parse_generic_title(raw_title):
+    """
+    Split a schedule widget's <h3> title into (is_cooldown, series_key, episode_number)
+    for the generic fallback pass (see extract_beacon_content).
+
+    Handles the same pipe-segment convention as the site's other titles:
+      "Age of Umbra: Sallowlands | Episode 4"
+        -> (False, "Age of Umbra: Sallowlands", "4")
+      "Critical Role Cooldown | Age of Umbra: Sallowlands | Episode 4"
+        -> (True, "Age of Umbra: Sallowlands", "4")
+      "Age of Umbra: Sallowlands | Level Up!"
+        -> (False, "Age of Umbra: Sallowlands | Level Up!", "")  # last segment isn't "Episode N"
+      "UNEND Season 3"
+        -> (False, "UNEND Season 3", "")
+    """
+    segments = [s.strip() for s in raw_title.split('|') if s.strip()]
+    is_cooldown = bool(segments) and normalize_text(segments[0]) == 'critical role cooldown'
+    if is_cooldown:
+        segments = segments[1:]
+
+    episode_number = ''
+    if segments:
+        ep_match = re.fullmatch(r'Episode\s+(\d+)', segments[-1], re.IGNORECASE)
+        if ep_match:
+            episode_number = ep_match.group(1)
+            segments = segments[:-1]
+
+    series_key = ' | '.join(segments) if segments else raw_title
+    return is_cooldown, series_key, episode_number
+
+
+_WEEKDAY_OFFSETS = {'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3,
+                     'friday': 4, 'saturday': 5, 'sunday': 6}
+
+
+def parse_release_date_from_li(li_text, week_date):
+    """
+    Derive the actual release date from a widget's first <li> line (e.g.
+    "Airs Thursday, July 30th at 7pm Pacific on Twitch and YouTube"), rather
+    than stamping every item with the schedule page's own Monday date. Falls
+    back to week_date if no weekday name is found.
+    """
+    match = re.search(r'\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b',
+                       li_text, re.IGNORECASE)
+    if not match:
+        return week_date.strftime('%Y-%m-%d')
+    offset = _WEEKDAY_OFFSETS[match.group(1).lower()]
+    return (week_date + timedelta(days=offset)).strftime('%Y-%m-%d')
+
+
+# Content that shows up on critrole.com schedule pages but is deliberately out
+# of scope for this tracker: third-party/adjacent shows (not Critical Role's
+# own cast/content) and pure teaser posts with no real content yet. This is
+# the ONLY place the generic fallback pass silently drops something - anything
+# else, including bonus/tutorial segments of an existing or brand-new series
+# (e.g. "GYST | Multiclassing in Daggerheart!"), defaults to being added.
+# Matched as a case-insensitive substring against the widget's raw title.
+EXCLUDED_TITLE_KEYWORDS = [
+    'viva la dirt league',
+    'tales from the stinky dragon',
+    'unend season',
+    'critical role abridged',
+    'something is coming',
+]
+
+
+def is_excluded_from_generic_fallback(title):
+    t = normalize_text(title)
+    return any(kw in t for kw in EXCLUDED_TITLE_KEYWORDS)
+
+
 def extract_fireside_guests(title):
     """
     Extract a normalized, order-independent guest key from a Fireside Chat title.
@@ -806,6 +963,12 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
                     campaign_prefix = 'candela'
                 elif 'campaign three' in campaign.lower() or '(c3)' in title.lower() or 'c3' in ep_num.lower():
                     campaign_prefix = 'c3'
+                else:
+                    # Generic-fallback cooldowns (any series without a dedicated
+                    # pattern) would otherwise all collide in a shared '' bucket -
+                    # bucket by the parent series' own name instead, so e.g. two
+                    # unrelated minis both airing "Episode 3" don't collide.
+                    campaign_prefix = normalize_text(row.get('arc') or extract_arc_name(row.get('title', '')))
                 existing_cooldowns.add((campaign_prefix, match.group(1)))
 
         # Track Fireside Chats by normalized, order-independent guest set
@@ -933,6 +1096,11 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
                 cooldown_prefix = 'candela'
             elif '(c3)' in title_lower or 'c3e' in title_lower:
                 cooldown_prefix = 'c3'
+            else:
+                # Generic-fallback (or any other campaign-numbered) cooldown -
+                # bucket by its own parent series/campaign instead of the
+                # shared '' bucket, matching the CSV-scan side above.
+                cooldown_prefix = normalize_text(item.get('campaign', ''))
 
         # Check Cooldowns - skip if we already have a cooldown for this campaign/episode
         if series_name == 'Critical Role Cooldown' and ep_num:
@@ -1007,6 +1175,14 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
                 continue
             if is_manually_reworded_live_show_duplicate(item['title']):
                 skipped.append(f"{item['title']} (live show already exists, manually reworded)")
+                continue
+
+        # Check generic-fallback rows - skip if already exists under a
+        # manually-cleaned-up title/campaign/arc split (see
+        # _MANUALLY_REWORDED_GENERIC_ROWS for why raw-title matching is needed)
+        if item.get('is_generic_fallback'):
+            if is_manually_reworded_generic_duplicate(item['title'], item['episode_number']):
+                skipped.append(f"{item['title']} (already exists, manually reworded)")
                 continue
 
         # Create new row

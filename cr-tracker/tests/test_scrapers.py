@@ -12,7 +12,11 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from wiki_scraper import clean_text, parse_date, parse_runtime
-from beacon_scraper import generate_schedule_urls, extract_beacon_content, normalize_live_show_title
+from beacon_scraper import (
+    generate_schedule_urls, extract_beacon_content, normalize_live_show_title,
+    parse_generic_title, parse_release_date_from_li, is_excluded_from_generic_fallback,
+    is_manually_reworded_generic_duplicate,
+)
 
 
 class TestWikiScraperHelpers(unittest.TestCase):
@@ -187,6 +191,118 @@ class TestLiveShowDedup(unittest.TestCase):
         main = 'Darktow | | Echoes of Exandria | Edinburgh Live Show 2026'
         cooldown = 'Critical Role Cooldown | Darktow | Edinburgh Live Show 2026'
         self.assertNotEqual(normalize_live_show_title(main), normalize_live_show_title(cooldown))
+
+
+class TestGenericFallback(unittest.TestCase):
+    """Tests for the generic fallback pass (Pattern 13 in extract_beacon_content)
+    that adds schedule content not caught by any of the other, series-specific
+    patterns - covering the helpers it relies on, plus end-to-end behavior."""
+
+    def test_parse_generic_title_episode(self):
+        is_cooldown, series_key, ep = parse_generic_title('Age of Umbra: Sallowlands | Episode 4')
+        self.assertFalse(is_cooldown)
+        self.assertEqual(series_key, 'Age of Umbra: Sallowlands')
+        self.assertEqual(ep, '4')
+
+    def test_parse_generic_title_cooldown(self):
+        is_cooldown, series_key, ep = parse_generic_title(
+            'Critical Role Cooldown | Age of Umbra: Sallowlands | Episode 4')
+        self.assertTrue(is_cooldown)
+        self.assertEqual(series_key, 'Age of Umbra: Sallowlands')
+        self.assertEqual(ep, '4')
+
+    def test_parse_generic_title_non_standard(self):
+        is_cooldown, series_key, ep = parse_generic_title('Age of Umbra: Sallowlands | Level Up!')
+        self.assertFalse(is_cooldown)
+        self.assertEqual(series_key, 'Age of Umbra: Sallowlands | Level Up!')
+        self.assertEqual(ep, '')
+
+    def test_parse_release_date_from_li_thursday(self):
+        li = 'Airs Thursday, July 30th at 7pm Pacific on Twitch and YouTube'
+        self.assertEqual(parse_release_date_from_li(li, datetime(2026, 7, 27)), '2026-07-30')
+
+    def test_parse_release_date_from_li_no_weekday_falls_back_to_week_date(self):
+        self.assertEqual(parse_release_date_from_li('no day mentioned here', datetime(2026, 7, 27)),
+                          '2026-07-27')
+
+    def test_excludes_third_party_shows(self):
+        self.assertTrue(is_excluded_from_generic_fallback("Viva La Dirt League's Daggerheart: Azerim"))
+        self.assertTrue(is_excluded_from_generic_fallback('Tales From The Stinky Dragon, Campaign 3: Kanon'))
+        self.assertTrue(is_excluded_from_generic_fallback('UNEND Season 3'))
+        self.assertTrue(is_excluded_from_generic_fallback('Critical Role Abridged'))
+        self.assertTrue(is_excluded_from_generic_fallback('Something is coming…'))
+
+    def test_does_not_exclude_bonus_content_of_in_scope_series(self):
+        # Bonus/tutorial segments of an in-scope series aren't third-party -
+        # they should still be added, just without an episode number.
+        self.assertFalse(is_excluded_from_generic_fallback(
+            'Get Your Sheet Together | Multiclassing in Daggerheart!'))
+        self.assertFalse(is_excluded_from_generic_fallback(
+            'Age of Umbra: Sallowlands | Level Up!'))
+
+    def test_manually_reworded_generic_duplicate_matches_known_rows(self):
+        self.assertTrue(is_manually_reworded_generic_duplicate(
+            'Age of Umbra: Sallowlands | Episode 1', '1'))
+        self.assertTrue(is_manually_reworded_generic_duplicate(
+            'Critical Role Cooldown | Age of Umbra: Sallowlands | Episode 2', '2'))
+
+    def test_manually_reworded_generic_duplicate_does_not_match_unlisted_episode(self):
+        # Episode 4 hasn't been manually cleaned up, so it must NOT be
+        # treated as a duplicate - it should still get added normally.
+        self.assertFalse(is_manually_reworded_generic_duplicate(
+            'Age of Umbra: Sallowlands | Episode 4', '4'))
+
+    def test_fallback_adds_unrecognized_series(self):
+        html = """
+        <html><body>
+        <div class="elementor-widget-container">
+          <h3><strong>Age of Umbra: Sallowlands | Episode 4</strong></h3>
+          <p>description</p>
+          <ul>
+            <li><strong><em>Airs Thursday, July 30th at 7pm Pacific on Twitch and YouTube</em></strong></li>
+          </ul>
+        </div>
+        </body></html>
+        """
+        content = extract_beacon_content(html, datetime(2026, 7, 27))
+        matches = [c for c in content if c['series'] == 'Age of Umbra: Sallowlands']
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches[0]['episode_number'], '4')
+        self.assertEqual(matches[0]['release_date'], '2026-07-30')
+
+    def test_fallback_skips_content_already_claimed_by_weird_kids_pattern(self):
+        html = """
+        <html><body>
+        <div class="elementor-widget-container">
+          <h3><strong>Weird Kids</strong></h3>
+          <p>description</p>
+          <ul>
+            <li><strong><em>Episode 20 releases Tuesday, July 28th at 10am Pacific on YouTube</em></strong></li>
+          </ul>
+        </div>
+        </body></html>
+        """
+        content = extract_beacon_content(html, datetime(2026, 7, 27))
+        # Weird Kids' own pattern (Pattern 3) should claim this - the fallback
+        # must not also add a second, differently-shaped row for it.
+        weird_kids_rows = [c for c in content if 'weird kids' in c['title'].lower()
+                           or c['series'] == 'Weird Kids']
+        self.assertEqual(len(weird_kids_rows), 1)
+
+    def test_fallback_excludes_third_party_widget(self):
+        html = """
+        <html><body>
+        <div class="elementor-widget-container">
+          <h3><strong>Viva La Dirt League's Daggerheart: Azerim</strong></h3>
+          <p>description</p>
+          <ul>
+            <li><strong><em>Episode 29 releases Tuesday, July 28th at 12am Pacific on Beacon</em></strong></li>
+          </ul>
+        </div>
+        </body></html>
+        """
+        content = extract_beacon_content(html, datetime(2026, 7, 27))
+        self.assertEqual(len(content), 0)
 
 
 class TestDataValidation(unittest.TestCase):
