@@ -469,7 +469,7 @@ def extract_beacon_content(html, week_date):
 
     seen_live_shows = set()
     for match in re.finditer(live_show_pattern, text_nl, re.MULTILINE):
-        title = match.group(1).strip()
+        title = clean_live_show_title(match.group(1).strip())
 
         if title.lower() in seen_live_shows:
             continue
@@ -639,6 +639,22 @@ def extract_arc_name(title):
     if '|' in title:
         return normalize_text(title.split('|', 1)[1])
     return normalize_text(title)
+
+
+def clean_live_show_title(title):
+    """
+    Drop empty pipe-segments from a scraped Live Show title before storing it.
+
+    The source schedule page sometimes renders a badge/icon element between
+    two text segments that produces no text, leaving a stray "| |" in the
+    line captured by get_text(). Collapsing those empty segments (but keeping
+    real ones, and their original casing) turns e.g.
+    "Darktow | | Echoes of Exandria | Edinburgh Live Show 2026" into
+    "Darktow | Echoes of Exandria | Edinburgh Live Show 2026".
+    """
+    segments = [s.strip() for s in title.split('|')]
+    segments = [s for s in segments if s]
+    return ' | '.join(segments)
 
 
 def normalize_live_show_title(title):

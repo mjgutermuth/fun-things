@@ -185,6 +185,12 @@ CANON_EPISODES = {
     },
 }
 
+# Ongoing anthology series where every entry is canon - matched by substring
+# in the title rather than exact episode_id, since new one-shots keep airing.
+CANON_TITLE_PATTERNS = {
+    'Echoes of Exandria': 'Echoes of Exandria one-shot - canon',
+}
+
 def update_csv(input_file, output_file):
     """Add canon columns to CSV"""
     rows = []
@@ -194,8 +200,11 @@ def update_csv(input_file, output_file):
         reader = csv.DictReader(f)
         headers = reader.fieldnames
 
-        # Add new headers
-        new_headers = list(headers) + ['is_canon', 'prerequisite_episode', 'prerequisite_notes']
+        # Add new headers (only if not already present, so re-runs don't duplicate them)
+        new_headers = list(headers)
+        for col in ('is_canon', 'prerequisite_episode', 'prerequisite_notes'):
+            if col not in new_headers:
+                new_headers.append(col)
 
         for row in reader:
             # Create episode_id for lookup
@@ -207,11 +216,27 @@ def update_csv(input_file, output_file):
                 row['is_canon'] = canon_info['is_canon']
                 row['prerequisite_episode'] = canon_info['prerequisite_episode']
                 row['prerequisite_notes'] = canon_info['prerequisite_notes']
-            else:
-                # Default to non-canon
-                row['is_canon'] = 'FALSE'
+            elif row.get('show_type') == 'Main Campaign':
+                # Main Campaign episodes are always canon; no single specific
+                # prerequisite, so leave those fields blank rather than 'None'
+                row['is_canon'] = 'TRUE'
                 row['prerequisite_episode'] = ''
                 row['prerequisite_notes'] = ''
+            else:
+                title = row.get('title', '')
+                pattern_match = next(
+                    (note for pattern, note in CANON_TITLE_PATTERNS.items() if pattern in title),
+                    None
+                )
+                if pattern_match:
+                    row['is_canon'] = 'TRUE'
+                    row['prerequisite_episode'] = 'None'
+                    row['prerequisite_notes'] = pattern_match
+                else:
+                    # Default to non-canon
+                    row['is_canon'] = 'FALSE'
+                    row['prerequisite_episode'] = ''
+                    row['prerequisite_notes'] = ''
 
             rows.append(row)
 
