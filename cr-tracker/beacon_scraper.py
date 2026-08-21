@@ -299,22 +299,20 @@ def extract_beacon_content(html, week_date):
         })
 
     # Pattern 8: Get Your Sheet Together
+    # critrole.com's schedule text only ever exposes a bare sequential number
+    # here ("...Episode N"), never the real episode subtitle - and that number
+    # doesn't reliably match the tracker's own GYST numbering (seen: page said
+    # "Episode 17" for what the tracker tracks as #10). beacon.tv's own
+    # schedule page for the same week carries the real subtitle (e.g. "Using
+    # Fear in Daggerheart!") with no "Episode N" text at all, so it's caught
+    # separately by the generic fallback pass (Pattern 13) instead - that's
+    # the reliable source of truth for GYST releases. Since this pattern's
+    # match lives on a different page than the fallback's widget scan,
+    # _widget_already_claimed can't dedupe the two against each other, so
+    # this pattern must not emit its own row - it exists only so
+    # _widget_already_claimed can still recognize (and skip) a GYST widget
+    # that happens to say "Episode N" on the same page.
     gyst_pattern = r'Get\s+Your\s+Sheet\s+Together.*?Episode\s+(\d+)'
-    gyst_matches = re.finditer(gyst_pattern, text, re.IGNORECASE)
-
-    for match in gyst_matches:
-        episode = match.group(1)
-
-        content.append({
-            'week_date': week_date.strftime('%Y-%m-%d'),
-            'show_type': 'Beacon Exclusive',
-            'series': 'Get Your Sheet Together',
-            'campaign': '',
-            'episode_number': episode,
-            'title': f'Get Your Sheet Together Episode {episode}',
-            'release_date': week_date.strftime('%Y-%m-%d'),
-            'notes': 'Beacon exclusive series'
-        })
 
     # Pattern 9: Previously On...
     # Matches: "Previously On… | The Soldier's Table" or "Meet The Characters of Campaign 4 | Ep 1-4 Recap"
@@ -614,7 +612,7 @@ def save_to_csv(content, filename='beacon_exclusives.csv'):
         print("\nNo content to save!")
         return
 
-    fieldnames = ['week_date', 'show_type', 'series', 'campaign', 'episode_number', 'title', 'release_date', 'notes']
+    fieldnames = ['week_date', 'show_type', 'series', 'campaign', 'episode_number', 'title', 'release_date', 'notes', 'is_generic_fallback']
 
     with open(filename, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -786,6 +784,7 @@ _MANUALLY_REWORDED_GENERIC_ROWS = [
     (('age of umbra', 'sallowlands'), '1'),  # -> "Sallowlands: Scattered Pilgrims"
     (('age of umbra', 'sallowlands'), '2'),  # -> "Sallowlands: The Onyx Spire"
     (('age of umbra', 'sallowlands'), '3'),  # -> "Sallowlands: Horizon of Promise"
+    (('get your sheet together', 'step into the spotlight'), ''),  # -> GYST #10 "Step into the Spotlight"
 ]
 
 
