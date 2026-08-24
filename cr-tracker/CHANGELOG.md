@@ -2,6 +2,25 @@
 
 Weekly scraper runs - which critrole.com schedule pages were checked and what got added, so you can open the same page and compare it against what the scraper actually did that week.
 
+## Run: 2026-08-24
+
+Checked:
+- https://critrole.com/programming-schedule-week-of-august-10th-2026/
+- https://critrole.com/programming-schedule-week-of-august-17th-2026/
+- https://critrole.com/programming-schedule-week-of-august-24th-2026/
+- https://critrole.com/programming-schedule-week-of-august-3rd-2026/
+- https://critrole.com/programming-schedule-week-of-july-27th-2026/
+
+Added (6):
+- [2026-08-24] C4E32 Cooldown
+- [2026-08-24] Previously On… | Get Caught Up On Convergence | Campaign 4, Ep 26-31 Recap
+- [2026-08-24] Weird Kids Episode 41
+- [2026-08-25] Tale Gate | Episode 4 | Discussing Up To C4E31
+- [2026-08-26] Get Your Sheet Together | The ABCs of Rest and Recovery
+- [2026-08-27] Campaign 4 Episode 32
+
+Skipped as already tracked: 32
+
 ## Run: 2026-08-20
 
 Checked:
