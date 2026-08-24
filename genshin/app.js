@@ -8,6 +8,9 @@ const ELEMENT_MAP = {
 const DAY_NAMES = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 const TARGET_LEVELS = [20, 40, 50, 60, 70, 80, 90];
 
+// Bump this whenever DOMAINS or TEAMS_DATA are checked against the current version.
+const DATA_VERSION = 'v7.0 (Snezhnaya) — Aug 2026';
+
 // Talent book domains — days: 1=Mon,4=Thu | 2=Tue,5=Fri | 3=Wed,6=Sat | 0=Sun(all)
 const DOMAINS = [
   {
@@ -64,6 +67,14 @@ const DOMAINS = [
       { days: [1,4], book: 'Contention', chars: ['Skirk','Mualani','Mavuika'] },
       { days: [2,5], book: 'Kindling',   chars: ['Kinich','Citlali','Xilonen','Ororon'] },
       { days: [3,6], book: 'Conflict',   chars: ['Kachina','Chasca','Ifa','Varesa'] },
+    ],
+  },
+  {
+    name: 'Relics of the Fallen Grace', region: 'Snezhnaya',
+    slots: [
+      { days: [1,4], book: 'Charity',   chars: ['Odette'] },
+      { days: [2,5], book: 'Fortitude', chars: ['Alyosha'] },
+      { days: [3,6], book: 'Glory',     chars: [] }, // no released character uses this book yet
     ],
   },
 ];
@@ -495,7 +506,8 @@ async function renderTeamsTab() {
     .map(t => ({ ...t, score: t.roles.filter(r => r.chars.some(c => charNames.has(c))).length }))
     .sort((a, b) => b.score - a.score || (a.tier ?? 99) - (b.tier ?? 99) || a.name.localeCompare(b.name));
 
-  document.getElementById('tab-teams').innerHTML = scored.map(t => teamCard(t, charNames)).join('');
+  const updatedNote = `<p class="setup-note teams-updated">meta last checked: ${DATA_VERSION}</p>`;
+  document.getElementById('tab-teams').innerHTML = updatedNote + scored.map(t => teamCard(t, charNames)).join('');
 }
 
 function teamCard(team, charNames) {
@@ -699,7 +711,8 @@ function renderPriorityTab() {
   const priority = loadPriority();
   const today = new Date().getDay();
   const container = document.getElementById('tab-priority');
-  container.innerHTML = renderTodaySection(today, priority) + renderWeekSection(priority) + renderQueueSection(priority);
+  const updatedNote = `<p class="setup-note teams-updated">domain schedule last checked: ${DATA_VERSION}</p>`;
+  container.innerHTML = updatedNote + renderTodaySection(today, priority) + renderWeekSection(priority) + renderQueueSection(priority);
   container.querySelectorAll('.target-select').forEach(sel => {
     sel.onchange = () => setPriorityTarget(sel.dataset.name, sel.value);
   });

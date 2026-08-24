@@ -1,5 +1,26 @@
+// See DATA_VERSION in app.js for when this was last checked against the meta.
 const TEAMS_DATA = [
   // --- Tier 0 ---
+  {
+    "name": "Sandrone Stellar-Conduct", "tier": 0, "tags": ["Stellar-Conduct", "Electro", "Cryo"],
+    "notes": "New reaction archetype from 7.0. Odette converts Superconduct into the stronger Stellar-Conduct and buffs it further; Yae Miko keeps pace off-field; Qiqi adds Cryo application, healing, and Stellar-Conduct buffs.",
+    "roles": [
+      { "label": "DPS",     "chars": ["Sandrone"] },
+      { "label": "Cryo",    "chars": ["Odette", "Traveler (Cryo)"] },
+      { "label": "Electro", "chars": ["Yae Miko", "Fischl"] },
+      { "label": "Support", "chars": ["Qiqi", "Alyosha"] }
+    ]
+  },
+  {
+    "name": "Mizuki Stellar-Swirl", "tier": 0, "tags": ["Stellar-Swirl", "Cryo", "Anemo"],
+    "notes": "New reaction archetype from 7.0 — Odette's Cryo Swirl upgrade. Sucrose's EM buff pushes swirl damage further; Odette and a Cryo applicator are close to mandatory here.",
+    "roles": [
+      { "label": "DPS",        "chars": ["Yumemizuki Mizuki"] },
+      { "label": "Cryo",       "chars": ["Odette", "Traveler (Cryo)"] },
+      { "label": "EM Support", "chars": ["Sucrose", "Kazuha"] },
+      { "label": "Flex",       "chars": ["Alyosha", "Furina"] }
+    ]
+  },
   {
     "name": "Mavuika Natlan", "tier": 0, "tags": ["Pyro", "Natlan"],
     "notes": "Citlali provides Cryo shred. Xilonen gives Pyro RES shred and healing.",

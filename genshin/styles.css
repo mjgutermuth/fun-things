@@ -177,6 +177,9 @@ kbd {
     margin: 0;
     line-height: 1.5;
 }
+.teams-updated {
+    margin: 0 0 10px;
+}
 .setup-help-body code {
     background: var(--bg-surface);
     padding: 1px 5px;
