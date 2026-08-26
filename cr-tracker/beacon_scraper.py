@@ -329,12 +329,12 @@ def extract_beacon_content(html, week_date):
         for match in previously_on_matches:
             if match.lastindex == 2:
                 # "Meet The Characters" format
-                title_part = match.group(1).strip()
+                title_part = clean_scraped_text(match.group(1))
                 episode_range = match.group(2)
                 full_title = f'{title_part} | Ep {episode_range} Recap'
             else:
                 # "Previously On... | Arc Name" format
-                arc_name = match.group(1).strip()
+                arc_name = clean_scraped_text(match.group(1))
                 full_title = f'Previously On... | {arc_name}'
                 episode_range = ''
 
@@ -356,7 +356,7 @@ def extract_beacon_content(html, week_date):
     tale_gate_matches = re.finditer(tale_gate_pattern, text, re.IGNORECASE)
 
     for match in tale_gate_matches:
-        arc_name = match.group(1).strip()
+        arc_name = clean_scraped_text(match.group(1))
         full_title = f'Tale Gate | {arc_name}'
 
         content.append({
@@ -535,10 +535,24 @@ def extract_beacon_content(html, week_date):
         if not raw_title or is_excluded_from_generic_fallback(raw_title):
             continue
 
+        # Fix punctuation (curly quotes/dashes/ellipsis) and drop empty
+        # pipe-segments (get_text() sometimes glues two text nodes that each
+        # already contained a "|", e.g. a badge/icon element between them
+        # producing no text of its own - see clean_live_show_title) before
+        # this raw text is split apart or stored anywhere below.
+        segments = [s.strip() for s in clean_scraped_text(raw_title).split('|')]
+        segments = [s for s in segments if s]
+        series_prefix_override, segments = split_generic_series_prefix(segments)
+        cleaned_title = ' | '.join(segments) if segments else raw_title
+
         first_li = ul.find('li')
         first_li_text = first_li.get_text(' ', strip=True) if first_li else ''
 
-        is_cooldown, series_key, episode_number = parse_generic_title(raw_title)
+        is_cooldown, series_key, episode_number = parse_generic_title(cleaned_title)
+        campaign_key = series_key
+        if series_prefix_override:
+            series_key = series_prefix_override
+            campaign_key = ''
         release_date = parse_release_date_from_li(first_li_text, week_date)
 
         note = ('Added from Beacon schedule (auto-detected, please verify)'
@@ -550,9 +564,9 @@ def extract_beacon_content(html, week_date):
             'week_date': week_date.strftime('%Y-%m-%d'),
             'show_type': 'Beacon Exclusive',
             'series': 'Critical Role Cooldown' if is_cooldown else series_key,
-            'campaign': series_key,
+            'campaign': campaign_key,
             'episode_number': episode_number,
-            'title': raw_title,
+            'title': cleaned_title,
             'release_date': release_date,
             'notes': note,
             'is_generic_fallback': True,
@@ -696,6 +710,27 @@ def normalize_text(text):
     return t.strip().lower()
 
 
+def clean_scraped_text(text):
+    """
+    Clean scraped text for display/storage (as opposed to normalize_text(),
+    which lowercases and collapses punctuation for comparison only). Source
+    pages inconsistently use curly quotes/dashes/ellipsis and non-breaking
+    spaces even between scrapes of the same show, which is what made e.g.
+    "Previously On..." show up in the tracker as both the ASCII spelling and
+    "Previously On…" depending on which schedule page/pattern caught it.
+    Preserves original casing and wording - only normalizes punctuation.
+    """
+    if not text:
+        return ''
+    t = text.replace('\xa0', ' ')
+    t = t.replace('‘', "'").replace('’', "'")
+    t = t.replace('“', '"').replace('”', '"')
+    t = t.replace('–', '-').replace('—', '-')
+    t = t.replace('…', '...')
+    t = re.sub(r'\s+', ' ', t)
+    return t.strip()
+
+
 def extract_arc_name(title):
     """
     Extract the arc/episode name from titles with pipe separators.
@@ -792,6 +827,37 @@ def is_manually_reworded_generic_duplicate(scraped_title, episode_number):
     t = scraped_title.lower()
     return any(ep == episode_number and all(kw in t for kw in keywords)
                for keywords, ep in _MANUALLY_REWORDED_GENERIC_ROWS)
+
+
+# Series that show up on the schedule page wrapped in a "<Series Name> |
+# <Subtitle>" site-navigation-style prefix, where the tracker's own
+# convention (see the manually-curated rows, e.g. "How to Play Daggerheart!",
+# "Level Up in Daggerheart!") is to store the series name in the `series`
+# column and just the bare subtitle as the `title` - not the full breadcrumb
+# string. Pattern 8's comment above documents that GYST releases are
+# expected to land via this fallback pass with the real subtitle intact,
+# but the prefix segment was never being split off before storage. Keyed by
+# normalize_text() of the prefix segment -> canonical series name.
+_GENERIC_FALLBACK_KNOWN_SERIES_PREFIXES = {
+    'get your sheet together': 'Get Your Sheet Together',
+    'gyst': 'Get Your Sheet Together',
+}
+
+
+def split_generic_series_prefix(segments):
+    """
+    If the first pipe-segment of a Pattern 13 fallback title is a known
+    series-navigation prefix (see _GENERIC_FALLBACK_KNOWN_SERIES_PREFIXES),
+    split it off. Returns (series_override, remaining_segments) - series_override
+    is None when no known prefix matched, in which case the segments are
+    returned unchanged and the caller should fall back to its usual
+    series-detection logic.
+    """
+    if len(segments) > 1:
+        key = normalize_text(segments[0])
+        if key in _GENERIC_FALLBACK_KNOWN_SERIES_PREFIXES:
+            return _GENERIC_FALLBACK_KNOWN_SERIES_PREFIXES[key], segments[1:]
+    return None, segments
 
 
 def parse_generic_title(raw_title):
