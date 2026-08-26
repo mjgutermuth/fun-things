@@ -27,7 +27,17 @@ A GitHub Actions workflow runs **every Monday at 10 AM UTC** to:
 1. Open `index.html` in a web browser
 2. Filter by show type and series
 3. Check episodes as you watch them
-4. Your progress is saved in browser localStorage
+4. Your progress is saved in browser localStorage on that device
+
+### Syncing Across Devices
+Enter your email in the bar at the top and click "Sign In to Sync," then
+click the magic link sent to your inbox. Once signed in, your watch
+history is tied to your account (via Supabase Auth) instead of the
+browser — log in with the same email on any device and your progress
+follows you. Signing in is optional; skip it and the tracker still works
+fully offline, saved locally on that device only.
+
+Schema/RLS setup for the `cr_sync` table lives in `supabase/schema.sql`.
 
 ### Manual Scraping
 

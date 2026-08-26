@@ -862,9 +862,44 @@
             box-shadow: 0 4px 12px rgba(79, 209, 197, 0.4);
         }
 
+
+    .auth-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 10px 16px;
+        margin: 0 0 16px;
+        background: var(--light);
+        border: 1px solid rgba(107, 70, 193, 0.2);
+        border-radius: 8px;
+        font-size: 0.85rem;
+    }
+
+    .auth-bar input[type="email"] {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.85rem;
+        padding: 6px 10px;
+        border: 1px solid var(--gray);
+        border-radius: 6px;
+        min-width: 220px;
+    }
+
+    .auth-status {
+        color: var(--gray);
+    }
+
+    .auth-status.synced {
+        color: var(--watched-green);
+        font-weight: 600;
+    }
 </style>
 </head>
 <body>
+    <!-- Supabase client (used for account-based sync) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
     <!-- Toast notifications container -->
     <div class="toast-container" id="toastContainer"></div>
 
@@ -887,7 +922,10 @@
             <h1>Critical Role Episode Tracker</h1>
             <p class="subtitle">Track Your Journey Through Exandria & Beyond</p>
         </header>
-        
+
+        <!-- Account / Sync -->
+        <div class="auth-bar" id="authBar"></div>
+
         <!-- Stats -->
         <div class="stats">
             <div class="stat-card" onclick="toggleSeriesProgress('collapsed')" data-view="collapsed">
@@ -984,8 +1022,6 @@
                     <span class="action-group-label">Data:</span>
                     <div class="button-row">
                         <button class="secondary" onclick="exportProgress()" aria-label="Export your watch progress to CSV">📊 Export</button>
-                        <button class="secondary" onclick="copySyncLink()" aria-label="Copy sync link to share across devices">🔗 Copy Sync</button>
-                        <button class="secondary" onclick="useSyncLink()" aria-label="Import sync link from another device">📥 Load Sync</button>
                         <button class="tertiary" onclick="showInstructions()" aria-label="Show usage instructions">❓ Help</button>
                     </div>
                 </div>
@@ -1072,185 +1108,168 @@ async function loadCSV() {
 }
 
 // =========================
-// Sync link helpers
+// Account-based sync (Supabase Auth)
 // =========================
-function getSyncId() {
-    let id = localStorage.getItem('crSyncId');
-    if (!id) {
-        id = crypto.randomUUID();
-        localStorage.setItem('crSyncId', id);
-    }
-    return id;
-}
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUser = null;
 
-function setSyncId(id) {
-    if (!id) return;
-    localStorage.setItem('crSyncId', id);
-}
-
-function applySyncFromUrl() {
-    const params = new URLSearchParams((location.hash || '').replace(/^#/, ''));
-    const incoming = params.get('sync');
-    if (incoming) {
-        setSyncId(incoming);
-        history.replaceState(null, '', location.pathname + location.search);
+function renderAuthUI() {
+    const bar = document.getElementById('authBar');
+    if (currentUser) {
+        bar.innerHTML = `
+            <span class="auth-status synced">✓ Synced as ${escHtml(currentUser.email)}</span>
+            <button class="secondary" onclick="signOut()">Sign Out</button>
+        `;
+    } else {
+        bar.innerHTML = `
+            <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
+            <button class="secondary" onclick="sendMagicLink()">✉️ Sign In to Sync</button>
+            <span class="auth-status">Not signed in — progress saved on this device only</span>
+        `;
     }
 }
 
-async function copySyncLink() {
-    try {
-        const link = `${location.origin}${location.pathname}#sync=${getSyncId()}`;
-        await navigator.clipboard.writeText(link);
-        showToast('Link copied to clipboard! Open it on another device to sync.', 'Sync Link Copied', 'success');
-    } catch (error) {
-        showToast('Failed to copy link. Please try again.', 'Copy Failed', 'error');
-    }
-}
-
-async function useSyncLink() {
-    const input = prompt('Paste a sync link (or just the sync ID):');
-    if (!input) return;
-
-    const match = input.match(/sync=([A-Za-z0-9\-]+)/);
-    const id = match ? match[1] : input.trim();
-
-    if (!id) {
-        showToast('Invalid sync link or ID.', 'Error', 'error');
+async function sendMagicLink() {
+    const email = document.getElementById('authEmail')?.value.trim();
+    if (!email) {
+        showToast('Enter an email address first.', 'Sign In', 'error');
         return;
     }
 
-    setSyncId(id);
-    showToast('Sync ID saved. Loading data...', 'Sync Updated', 'info');
+    const redirectTo = `${location.origin}${location.pathname}`;
+    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
 
-    try {
-        const syncResult = await remoteLoadWatchedStatus();
-        applyFiltersAndRender();
-
-        if (syncResult.changes > 0) {
-            showToast(`Successfully synced ${syncResult.changes} change${syncResult.changes > 1 ? 's' : ''} from sync link.`, 'Sync Complete', 'success');
-        } else {
-            showToast('Successfully loaded watch history from sync.', 'Sync Complete', 'success');
-        }
-    } catch (error) {
-        showToast('Failed to load data from sync. Please try again.', 'Sync Failed', 'error');
+    if (error) {
+        showToast(error.message, 'Sign-In Failed', 'error');
+    } else {
+        showToast(`Check ${email} for a login link.`, 'Magic Link Sent', 'success');
     }
 }
 
+async function signOut() {
+    await sb.auth.signOut();
+    showToast('Signed out. Your progress is still saved on this device.', 'Signed Out', 'info');
+}
 
-        async function remoteLoadWatchedStatus() {
-            const syncId = getSyncId();
-            const url = `${SUPABASE_URL}/rest/v1/cr_sync?sync_id=eq.${encodeURIComponent(syncId)}&select=watched_status,updated_at`;
+async function initAuth() {
+    const { data: { session } } = await sb.auth.getSession();
+    currentUser = session?.user || null;
+    renderAuthUI();
 
+    sb.auth.onAuthStateChange(async (event, session) => {
+        currentUser = session?.user || null;
+        renderAuthUI();
+
+        if (event === 'SIGNED_IN') {
             try {
-                const res = await fetch(url, {
-                    headers: {
-                        apikey: SUPABASE_ANON_KEY,
-                        authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-                    },
-                    cache: 'no-store',
-                });
-
-                if (!res.ok) {
-                    throw new Error(`HTTP ${res.status}`);
-                }
-
-                const rows = await res.json();
-                const remoteData = rows?.[0];
-
-                if (!remoteData) {
-                    // No remote data yet
-                    return { changes: 0, source: 'none' };
-                }
-
-                const remote = remoteData.watched_status || {};
-                const remoteTimestamp = new Date(remoteData.updated_at || 0).getTime();
-
-                // Merge strategy: Use timestamp-based conflict resolution
-                // If remote is newer, prefer remote values
-                // If local is newer, keep local values
-                // If timestamps are equal, merge with remote taking precedence
-                const localTimestamp = lastSyncTimestamp || 0;
-
-                let changesApplied = 0;
-                let source = 'none';
-
-                if (remoteTimestamp > localTimestamp) {
-                    // Remote is newer - merge with remote taking precedence
-                    // Count changes
-                    Object.keys(remote).forEach(key => {
-                        if (watchedStatus[key] !== remote[key]) {
-                            changesApplied++;
-                        }
-                    });
-
-                    watchedStatus = { ...watchedStatus, ...remote };
-                    lastSyncTimestamp = remoteTimestamp;
-                    localStorage.setItem('crLastSyncTimestamp', remoteTimestamp.toString());
-                    saveWatchedStatus();
-                    source = 'remote';
+                const syncResult = await remoteLoadWatchedStatus();
+                applyFiltersAndRender();
+                if (syncResult.changes > 0) {
+                    showToast(`Synced ${syncResult.changes} change${syncResult.changes > 1 ? 's' : ''} from your account`, 'Sync Complete', 'success');
                 } else {
-                    // Local is newer or same - keep local but merge any new episodes from remote
-                    Object.keys(remote).forEach(key => {
-                        if (watchedStatus[key] === undefined) {
-                            watchedStatus[key] = remote[key];
-                            changesApplied++;
-                        }
-                    });
-                    saveWatchedStatus();
-                    source = 'local';
+                    showToast('Signed in — this device is now synced.', 'Sync Complete', 'success');
                 }
-
-                return { changes: changesApplied, source };
+                // Ensure the account row reflects this device's merged state right away
+                await remoteSaveWatchedStatus();
             } catch (error) {
-                console.error('Failed to load sync data:', error);
-                throw error;
+                console.warn('Post-sign-in sync failed:', error);
             }
         }
+    });
+}
 
-        async function remoteSaveWatchedStatus() {
-            const syncId = getSyncId();
-            const timestamp = new Date().toISOString();
+async function remoteLoadWatchedStatus() {
+    if (!currentUser) return { changes: 0, source: 'none' };
 
-            const body = {
-                sync_id: syncId,
-                watched_status: watchedStatus,
-                updated_at: timestamp,
-            };
+    try {
+        const { data, error } = await sb
+            .from('cr_sync')
+            .select('watched_status, updated_at')
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
 
-            try {
-                const res = await fetch(`${SUPABASE_URL}/rest/v1/cr_sync`, {
-                    method: 'POST',
-                    headers: {
-                        'content-type': 'application/json',
-                        apikey: SUPABASE_ANON_KEY,
-                        authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-                        prefer: 'resolution=merge-duplicates',
-                    },
-                    body: JSON.stringify(body),
-                });
+        if (error) throw error;
 
-                if (!res.ok) {
-                    throw new Error(`HTTP ${res.status}`);
-                }
-
-                // Update local timestamp after successful save
-                lastSyncTimestamp = new Date(timestamp).getTime();
-                localStorage.setItem('crLastSyncTimestamp', lastSyncTimestamp.toString());
-            } catch (error) {
-                console.error('Failed to save sync data:', error);
-                showToast('Failed to sync with cloud. Your changes are saved locally.', 'Sync Warning', 'error');
-            }
+        if (!data) {
+            // No remote data yet for this account
+            return { changes: 0, source: 'none' };
         }
+
+        const remote = data.watched_status || {};
+        const remoteTimestamp = new Date(data.updated_at || 0).getTime();
+
+        // Merge strategy: Use timestamp-based conflict resolution
+        // If remote is newer, prefer remote values
+        // If local is newer, keep local values
+        const localTimestamp = lastSyncTimestamp || 0;
+
+        let changesApplied = 0;
+        let source = 'none';
+
+        if (remoteTimestamp > localTimestamp) {
+            // Remote is newer - merge with remote taking precedence
+            Object.keys(remote).forEach(key => {
+                if (watchedStatus[key] !== remote[key]) {
+                    changesApplied++;
+                }
+            });
+
+            watchedStatus = { ...watchedStatus, ...remote };
+            lastSyncTimestamp = remoteTimestamp;
+            localStorage.setItem('crLastSyncTimestamp', remoteTimestamp.toString());
+            saveWatchedStatus();
+            source = 'remote';
+        } else {
+            // Local is newer or same - keep local but merge any new episodes from remote
+            Object.keys(remote).forEach(key => {
+                if (watchedStatus[key] === undefined) {
+                    watchedStatus[key] = remote[key];
+                    changesApplied++;
+                }
+            });
+            saveWatchedStatus();
+            source = 'local';
+        }
+
+        return { changes: changesApplied, source };
+    } catch (error) {
+        console.error('Failed to load sync data:', error);
+        throw error;
+    }
+}
+
+async function remoteSaveWatchedStatus() {
+    if (!currentUser) return;
+
+    const timestamp = new Date().toISOString();
+
+    try {
+        const { error } = await sb
+            .from('cr_sync')
+            .upsert(
+                { user_id: currentUser.id, watched_status: watchedStatus, updated_at: timestamp },
+                { onConflict: 'user_id' }
+            );
+
+        if (error) throw error;
+
+        lastSyncTimestamp = new Date(timestamp).getTime();
+        localStorage.setItem('crLastSyncTimestamp', lastSyncTimestamp.toString());
+    } catch (error) {
+        console.error('Failed to save sync data:', error);
+        showToast('Failed to sync with your account. Your changes are saved locally.', 'Sync Warning', 'error');
+    }
+}
 
 // Initialize
         document.addEventListener('DOMContentLoaded', () => { init().catch(console.error); });
-        
+
         async function init() {
             try {
-                applySyncFromUrl();
                 loadWatchedStatus();
+                await initAuth();
 
-                // Load remote data with user feedback
+                // Load remote data with user feedback (only meaningful if signed in)
                 try {
                     const syncResult = await remoteLoadWatchedStatus();
                     if (syncResult.changes > 0) {
@@ -1991,9 +2010,10 @@ BASICS:
 • Progress auto-saves
 
 SYNC DEVICES:
-• "Copy Sync Link" → share to other devices
-• "Use Sync Link" → paste link to sync
-• Works across phones/tablets/computers
+• Enter your email in the bar up top and click "Sign In to Sync"
+• Click the magic link we email you — on any device, any time
+• Your progress follows your account, not the browser
+• Skip sign-in and it still saves locally on this device only
 
 TIPS:
 • Filter Type first, then Series
