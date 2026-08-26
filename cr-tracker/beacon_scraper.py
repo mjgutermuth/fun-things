@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 import time
 import csv
+from collections import Counter
 from itertools import permutations
 
 # Try Playwright first, fall back to requests
@@ -998,6 +999,21 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
     existing_ids = {row['episode_id'] for row in existing_rows if row['episode_id']}
     existing_ids_normalized = {normalize_text(row['episode_id']) for row in existing_rows if row['episode_id']}
 
+    # Established campaign names (and their usual show_type), keyed by
+    # normalize_text() so a generic-fallback row can fold into one of these
+    # by exact name match instead of minting a new one-off category out of
+    # unrecognized raw scraped text (see the fold-or-blank logic below).
+    existing_campaign_display = {}
+    existing_campaign_show_types = {}
+    for row in existing_rows:
+        campaign = row.get('campaign', '')
+        if not campaign:
+            continue
+        key = normalize_text(campaign)
+        existing_campaign_display.setdefault(key, campaign)
+        existing_campaign_show_types.setdefault(key, Counter())
+        existing_campaign_show_types[key][row.get('show_type', '')] += 1
+
     # Build additional lookup sets for smarter duplicate detection
     # For Cooldowns: check if we already have a cooldown for that episode number
     existing_cooldowns = set()
@@ -1125,6 +1141,31 @@ def merge_into_main_csv(scraped_content, main_csv='cr_episodes_series_airdates.c
         elif series_name == 'Live Show':
             show_type = 'Special'
             campaign = 'Specials'
+        elif series_name in show_type_mapping:
+            show_type = show_type_mapping[series_name]
+            campaign = series_name
+        elif item.get('is_generic_fallback'):
+            # series_name is raw, unrecognized scraped text - often a
+            # pipe-joined "<Segment> | <Segment> | ..." string (e.g. a site
+            # nav breadcrumb or a subtitle glued onto a known show name).
+            # Rather than minting a brand-new one-off category out of it
+            # (every such string would become its own permanent, never-to-
+            # recur "campaign"), try folding the first segment into an
+            # ALREADY-ESTABLISHED campaign by exact name match, and
+            # otherwise leave campaign blank so it surfaces for manual
+            # triage (e.g. via edit_titles.py) instead of silently becoming
+            # noise in the series/campaign list.
+            segments = [s.strip() for s in item['title'].split('|') if s.strip()]
+            fold_key = normalize_text(segments[0]) if len(segments) > 1 else ''
+            if fold_key in existing_campaign_display:
+                campaign = existing_campaign_display[fold_key]
+                show_type = existing_campaign_show_types[fold_key].most_common(1)[0][0]
+                item = dict(item)
+                item['title'] = ' | '.join(segments[1:])
+                series_name = campaign
+            else:
+                show_type = 'Webseries'
+                campaign = ''
         else:
             show_type = show_type_mapping.get(series_name, 'Webseries')
             campaign = series_name
