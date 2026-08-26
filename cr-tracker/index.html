@@ -1255,7 +1255,7 @@ async function remoteSaveWatchedStatus() {
         const { error } = await sb
             .from('cr_sync')
             .upsert(
-                { user_id: currentUser.id, watched_status: watchedStatus, updated_at: timestamp },
+                { sync_id: currentUser.id, user_id: currentUser.id, watched_status: watchedStatus, updated_at: timestamp },
                 { onConflict: 'user_id' }
             );
 

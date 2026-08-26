@@ -9,8 +9,18 @@
 
 alter table cr_sync add column if not exists user_id uuid references auth.users(id) on delete cascade;
 
+-- sync_id is the table's primary key (NOT NULL, and Postgres won't let you
+-- drop NOT NULL from a PK column - don't try). The app now just writes the
+-- user's own id into sync_id too on every save, so it stays populated
+-- without needing a schema change. It's otherwise unused going forward.
+
 -- One row per account. Required for the app's upsert(..., { onConflict: 'user_id' }).
-create unique index if not exists cr_sync_user_id_key on cr_sync (user_id) where user_id is not null;
+-- Must NOT be a partial index (no `where user_id is not null`) - Postgres
+-- won't use a partial index as an ON CONFLICT arbiter unless the query
+-- repeats the same WHERE clause. A plain unique index works fine here:
+-- NULL user_id values (the old anonymous rows) never count as duplicates
+-- of each other under a unique index.
+create unique index if not exists cr_sync_user_id_key on cr_sync (user_id);
 
 alter table cr_sync enable row level security;
 
