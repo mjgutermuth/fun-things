@@ -40,3 +40,63 @@ create policy "update own sync" on cr_sync
 -- but are now unreachable under RLS since nothing queries by sync_id anymore.
 -- Safe to delete manually later once you've confirmed the new login-based
 -- sync has your data on every device: delete from cr_sync where user_id is null;
+
+-- admins table: marks which auth.users account(s) may write episode
+-- corrections (see episode_overrides below). Deliberately holds nothing but
+-- an opaque user_id - no email, no name - so this file (and this public
+-- repo's history) never contains anything identifying. To grant yourself
+-- access, run this ONCE directly in the Supabase SQL editor - do not add it
+-- to this file or commit it anywhere:
+--
+--   insert into admins (user_id)
+--   select id from auth.users where email = 'your-email-here'
+--   on conflict do nothing;
+
+create table if not exists admins (
+    user_id uuid primary key references auth.users(id) on delete cascade
+);
+
+alter table admins enable row level security;
+
+-- A signed-in user may check only their OWN membership (the app uses this to
+-- decide whether to show Edit Mode at all) - never the full admin list.
+drop policy if exists "check own admin status" on admins;
+create policy "check own admin status" on admins
+    for select using (auth.uid() = user_id);
+
+-- episode_overrides table: manual corrections to scraped episode data made
+-- from the tracker's "Edit Mode", applied as a display-layer patch over the
+-- CSV rather than editing it directly (the frontend is static and has no
+-- way to write to a file). Keyed by the CSV's own episode_id.
+--
+-- Everyone can read overrides, so a corrected title shows for every visitor -
+-- only accounts listed in `admins` may write one.
+
+create table if not exists episode_overrides (
+    episode_id text primary key,
+    show_type text,
+    campaign text,
+    episode_number text,
+    title text,
+    updated_at timestamptz not null default now(),
+    updated_by uuid references auth.users(id)
+);
+
+alter table episode_overrides enable row level security;
+
+drop policy if exists "anyone can read overrides" on episode_overrides;
+create policy "anyone can read overrides" on episode_overrides
+    for select using (true);
+
+drop policy if exists "admins can insert overrides" on episode_overrides;
+create policy "admins can insert overrides" on episode_overrides
+    for insert with check (exists (select 1 from admins where user_id = auth.uid()));
+
+drop policy if exists "admins can update overrides" on episode_overrides;
+create policy "admins can update overrides" on episode_overrides
+    for update using (exists (select 1 from admins where user_id = auth.uid()))
+    with check (exists (select 1 from admins where user_id = auth.uid()));
+
+drop policy if exists "admins can delete overrides" on episode_overrides;
+create policy "admins can delete overrides" on episode_overrides
+    for delete using (exists (select 1 from admins where user_id = auth.uid()));

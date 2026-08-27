@@ -1086,6 +1086,37 @@
         const SUPABASE_URL = 'https://wkqjgakouqjvfoyseaui.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_SjeQmp9d-N8gqZAO_16znw_IylMNfzO';
 
+        // Whether the signed-in account is listed in the `admins` table (see
+        // supabase/schema.sql) - the only accounts allowed to write to
+        // episode_overrides, enforced server-side via RLS. Nothing
+        // identifying anyone is stored in this file; refreshIsAdmin() below
+        // asks Supabase, which only ever answers for the caller's own account.
+        let episodeOverrides = {}; // episode_id -> override row from Supabase
+        let editModeOn = false;
+        let editingId = null; // id of the one row currently showing edit inputs, or null
+        let isAdminUser = false;
+
+        function isOwner() {
+            return isAdminUser;
+        }
+
+        async function refreshIsAdmin() {
+            if (!currentUser) {
+                isAdminUser = false;
+                return;
+            }
+            try {
+                const { data, error } = await sb
+                    .from('admins')
+                    .select('user_id')
+                    .eq('user_id', currentUser.id)
+                    .maybeSingle();
+                isAdminUser = !error && !!data;
+            } catch (error) {
+                isAdminUser = false;
+            }
+        }
+
         // Toast notification system
         function showToast(message, title = '', type = 'info') {
             const container = document.getElementById('toastContainer');
@@ -1121,6 +1152,18 @@ async function loadCSV() {
     }
 }
 
+async function loadOverrides() {
+    try {
+        const { data, error } = await sb.from('episode_overrides').select('*');
+        if (error) throw error;
+        episodeOverrides = {};
+        (data || []).forEach(row => { episodeOverrides[row.episode_id] = row; });
+    } catch (error) {
+        // Overrides are optional polish on top of the CSV - don't block loading over it
+        console.warn('Could not load episode overrides:', error);
+    }
+}
+
 // =========================
 // Account-based sync (Supabase Auth)
 // =========================
@@ -1138,8 +1181,12 @@ function escHtml(str) {
 function renderAuthUI() {
     const bar = document.getElementById('authBar');
     if (currentUser) {
+        const editModeButton = isOwner()
+            ? `<button class="${editModeOn ? 'primary' : 'secondary'}" onclick="toggleEditMode()">✏️ Edit Mode: ${editModeOn ? 'On' : 'Off'}</button>`
+            : '';
         bar.innerHTML = `
             <span class="auth-status synced">✓ Synced as ${escHtml(currentUser.email)}</span>
+            ${editModeButton}
             <button class="secondary" onclick="signOut()">Sign Out</button>
         `;
     } else {
@@ -1176,10 +1223,12 @@ async function signOut() {
 async function initAuth() {
     const { data: { session } } = await sb.auth.getSession();
     currentUser = session?.user || null;
+    await refreshIsAdmin();
     renderAuthUI();
 
     sb.auth.onAuthStateChange(async (event, session) => {
         currentUser = session?.user || null;
+        await refreshIsAdmin();
         renderAuthUI();
 
         if (event === 'SIGNED_IN') {
@@ -1306,7 +1355,7 @@ async function remoteSaveWatchedStatus() {
                     console.warn('Remote sync unavailable, using local data only');
                 }
 
-                CSV_DATA = await loadCSV();
+                [CSV_DATA] = await Promise.all([loadCSV(), loadOverrides()]);
                 parseCSV();
                 populateFilters();
                 setupEventListeners();
@@ -1377,6 +1426,16 @@ async function remoteSaveWatchedStatus() {
 
 
         
+        function applyDerivedFields(episode) {
+            // For Miniseries, "campaign" holds the series name (e.g., Exandria Unlimited, Candela Obscura).
+            // We keep a separate bucket field so the Campaign dropdown doesn't explode.
+            episode.series = (episode.show_type === 'Miniseries') ? episode.campaign : '';
+            episode.campaign_bucket = (episode.show_type === 'Miniseries') ? 'Miniseries' : episode.campaign;
+
+            // Derived field for Specials categorization (used for Series filter when Type=Special)
+            episode.special_category = (episode.show_type === 'Special') ? classifySpecial(episode) : '';
+        }
+
         function parseCSV() {
             const lines = CSV_DATA.trim().split('\n');
             const headers = lines[0].split(',');
@@ -1391,27 +1450,31 @@ async function remoteSaveWatchedStatus() {
 
                 // Use episode_id from CSV as the unique ID
                 episode.id = episode.episode_id || [episode.show_type, episode.campaign, episode.episode_number, episode.title].join('|');
+
+                // Apply any owner-made correction (Edit Mode) on top of the raw scrape
+                const override = episodeOverrides[episode.id];
+                if (override) {
+                    if (override.show_type) episode.show_type = override.show_type;
+                    if (override.campaign) episode.campaign = override.campaign;
+                    if (override.episode_number) episode.episode_number = override.episode_number;
+                    if (override.title) episode.title = override.title;
+                    episode.hasOverride = true;
+                }
+
 // Set watched status
                 if (watchedStatus[episode.id] !== undefined) {
                     episode.watched = watchedStatus[episode.id];
                 } else {
                     episode.watched = episode.watched === 'TRUE' || episode.watched === 'true';
                 }
-                
 
-                // Derived fields for cleaner filtering + display
-                // For Miniseries, "campaign" holds the series name (e.g., Exandria Unlimited, Candela Obscura).
-                // We keep a separate bucket field so the Campaign dropdown doesn't explode.
-                episode.series = (episode.show_type === 'Miniseries') ? episode.campaign : '';
-                episode.campaign_bucket = (episode.show_type === 'Miniseries') ? 'Miniseries' : episode.campaign;
 
                 // Normalize Backstage Pass into Specials (no separate Type/Series)
                 if (episode.show_type === 'Backstage Pass') {
                     episode.show_type = 'Special';
                 }
 
-                // Derived field for Specials categorization (used for Series filter when Type=Special)
-                episode.special_category = (episode.show_type === 'Special') ? classifySpecial(episode) : '';
+                applyDerivedFields(episode);
 
                 allEpisodes.push(episode);
             }
@@ -1623,26 +1686,54 @@ async function remoteSaveWatchedStatus() {
                     : (ep.show_type === 'Special'
                         ? (ep.special_category || '—')
                         : (ep.campaign_bucket || ep.campaign || '—'));
+                const overrideMark = ep.hasOverride ? ' <span title="Manually edited" style="opacity: 0.6;">✎</span>' : '';
+
+                const idJs = ep.id.replace(/'/g, "\\'"); // for embedding in onclick="...('...')" JS-string context
+                const idAttr = escHtml(ep.id); // for embedding as an HTML id="..." attribute value
+                const canEditRow = editModeOn && isOwner();
+                let showTypeCell, campaignCell, episodeNumberCell, titleCell, actionCell;
+
+                if (canEditRow && editingId === ep.id) {
+                    const showTypeOptions = getKnownShowTypes().map(t =>
+                        `<option value="${escHtml(t)}" ${t === ep.show_type ? 'selected' : ''}>${escHtml(t)}</option>`
+                    ).join('');
+                    showTypeCell = `<select id="edit-show_type-${idAttr}">${showTypeOptions}</select>`;
+                    campaignCell = `<input type="text" id="edit-campaign-${idAttr}" value="${escHtml(ep.campaign)}" style="width: 100%;">`;
+                    episodeNumberCell = `<input type="text" id="edit-episode_number-${idAttr}" value="${escHtml(ep.episode_number)}" style="width: 50px;">`;
+                    titleCell = `<input type="text" id="edit-title-${idAttr}" value="${escHtml(ep.title)}" style="width: 100%;">`;
+                    actionCell = `
+                        <button class="tertiary" onclick="saveEdit('${idJs}')">💾 Save</button>
+                        <button class="tertiary" onclick="cancelEdit()">✕ Cancel</button>
+                    `;
+                } else {
+                    showTypeCell = `<span class="show-badge ${showBadgeClass}">${ep.show_type}</span>`;
+                    campaignCell = campaignDisplay;
+                    episodeNumberCell = `<span class="episode-number">${ep.episode_number || '—'}</span>`;
+                    titleCell = `
+                        ${ep.vod_url ? `<a href="${ep.vod_url}" target="_blank" rel="noopener noreferrer" aria-label="Watch ${ep.title}">${ep.title}</a>` : ep.title}
+                        ${overrideMark}
+                        ${cooldownBadge}
+                    `;
+                    actionCell = canEditRow ? `<button class="tertiary" onclick="startEdit('${idJs}')">✏️ Edit</button>` : '';
+                }
 
                 tr.innerHTML = `
                     <td class="checkbox-cell">
                         <input type="checkbox"
                                ${ep.watched ? 'checked' : ''}
-                               onchange="toggleWatched('${ep.id.replace(/'/g, "\\'")}')"
+                               onchange="toggleWatched('${idJs}')"
                                aria-label="Mark ${ep.title.replace(/'/g, "\\'")} as ${ep.watched ? 'unwatched' : 'watched'}">
                     </td>
-                    <td><span class="show-badge ${showBadgeClass}">${ep.show_type}</span></td>
-                    <td>${campaignDisplay}</td>
-                    <td><span class="episode-number">${ep.episode_number || '—'}</span></td>
-                    <td class="episode-title">
-                        ${ep.vod_url ? `<a href="${ep.vod_url}" target="_blank" rel="noopener noreferrer" aria-label="Watch ${ep.title}">${ep.title}</a>` : ep.title}
-                        ${cooldownBadge}
-                    </td>
+                    <td>${showTypeCell}</td>
+                    <td>${campaignCell}</td>
+                    <td>${episodeNumberCell}</td>
+                    <td class="episode-title">${titleCell}</td>
                     <td class="airdate">${ep.airdate || '—'}</td>
                     <td class="runtime">${ep.runtime || '—'}</td>
                     <td>
                         ${ep.vod_url ? `<a href="${ep.vod_url}" target="_blank" rel="noopener noreferrer" style="color: var(--beacon-teal);" aria-label="Watch episode">▶</a>` : ''}
                         ${ep.wiki_url ? `<a href="${ep.wiki_url}" target="_blank" rel="noopener noreferrer" style="color: var(--beacon-accent); margin-left: 8px;" aria-label="Read wiki">📖</a>` : ''}
+                        ${actionCell}
                     </td>
                 `;
 
@@ -1675,26 +1766,64 @@ async function remoteSaveWatchedStatus() {
                     : (ep.show_type === 'Special'
                         ? (ep.special_category || '—')
                         : (ep.campaign_bucket || ep.campaign || '—'));
+                const overrideMark = ep.hasOverride ? ' <span title="Manually edited" style="opacity: 0.6;">✎</span>' : '';
+
+                const idJs = ep.id.replace(/'/g, "\\'"); // for embedding in onclick="...('...')" JS-string context
+                const idAttr = escHtml(ep.id); // for embedding as an HTML id="..." attribute value
+                const canEditRow = editModeOn && isOwner();
+                const isEditingThisCard = canEditRow && editingId === ep.id;
+
+                let cardTitleBlock, campaignBlock, episodeNumberBlock, editActionsBlock;
+
+                if (isEditingThisCard) {
+                    const showTypeOptions = getKnownShowTypes().map(t =>
+                        `<option value="${escHtml(t)}" ${t === ep.show_type ? 'selected' : ''}>${escHtml(t)}</option>`
+                    ).join('');
+                    cardTitleBlock = `
+                        <div><select id="edit-show_type-${idAttr}">${showTypeOptions}</select></div>
+                        <div class="episode-title" style="margin-top: 8px;">
+                            <input type="text" id="edit-title-${idAttr}" value="${escHtml(ep.title)}" style="width: 100%;">
+                        </div>
+                    `;
+                    campaignBlock = `<input type="text" id="edit-campaign-${idAttr}" value="${escHtml(ep.campaign)}">`;
+                    episodeNumberBlock = `<input type="text" id="edit-episode_number-${idAttr}" value="${escHtml(ep.episode_number)}" style="width: 50px;">`;
+                    editActionsBlock = `
+                        <div class="episode-card-links">
+                            <button class="tertiary" onclick="saveEdit('${idJs}')">💾 Save</button>
+                            <button class="tertiary" onclick="cancelEdit()">✕ Cancel</button>
+                        </div>
+                    `;
+                } else {
+                    cardTitleBlock = `
+                        <div><span class="show-badge ${showBadgeClass}">${ep.show_type}</span></div>
+                        <div class="episode-title" style="margin-top: 8px;">
+                            ${ep.vod_url ? `<a href="${ep.vod_url}" target="_blank" rel="noopener noreferrer" aria-label="Watch ${ep.title}">${ep.title}</a>` : ep.title}
+                            ${overrideMark}
+                            ${cooldownBadge}
+                        </div>
+                    `;
+                    campaignBlock = campaignDisplay;
+                    episodeNumberBlock = ep.episode_number || '—';
+                    editActionsBlock = canEditRow
+                        ? `<div class="episode-card-links"><button class="tertiary" onclick="startEdit('${idJs}')">✏️ Edit</button></div>`
+                        : '';
+                }
 
                 card.innerHTML = `
                     <div class="episode-card-header">
                         <div class="episode-card-title">
-                            <div><span class="show-badge ${showBadgeClass}">${ep.show_type}</span></div>
-                            <div class="episode-title" style="margin-top: 8px;">
-                                ${ep.vod_url ? `<a href="${ep.vod_url}" target="_blank" rel="noopener noreferrer" aria-label="Watch ${ep.title}">${ep.title}</a>` : ep.title}
-                                ${cooldownBadge}
-                            </div>
+                            ${cardTitleBlock}
                         </div>
                         <div class="episode-card-checkbox">
                             <input type="checkbox"
                                    ${ep.watched ? 'checked' : ''}
-                                   onchange="toggleWatched('${ep.id.replace(/'/g, "\\'")}')"
+                                   onchange="toggleWatched('${idJs}')"
                                    aria-label="Mark ${ep.title.replace(/'/g, "\\'")} as ${ep.watched ? 'unwatched' : 'watched'}">
                         </div>
                     </div>
                     <div class="episode-card-meta">
-                        <span><strong>Campaign:</strong> ${campaignDisplay}</span>
-                        <span><strong>Episode:</strong> ${ep.episode_number || '—'}</span>
+                        <span><strong>Campaign:</strong> ${campaignBlock}</span>
+                        <span><strong>Episode:</strong> ${episodeNumberBlock}</span>
                         <span><strong>Air Date:</strong> ${ep.airdate || '—'}</span>
                         <span><strong>Runtime:</strong> ${ep.runtime || '—'}</span>
                     </div>
@@ -1704,6 +1833,7 @@ async function remoteSaveWatchedStatus() {
                             ${ep.wiki_url ? `<a href="${ep.wiki_url}" target="_blank" rel="noopener noreferrer" aria-label="Read wiki" style="color: var(--beacon-accent);">📖 Wiki</a>` : ''}
                         </div>
                     ` : ''}
+                    ${editActionsBlock}
                 `;
 
                 fragment.appendChild(card);
@@ -1752,6 +1882,73 @@ async function remoteSaveWatchedStatus() {
             saveWatchedStatus();
             applyFiltersAndRender();
             remoteSaveWatchedStatus();
+        }
+
+        function getKnownShowTypes() {
+            return [...new Set(allEpisodes.map(e => e.show_type))].filter(Boolean).sort();
+        }
+
+        function toggleEditMode() {
+            editModeOn = !editModeOn;
+            editingId = null;
+            renderAuthUI();
+            applyFiltersAndRender();
+        }
+
+        function startEdit(id) {
+            editingId = id;
+            applyFiltersAndRender();
+        }
+
+        function cancelEdit() {
+            editingId = null;
+            applyFiltersAndRender();
+        }
+
+        async function saveEdit(id) {
+            const episode = allEpisodes.find(e => e.id === id);
+            if (!episode) return;
+
+            const showType = document.getElementById(`edit-show_type-${id}`)?.value.trim();
+            const campaign = document.getElementById(`edit-campaign-${id}`)?.value.trim();
+            const episodeNumber = document.getElementById(`edit-episode_number-${id}`)?.value.trim();
+            const title = document.getElementById(`edit-title-${id}`)?.value.trim();
+
+            if (!showType || !title) {
+                showToast('Show type and title cannot be blank.', 'Edit Episode', 'error');
+                return;
+            }
+
+            const payload = {
+                episode_id: id,
+                show_type: showType,
+                campaign: campaign,
+                episode_number: episodeNumber,
+                title: title,
+                updated_at: new Date().toISOString(),
+                updated_by: currentUser.id,
+            };
+
+            try {
+                const { error } = await sb.from('episode_overrides').upsert(payload, { onConflict: 'episode_id' });
+                if (error) throw error;
+            } catch (error) {
+                console.error('Failed to save episode edit:', error);
+                showToast(error.message || 'Failed to save edit.', 'Save Failed', 'error');
+                return;
+            }
+
+            episodeOverrides[id] = payload;
+            episode.show_type = showType;
+            episode.campaign = campaign;
+            episode.episode_number = episodeNumber;
+            episode.title = title;
+            episode.hasOverride = true;
+            applyDerivedFields(episode);
+
+            editingId = null;
+            applyFiltersAndRender();
+            showToast('Episode updated.', 'Saved', 'success');
         }
         
         function markAllFiltered(watched) {
