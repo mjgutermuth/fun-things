@@ -38,6 +38,14 @@ jobs:
           python3 beacon_scraper.py > beacon_scraper_output.log 2>&1 || true
           cat beacon_scraper_output.log
 
+      - name: Apply Edit Mode corrections (episode_overrides -> CSV)
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          cd cr-tracker
+          python3 apply_overrides.py > apply_overrides_output.log 2>&1 || true
+          cat apply_overrides_output.log
+
       - name: Check for changes
         id: check_changes
         run: |
