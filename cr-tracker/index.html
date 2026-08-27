@@ -908,6 +908,33 @@
             width: 100%;
         }
     }
+
+    footer {
+        text-align: center;
+        margin-top: 4rem;
+        padding-bottom: 2rem;
+        color: var(--gray);
+        font-size: 0.8rem;
+    }
+
+    .kofi-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-top: 1rem;
+        padding: 0.5rem 1rem;
+        background: #FF5E5B;
+        color: white !important;
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        transition: opacity 0.2s ease;
+    }
+
+    .kofi-link:hover {
+        opacity: 0.85;
+    }
 </style>
 </head>
 <body>
@@ -1069,8 +1096,14 @@
                 <div class="loading">Loading episodes...</div>
             </div>
         </div>
+
+        <footer>
+            <a href="https://ko-fi.com/melimuth" target="_blank" class="kofi-link">
+                ☕ buy me a coffee
+            </a>
+        </footer>
     </div>
-    
+
     <script>
         // App State
         let allEpisodes = [];
@@ -1114,6 +1147,21 @@
                 isAdminUser = !error && !!data;
             } catch (error) {
                 isAdminUser = false;
+            }
+        }
+
+        let ownerStats = null;
+
+        async function refreshOwnerStats() {
+            if (!isAdminUser) {
+                ownerStats = null;
+                return;
+            }
+            try {
+                const { data, error } = await sb.rpc('admin_stats');
+                ownerStats = error ? null : data;
+            } catch (error) {
+                ownerStats = null;
             }
         }
 
@@ -1184,10 +1232,18 @@ function renderAuthUI() {
         const editModeButton = isOwner()
             ? `<button class="${editModeOn ? 'primary' : 'secondary'}" onclick="toggleEditMode()">✏️ Edit Mode: ${editModeOn ? 'On' : 'Off'}</button>`
             : '';
+        const ownerStatsLine = (isOwner() && ownerStats)
+            ? `<div class="auth-status" style="width: 100%; margin-top: 6px; opacity: 0.8;">
+                   👥 ${ownerStats.synced_accounts}/${ownerStats.total_accounts} account${ownerStats.total_accounts === 1 ? '' : 's'} synced
+                   ${ownerStats.most_recent_sync ? `· last sync ${new Date(ownerStats.most_recent_sync).toLocaleDateString()}` : ''}
+                   ${ownerStats.pending_overrides ? `· ${ownerStats.pending_overrides} edit${ownerStats.pending_overrides === 1 ? '' : 's'} pending` : ''}
+               </div>`
+            : '';
         bar.innerHTML = `
             <span class="auth-status synced">✓ Synced as ${escHtml(currentUser.email)}</span>
             ${editModeButton}
             <button class="secondary" onclick="signOut()">Sign Out</button>
+            ${ownerStatsLine}
         `;
     } else {
         bar.innerHTML = `
@@ -1224,11 +1280,13 @@ async function initAuth() {
     const { data: { session } } = await sb.auth.getSession();
     currentUser = session?.user || null;
     await refreshIsAdmin();
+    await refreshOwnerStats();
     renderAuthUI();
 
     sb.auth.onAuthStateChange(async (event, session) => {
         currentUser = session?.user || null;
         await refreshIsAdmin();
+        await refreshOwnerStats();
         renderAuthUI();
 
         if (event === 'SIGNED_IN') {

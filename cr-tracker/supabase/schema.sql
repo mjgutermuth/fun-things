@@ -100,3 +100,39 @@ create policy "admins can update overrides" on episode_overrides
 drop policy if exists "admins can delete overrides" on episode_overrides;
 create policy "admins can delete overrides" on episode_overrides
     for delete using (exists (select 1 from admins where user_id = auth.uid()));
+
+-- admin_stats(): lets an admin see aggregate usage counts (how many
+-- accounts exist, how many have actually synced, how many edits are
+-- waiting to be folded into the CSV) without ever exposing any individual
+-- user's email or other identifying info to the client - only totals.
+--
+-- security definer + a fixed search_path lets this function read
+-- auth.users (normally locked down from anon/authenticated roles) while
+-- still gating access itself: it re-checks admins membership internally
+-- and raises if the caller isn't listed, so granting execute to
+-- `authenticated` below is safe - only admins get a real answer back.
+create or replace function admin_stats()
+returns json
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+    result json;
+begin
+    if not exists (select 1 from admins where user_id = auth.uid()) then
+        raise exception 'not authorized';
+    end if;
+
+    select json_build_object(
+        'total_accounts', (select count(*) from auth.users),
+        'synced_accounts', (select count(*) from cr_sync where user_id is not null),
+        'most_recent_sync', (select max(updated_at) from cr_sync),
+        'pending_overrides', (select count(*) from episode_overrides)
+    ) into result;
+
+    return result;
+end;
+$$;
+
+grant execute on function admin_stats() to authenticated;
