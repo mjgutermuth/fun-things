@@ -871,8 +871,8 @@
         flex-wrap: wrap;
         padding: 10px 16px;
         margin: 0 0 16px;
-        background: var(--light);
-        border: 1px solid rgba(107, 70, 193, 0.2);
+        background: rgba(107, 70, 193, 0.2);
+        border: 1px solid var(--beacon-purple);
         border-radius: 8px;
         font-size: 0.85rem;
         max-width: 100%;
@@ -882,14 +882,20 @@
         font-family: 'Space Mono', monospace;
         font-size: 0.85rem;
         padding: 6px 10px;
-        border: 1px solid var(--gray);
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--light);
+        border: 1px solid var(--beacon-purple-light);
         border-radius: 6px;
         min-width: 220px;
         flex: 1 1 220px;
     }
 
+    .auth-bar input[type="email"]::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+    }
+
     .auth-status {
-        color: var(--gray);
+        color: rgba(255, 255, 255, 0.7);
         min-width: 0;
         max-width: 100%;
         overflow: hidden;
@@ -912,8 +918,8 @@
     .whats-tracked {
         margin-bottom: 16px;
         padding: 10px 16px;
-        background: var(--light);
-        border: 1px solid rgba(107, 70, 193, 0.2);
+        background: rgba(107, 70, 193, 0.2);
+        border: 1px solid var(--beacon-purple);
         border-radius: 8px;
         font-size: 0.85rem;
     }
@@ -921,7 +927,7 @@
     .whats-tracked summary {
         cursor: pointer;
         font-weight: 700;
-        color: var(--beacon-purple-dark);
+        color: var(--beacon-teal);
         list-style: none;
     }
 
@@ -939,7 +945,7 @@
 
     .whats-tracked-content {
         margin-top: 10px;
-        color: var(--gray);
+        color: rgba(255, 255, 255, 0.7);
         line-height: 1.5;
     }
 
@@ -957,7 +963,7 @@
     }
 
     .whats-tracked-content strong {
-        color: var(--beacon-purple-dark);
+        color: var(--beacon-teal);
     }
 
     .kofi-link {
