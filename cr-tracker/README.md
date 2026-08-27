@@ -30,7 +30,7 @@ A GitHub Actions workflow runs **every Monday at 10 AM UTC** to:
 4. Your progress is saved in browser localStorage on that device
 
 ### Syncing Across Devices
-Enter your email in the bar at the top and click "Sign In to Sync," then
+Enter your email in the bar at the top and click "Sign in to Sync," then
 click the magic link sent to your inbox. Once signed in, your watch
 history is tied to your account (via Supabase Auth) instead of the
 browser — log in with the same email on any device and your progress
@@ -79,14 +79,17 @@ The main CSV includes:
 
 ## Current Content
 
-1000+ episodes including:
-- Campaign 1, 2, 3 main episodes
-- Exandria Unlimited (Prime, Kymal, Calamity, Divergence, Thresher)
-- Candela Obscura (all chapters)
-- 4-Sided Dive
-- Talks Machina
-- Narrative Telephone
-- Between the Sheets
-- Critical Role Cooldown
-- Fireside Chat
-- And more!
+Everything from the founding Critical Role cast, from its Geek & Sundry days
+through today's Beacon era:
+
+- **Main Campaigns** - Vox Machina (C1), The Mighty Nein (C2), Bells Hells (C3), Campaign Four
+- **Animated Series on Prime Video** - The Legend of Vox Machina, The Mighty Nein
+- **Miniseries** - Exandria Unlimited, Candela Obscura, Age of Umbra, etc.
+- **Talkback Shows** - Talks Machina, 4-Sided Dive, Critical Role Cooldown, Tale Gate
+- **Webseries** - from the Geek & Sundry era (Handbooker Helper, Game Master Tips, EverythingIsContent, etc.) through today's shows (Get Your Sheet Together, Narrative Telephone, Weird Kids, etc.)
+- **Specials & One-Shots** - Live Shows, One-Shots, Crit Recap Animated
+- **Beacon Exclusives** - Fireside Chat, Backstage Pass, Critical Role Cooldown
+
+Not currently tracked: Beacon-exclusive shows from outside the founding cast
+(Viva La Dirt League, Midst, Tales from the Stinky Dragon), but open to
+adding if there's interest.

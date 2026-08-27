@@ -909,6 +909,57 @@
         }
     }
 
+    .whats-tracked {
+        margin-bottom: 16px;
+        padding: 10px 16px;
+        background: var(--light);
+        border: 1px solid rgba(107, 70, 193, 0.2);
+        border-radius: 8px;
+        font-size: 0.85rem;
+    }
+
+    .whats-tracked summary {
+        cursor: pointer;
+        font-weight: 700;
+        color: var(--beacon-purple-dark);
+        list-style: none;
+    }
+
+    .whats-tracked summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .whats-tracked summary::before {
+        content: '▸ ';
+    }
+
+    .whats-tracked[open] summary::before {
+        content: '▾ ';
+    }
+
+    .whats-tracked-content {
+        margin-top: 10px;
+        color: var(--gray);
+        line-height: 1.5;
+    }
+
+    .whats-tracked-content p {
+        margin-bottom: 8px;
+    }
+
+    .whats-tracked-content ul {
+        list-style: none;
+        padding-left: 0;
+    }
+
+    .whats-tracked-content li {
+        margin-bottom: 6px;
+    }
+
+    .whats-tracked-content strong {
+        color: var(--beacon-purple-dark);
+    }
+
     .kofi-link {
         position: fixed;
         bottom: 16px;
@@ -966,6 +1017,23 @@
             <h1>Critical Role Episode Tracker</h1>
             <p class="subtitle">Track Your Journey Through Exandria & Beyond</p>
         </header>
+
+        <details class="whats-tracked">
+            <summary>What's included in this tracker?</summary>
+            <div class="whats-tracked-content">
+                <p>Everything from the founding Critical Role cast, from its Geek &amp; Sundry days through today's Beacon era:</p>
+                <ul>
+                    <li><strong>Main Campaigns</strong>: Vox Machina (C1), The Mighty Nein (C2), Bells Hells (C3), Campaign Four</li>
+                    <li><strong>Animated Series on Prime Video</strong>: The Legend of Vox Machina, The Mighty Nein</li>
+                    <li><strong>Miniseries</strong>: Exandria Unlimited, Candela Obscura, Age of Umbra, etc.</li>
+                    <li><strong>Talkback Shows</strong>: Talks Machina, 4-Sided Dive, Critical Role Cooldown, Tale Gate</li>
+                    <li><strong>Webseries</strong>: from the Geek &amp; Sundry era (Handbooker Helper, Game Master Tips, EverythingIsContent, etc.) through today's shows (Get Your Sheet Together, Narrative Telephone, Weird Kids, etc.)</li>
+                    <li><strong>Specials & One-Shots</strong>: Live Shows, One-Shots, Crit Recap Animated</li>
+                    <li><strong>Beacon Exclusives</strong>: Fireside Chat, Backstage Pass, Critical Role Cooldown</li>
+                </ul>
+                <p style="margin-top: 10px; margin-bottom: 0;">Not currently tracked: Beacon-exclusive shows from outside the founding cast (Viva La Dirt League, Midst, Tales from the Stinky Dragon), but open to adding if there's interest.</p>
+            </div>
+        </details>
 
         <!-- Account / Sync -->
         <div class="auth-bar" id="authBar"></div>
@@ -2278,22 +2346,15 @@ async function remoteSaveWatchedStatus() {
             alert(`Critical Role Episode Tracker
 
 BASICS:
-• Check boxes to mark episodes watched
+• Check boxes to mark episodes as watched
 • Click column headers to sort
-• Use filters to narrow results
-• Progress auto-saves
+• Use filters to narrow the results
+• Your progress auto-saves
 
-SYNC DEVICES:
-• Enter your email in the bar up top and click "Sign In to Sync"
-• Click the magic link we email you — on any device, any time
-• Your progress follows your account, not the browser
-• Skip sign-in and it still saves locally on this device only
-
-TIPS:
-• Filter Type first, then Series
-• Export creates CSV backup
-• Mobile shows card view
-• Cooldown = Beacon exclusive`);
+SYNC:
+• Enter your email in the box above
+• Find the magic link in your inbox and click to log in
+• If you don't sign in, your progress is saved locally`);
         }
 
         function getRandomRecommendation() {
