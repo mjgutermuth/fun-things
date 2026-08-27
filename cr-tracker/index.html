@@ -909,21 +909,13 @@
         }
     }
 
-    footer {
-        text-align: center;
-        margin-top: 4rem;
-        padding-bottom: 2rem;
-        color: var(--gray);
-        font-size: 0.8rem;
-    }
-
     .kofi-link {
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
-        margin-top: 1rem;
+        margin-top: 16px;
         padding: 0.5rem 1rem;
-        background: #FF5E5B;
+        background: var(--watched-green);
         color: white !important;
         text-decoration: none;
         border-radius: 8px;
@@ -962,6 +954,9 @@
         <header>
             <h1>Critical Role Episode Tracker</h1>
             <p class="subtitle">Track Your Journey Through Exandria & Beyond</p>
+            <a href="https://ko-fi.com/melimuth" target="_blank" class="kofi-link">
+                ☕ buy me a coffee
+            </a>
         </header>
 
         <!-- Account / Sync -->
@@ -1096,12 +1091,6 @@
                 <div class="loading">Loading episodes...</div>
             </div>
         </div>
-
-        <footer>
-            <a href="https://ko-fi.com/melimuth" target="_blank" class="kofi-link">
-                ☕ buy me a coffee
-            </a>
-        </footer>
     </div>
 
     <script>
