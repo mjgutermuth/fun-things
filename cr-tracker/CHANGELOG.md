@@ -2,6 +2,27 @@
 
 Weekly scraper runs - which critrole.com schedule pages were checked and what got added, so you can open the same page and compare it against what the scraper actually did that week.
 
+## Run: 2026-09-01
+
+Checked:
+- https://critrole.com/programming-schedule-week-of-august-10th-2026/
+- https://critrole.com/programming-schedule-week-of-august-17th-2026/
+- https://critrole.com/programming-schedule-week-of-august-24th-2026/
+- https://critrole.com/programming-schedule-week-of-august-31st-2026/
+
+Added (9):
+- [2026-08-13] Age of Umbra: Sallowlands | Episode 6
+- [2026-08-18] [PROJEKT] Funball | Echoes of Exandria | Berlin Live Show 2026
+- [2026-08-25] Episode 4 | Discussing Up To C4E31
+- [2026-08-31] C4E33 Cooldown
+- [2026-08-31] Weird Kids Episode 42
+- [2026-09-01] Weird Kids X Third Person Crossover
+- [2026-09-01] Introducing Daggerheart Transformations!
+- [2026-09-02] UNEND | Season 3 Roundtable
+- [2026-09-03] Campaign 4 Episode 33
+
+Skipped as already tracked: 23
+
 ## Run: 2026-08-24
 
 Checked:
