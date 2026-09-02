@@ -46,6 +46,12 @@ jobs:
           python3 apply_overrides.py > apply_overrides_output.log 2>&1 || true
           cat apply_overrides_output.log
 
+      - name: Backfill missing Beacon VOD URLs
+        run: |
+          cd cr-tracker
+          python3 backfill_vod_urls.py > backfill_vod_urls_output.log 2>&1 || true
+          cat backfill_vod_urls_output.log
+
       - name: Check for changes
         id: check_changes
         run: |
