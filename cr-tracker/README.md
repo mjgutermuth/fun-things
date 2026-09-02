@@ -12,7 +12,8 @@ A web-based tracker for all Critical Role content with automatic weekly updates.
 ## Automated Updates
 
 ### GitHub Actions (Enabled)
-A GitHub Actions workflow runs **every Monday at 10 AM UTC** to:
+A GitHub Actions workflow runs **every Monday at 21:00 UTC** (2 PM Pacific / 5 PM
+Eastern during DST; 1 PM / 4 PM in winter) to:
 1. Scrape CritRole.com programming schedules for new Beacon content
 2. Add any new episodes to the CSV
 3. Automatically commit and push changes

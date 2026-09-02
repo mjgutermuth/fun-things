@@ -229,6 +229,7 @@ class TestGenericFallback(unittest.TestCase):
         self.assertTrue(is_excluded_from_generic_fallback("Viva La Dirt League's Daggerheart: Azerim"))
         self.assertTrue(is_excluded_from_generic_fallback('Tales From The Stinky Dragon, Campaign 3: Kanon'))
         self.assertTrue(is_excluded_from_generic_fallback('UNEND Season 3'))
+        self.assertTrue(is_excluded_from_generic_fallback('UNEND | Season 3 Roundtable'))
         self.assertTrue(is_excluded_from_generic_fallback('Critical Role Abridged'))
         self.assertTrue(is_excluded_from_generic_fallback('Something is coming…'))
 
@@ -245,12 +246,20 @@ class TestGenericFallback(unittest.TestCase):
             'Age of Umbra: Sallowlands | Episode 1', '1'))
         self.assertTrue(is_manually_reworded_generic_duplicate(
             'Critical Role Cooldown | Age of Umbra: Sallowlands | Episode 2', '2'))
+        self.assertTrue(is_manually_reworded_generic_duplicate(
+            'Age of Umbra: Sallowlands | Episode 6', '6'))
+        self.assertTrue(is_manually_reworded_generic_duplicate(
+            '[PROJEKT] Funball | Echoes of Exandria | Berlin Live Show 2026', ''))
+        self.assertTrue(is_manually_reworded_generic_duplicate(
+            'Tale Gate | Discussing Up To C4E31', ''))
+        self.assertTrue(is_manually_reworded_generic_duplicate(
+            'Episode 4 | Discussing Up To C4E31', ''))
 
     def test_manually_reworded_generic_duplicate_does_not_match_unlisted_episode(self):
-        # Episode 4 hasn't been manually cleaned up, so it must NOT be
+        # Episode 7 hasn't been manually cleaned up, so it must NOT be
         # treated as a duplicate - it should still get added normally.
         self.assertFalse(is_manually_reworded_generic_duplicate(
-            'Age of Umbra: Sallowlands | Episode 4', '4'))
+            'Age of Umbra: Sallowlands | Episode 7', '7'))
 
     def test_fallback_adds_unrecognized_series(self):
         html = """

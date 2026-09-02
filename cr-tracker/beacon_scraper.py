@@ -820,7 +820,12 @@ _MANUALLY_REWORDED_GENERIC_ROWS = [
     (('age of umbra', 'sallowlands'), '1'),  # -> "Sallowlands: Scattered Pilgrims"
     (('age of umbra', 'sallowlands'), '2'),  # -> "Sallowlands: The Onyx Spire"
     (('age of umbra', 'sallowlands'), '3'),  # -> "Sallowlands: Horizon of Promise"
+    (('age of umbra', 'sallowlands'), '4'),  # -> "Sallowlands: Call of the Wild Hearts"
+    (('age of umbra', 'sallowlands'), '5'),  # -> "Sallowlands: Delaying Deliverance"
+    (('age of umbra', 'sallowlands'), '6'),  # -> "Sallowlands: The Ancient Wound"
     (('get your sheet together', 'step into the spotlight'), ''),  # -> GYST #10 "Step into the Spotlight"
+    (('funball', 'echoes of exandria', 'berlin'), ''),  # -> "Echoes of Exandria: [PROJEKT] Funball (Berlin Live Show 2026)"
+    (('discussing up to c4e31',), ''),  # -> Tale Gate "Discussing Up To C4E31" (also caught a second, differently-worded widget for the same episode - keyword alone covers both)
 ]
 
 
@@ -928,7 +933,10 @@ EXCLUDED_TITLE_KEYWORDS = [
 
 
 def is_excluded_from_generic_fallback(title):
-    t = normalize_text(title)
+    # normalize_text() doesn't touch pipe separators, but source titles often
+    # pipe-delimit words that should read as a single phrase for this check
+    # (e.g. "UNEND | Season 3 Roundtable" needs to match 'unend season').
+    t = re.sub(r'\s+', ' ', normalize_text(title).replace('|', ' ')).strip()
     return any(kw in t for kw in EXCLUDED_TITLE_KEYWORDS)
 
 
