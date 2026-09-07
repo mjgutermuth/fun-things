@@ -2,6 +2,26 @@
 
 Weekly scraper runs - which critrole.com schedule pages were checked and what got added, so you can open the same page and compare it against what the scraper actually did that week.
 
+## Run: 2026-09-07
+
+Checked:
+- https://critrole.com/programming-schedule-week-of-august-10th-2026/
+- https://critrole.com/programming-schedule-week-of-august-17th-2026/
+- https://critrole.com/programming-schedule-week-of-august-24th-2026/
+- https://critrole.com/programming-schedule-week-of-august-31st-2026/
+- https://critrole.com/programming-schedule-week-of-september-7th-2026/
+
+Added (7):
+- [2026-09-01] Weird Kids X Third Person Crossover
+- [2026-09-07] C4E34 Cooldown
+- [2026-09-07] Weird Kids Episode 43
+- [2026-09-08] MTG Commander Showdown Sponsored by eBay Live | Bracket 1
+- [2026-09-10] Campaign 4 Episode 34
+- [2026-09-10] MTG Commander Showdown Sponsored by eBay Live | Bracket 2
+- [2026-09-11] MTG Commander Showdown Sponsored by eBay Live | Championship
+
+Skipped as already tracked: 35
+
 ## Run: 2026-09-01
 
 Checked:
