@@ -826,6 +826,7 @@ _MANUALLY_REWORDED_GENERIC_ROWS = [
     (('get your sheet together', 'step into the spotlight'), ''),  # -> GYST #10 "Step into the Spotlight"
     (('funball', 'echoes of exandria', 'berlin'), ''),  # -> "Echoes of Exandria: [PROJEKT] Funball (Berlin Live Show 2026)"
     (('discussing up to c4e31',), ''),  # -> Tale Gate "Discussing Up To C4E31" (also caught a second, differently-worded widget for the same episode - keyword alone covers both)
+    (('weird kids', 'third person', 'crossover'), ''),  # -> Weird Kids X Third Person Crossover! (aired 2025-05-13; schedule page keeps re-promoting it, fallback kept re-adding it stamped with the current week)
 ]
 
 
