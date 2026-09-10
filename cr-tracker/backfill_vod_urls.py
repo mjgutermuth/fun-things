@@ -86,18 +86,22 @@ def parse_date(s):
     return datetime.strptime(s, '%Y-%m-%d').date()
 
 
-def cooldown_code_match(csv_row, episodes):
+def episode_code_match(csv_row, episodes):
     """
-    Critical Role Cooldown rows encode a campaign+episode code in
-    episode_number ('C4x12', or bare '32' for recent Campaign 4 rows) that
-    maps directly onto Beacon's own 'C4 E012' title prefix.
+    Critical Role Cooldown and main Campaign Four rows both carry an episode
+    number that maps directly onto Beacon's 'C4 E033' title prefix, which is
+    far more reliable than title overlap - especially for Campaign Four rows
+    still on a placeholder title ('Campaign 4 Episode 33') that shares no
+    words with Beacon's real 'C4 E033 | Off-Balance'.
+      - Cooldown: episode_number is 'C4x12' (or bare '32' for recent rows)
+      - Campaign Four: episode_number is a bare '33'
     """
     ep = csv_row['episode_number']
     m = re.match(r'^C(\d+)x(\d+)$', ep)
     if m:
         camp, num = m.group(1), int(m.group(2))
-    elif ep.isdigit() and csv_row['campaign'] == 'Critical Role Cooldown':
-        camp, num = '4', int(ep)  # every plain-numeric cooldown row seen so far is Campaign 4
+    elif ep.isdigit() and csv_row['campaign'] in ('Critical Role Cooldown', 'Campaign Four'):
+        camp, num = '4', int(ep)  # every plain-numeric row seen so far is Campaign 4
     else:
         return None
     code = f"c{camp} e{num:03d}"
@@ -173,7 +177,7 @@ def main():
         beacon_by_date = _by_date(episodes)
 
         for row in targets:
-            doc = cooldown_code_match(row, episodes) or ordinal_match(row, episodes)
+            doc = episode_code_match(row, episodes) or ordinal_match(row, episodes)
             if doc:
                 new_url = f"https://beacon.tv/content/{doc['slug']}"
                 matched.append((row, new_url))
