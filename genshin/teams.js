@@ -3,22 +3,32 @@ const TEAMS_DATA = [
   // --- Tier 0 ---
   {
     "name": "Sandrone Stellar-Conduct", "tier": 0, "tags": ["Stellar-Conduct", "Electro", "Cryo"],
-    "notes": "New reaction archetype from 7.0. Odette converts Superconduct into the stronger Stellar-Conduct and buffs it further; Yae Miko keeps pace off-field; Qiqi adds Cryo application, healing, and Stellar-Conduct buffs.",
+    "notes": "New reaction archetype from 7.0. Odette converts Superconduct into the stronger Stellar-Conduct and buffs it further; Yae Miko keeps pace off-field; Qiqi adds Cryo application, healing, and Stellar-Conduct buffs. Nicole is a strong alternative support: her shield stops Sandrone's Charged Attacks from being interrupted, and her team-wide ATK buff helps Sandrone, Yae, and Odette.",
     "roles": [
       { "label": "DPS",     "chars": ["Sandrone"] },
       { "label": "Cryo",    "chars": ["Odette", "Traveler (Cryo)"] },
       { "label": "Electro", "chars": ["Yae Miko", "Fischl"] },
-      { "label": "Support", "chars": ["Qiqi", "Alyosha"] }
+      { "label": "Support", "chars": ["Qiqi", "Nicole", "Alyosha"] }
+    ]
+  },
+  {
+    "name": "Vesna Stellar-Swirl", "tier": 0, "tags": ["Stellar-Swirl", "Anemo", "Cryo"],
+    "notes": "New in 7.1 — Vesna is the dedicated Stellar-Swirl hypercarry. Odette buffs Stellar DMG, Faruzan (best at C6) shreds Anemo RES and feeds Vesna energy, Vodyanitsa heals and adds Anemo RES shred plus a Stellar-Swirl buff. F2P: Qiqi + Cryo Traveler + Faruzan.",
+    "roles": [
+      { "label": "DPS",     "chars": ["Vesna"] },
+      { "label": "Cryo",    "chars": ["Odette", "Traveler (Cryo)"] },
+      { "label": "Anemo",   "chars": ["Faruzan", "Sucrose"] },
+      { "label": "Support", "chars": ["Vodyanitsa", "Qiqi", "Alyosha"] }
     ]
   },
   {
     "name": "Mizuki Stellar-Swirl", "tier": 0, "tags": ["Stellar-Swirl", "Cryo", "Anemo"],
-    "notes": "New reaction archetype from 7.0 — Odette's Cryo Swirl upgrade. Sucrose's EM buff pushes swirl damage further; Odette and a Cryo applicator are close to mandatory here.",
+    "notes": "New reaction archetype from 7.0 — Odette's Cryo Swirl upgrade. Sucrose's EM buff pushes swirl damage further; Odette and a Cryo applicator are close to mandatory here. 7.1: Vodyanitsa is now the top flex pick (healing + Anemo RES shred + Stellar-Swirl buff).",
     "roles": [
       { "label": "DPS",        "chars": ["Yumemizuki Mizuki"] },
       { "label": "Cryo",       "chars": ["Odette", "Traveler (Cryo)"] },
-      { "label": "EM Support", "chars": ["Sucrose", "Kazuha"] },
-      { "label": "Flex",       "chars": ["Alyosha", "Furina"] }
+      { "label": "EM Support", "chars": ["Sucrose", "Kazuha", "Faruzan"] },
+      { "label": "Flex",       "chars": ["Vodyanitsa", "Alyosha", "Furina"] }
     ]
   },
   {
@@ -54,12 +64,12 @@ const TEAMS_DATA = [
   },
   {
     "name": "Skirk Freeze", "tier": 1, "tags": ["Freeze"],
-    "notes": "Current top Freeze team. Escoffier provides Cryo application and strong buffs. Furina can't be used in Lunar comps so she's a natural fit here alongside Skirk.",
+    "notes": "Current top Freeze team. Escoffier provides Cryo application and strong buffs. Furina can't be used in Lunar comps so she's a natural fit here alongside Skirk. 7.1: Vodyanitsa's Cryo/Hydro RES shred makes her a top Hydro pick — run her with or instead of Furina.",
     "roles": [
       { "label": "DPS",   "chars": ["Skirk"] },
       { "label": "Cryo",  "chars": ["Escoffier"] },
-      { "label": "Hydro", "chars": ["Furina", "Neuvillette", "Kokomi"] },
-      { "label": "Anemo", "chars": ["Kazuha", "Venti"] }
+      { "label": "Hydro", "chars": ["Furina", "Vodyanitsa", "Neuvillette", "Kokomi"] },
+      { "label": "Flex",  "chars": ["Vodyanitsa", "Shenhe", "Kazuha", "Venti"] }
     ]
   },
   {
@@ -80,6 +90,16 @@ const TEAMS_DATA = [
       { "label": "Hydro",   "chars": ["Kokomi", "Yelan", "Xingqiu", "Barbara", "Furina"] },
       { "label": "Electro", "chars": ["Raiden Shogun", "Fischl", "Kuki Shinobu", "Beidou"] },
       { "label": "Flex",    "chars": ["Kazuha", "Zhongli", "Nahida", "Baizhu"] }
+    ]
+  },
+  {
+    "name": "Varka Hexerei", "tier": 1, "tags": ["Hexerei", "Anemo"],
+    "notes": "Two or more Hexerei characters unlock Hexerei: Secret Rite, which buffs every Hexerei member. Nicole is the best Hexerei support: she gives a shield, a team-wide ATK buff, and coordinated attacks. Prune gives an extra ATK buff to Anemo Hexerei DPS like Varka.",
+    "roles": [
+      { "label": "DPS",     "chars": ["Varka"] },
+      { "label": "Support", "chars": ["Nicole"] },
+      { "label": "Sub DPS", "chars": ["Durin"] },
+      { "label": "Flex",    "chars": ["Lohen", "Prune", "Venti", "Citlali"] }
     ]
   },
   // --- Tier 2 ---
@@ -145,12 +165,22 @@ const TEAMS_DATA = [
   },
   {
     "name": "Ayaka Freeze", "tier": 2, "tags": ["Freeze"],
-    "notes": "Freeze keeps enemies locked. Venti/Kazuha group and shred resistance. Note: Skirk Freeze is now the premier Freeze team; Ayaka is a strong budget alternative.",
+    "notes": "Freeze keeps enemies locked. Venti/Kazuha group and shred resistance. Note: Skirk Freeze is now the premier Freeze team; Ayaka is a strong budget alternative. Gains a lot from Vodyanitsa's RES shred in 7.1.",
     "roles": [
       { "label": "DPS",   "chars": ["Kamisato Ayaka"] },
-      { "label": "Hydro", "chars": ["Kokomi", "Mona", "Barbara"] },
+      { "label": "Hydro", "chars": ["Vodyanitsa", "Kokomi", "Mona", "Barbara"] },
       { "label": "Cryo",  "chars": ["Shenhe", "Rosaria", "Diona"] },
       { "label": "Anemo", "chars": ["Kazuha", "Venti"] }
+    ]
+  },
+  {
+    "name": "Lohen Melt", "tier": 2, "tags": ["Melt", "Hexerei", "Cryo"],
+    "notes": "Lohen's fast Cryo application lets Durin trigger Melt in his Dragon of Dark Decay form. Lohen, Durin, and Nicole are all Hexerei, so Secret Rite is always active. Moved up in 7.1 because Vodyanitsa strengthens his Freeze option (Lohen / Furina / Escoffier / Vodyanitsa or Mona).",
+    "roles": [
+      { "label": "DPS",     "chars": ["Lohen"] },
+      { "label": "Sub DPS", "chars": ["Durin"] },
+      { "label": "Support", "chars": ["Nicole"] },
+      { "label": "Flex",    "chars": ["Citlali", "Xilonen", "Mona", "Sucrose"] }
     ]
   },
   // --- Solid / Niche ---

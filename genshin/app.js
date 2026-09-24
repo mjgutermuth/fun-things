@@ -9,7 +9,7 @@ const DAY_NAMES = ['sunday','monday','tuesday','wednesday','thursday','friday','
 const TARGET_LEVELS = [20, 40, 50, 60, 70, 80, 90];
 
 // Bump this whenever DOMAINS or TEAMS_DATA are checked against the current version.
-const DATA_VERSION = 'v7.0 (Snezhnaya) — Aug 2026';
+const DATA_VERSION = 'v7.1 — Sep 2026';
 
 // Talent book domains — days: 1=Mon,4=Thu | 2=Tue,5=Fri | 3=Wed,6=Sat | 0=Sun(all)
 const DOMAINS = [
@@ -57,7 +57,7 @@ const DOMAINS = [
     name: 'Lightless Capital', region: 'Nod-Krai',
     slots: [
       { days: [1,4], book: 'Vagrancy',  chars: ['Jahoda','Flins','Linnea'] },
-      { days: [2,5], book: 'Elysium',   chars: ['Nefer','Aino','Illuga'] },
+      { days: [2,5], book: 'Elysium',   chars: ['Nefer','Aino','Illuga','Nicole'] },
       { days: [3,6], book: 'Moonlight', chars: ['Lauma','Columbina'] },
     ],
   },
