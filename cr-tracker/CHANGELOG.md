@@ -2,6 +2,22 @@
 
 Weekly scraper runs - which critrole.com schedule pages were checked and what got added, so you can open the same page and compare it against what the scraper actually did that week.
 
+## Run: 2026-09-29
+
+Checked:
+- https://critrole.com/programming-schedule-week-of-september-14th-2026/
+- https://critrole.com/programming-schedule-week-of-september-21st-2026/
+- https://critrole.com/programming-schedule-week-of-september-28th-2026/
+- https://critrole.com/programming-schedule-week-of-september-7th-2026/
+
+Added (4):
+- [2026-09-28] C4E37 Cooldown
+- [2026-09-28] Weird Kids Episode 46
+- [2026-09-29] Discussing Up To C4E36
+- [2026-10-01] Campaign 4 Episode 37
+
+Skipped as already tracked: 27
+
 ## Run: 2026-09-21
 
 Checked:
