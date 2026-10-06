@@ -2,6 +2,22 @@
 
 Weekly scraper runs - which critrole.com schedule pages were checked and what got added, so you can open the same page and compare it against what the scraper actually did that week.
 
+## Run: 2026-10-06
+
+Checked:
+- https://critrole.com/programming-schedule-week-of-october-5th-2026/
+- https://critrole.com/programming-schedule-week-of-september-14th-2026/
+- https://critrole.com/programming-schedule-week-of-september-21st-2026/
+- https://critrole.com/programming-schedule-week-of-september-28th-2026/
+
+Added (4):
+- [2026-10-05] C4E38 Cooldown
+- [2026-10-05] Weird Kids Episode 47
+- [2026-10-07] How to Ruin Everything: Third Person on Conflict, Mishap, and Catastrophe in Storytelling.
+- [2026-10-08] Campaign 4 Episode 38
+
+Skipped as already tracked: 22
+
 ## Run: 2026-09-29
 
 Checked:
