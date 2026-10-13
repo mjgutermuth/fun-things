@@ -51,6 +51,16 @@ const TEAMS_DATA = [
       { "label": "Flex",   "chars": ["Nilou", "Nahida", "Sucrose", "Kokomi"] }
     ]
   },
+  {
+    "name": "Flins Lunar-Charged", "tier": 0, "tags": ["Lunar-Charged", "Electro", "Hydro"],
+    "notes": "Ineffa provides off-field Electro and enables Lunar-Charged; Aino or Columbina supply Hydro. Furina can't be used in Lunar comps.",
+    "roles": [
+      { "label": "DPS",     "chars": ["Flins"] },
+      { "label": "Electro", "chars": ["Ineffa"] },
+      { "label": "Hydro",   "chars": ["Aino", "Columbina"] },
+      { "label": "Support", "chars": ["Xilonen", "Jahoda", "Sucrose"] }
+    ]
+  },
   // --- Tier 1 ---
   {
     "name": "Neuvillette Hypercarry", "tier": 1, "tags": ["Hydro"],
@@ -87,7 +97,7 @@ const TEAMS_DATA = [
     "notes": "Electro-triggered Dendro seeds deal huge AoE damage. Kokomi for field Hydro.",
     "roles": [
       { "label": "Dendro",  "chars": ["Nahida", "Collei", "Kirara", "Yaoyao"] },
-      { "label": "Hydro",   "chars": ["Kokomi", "Yelan", "Xingqiu", "Barbara", "Furina"] },
+      { "label": "Hydro",   "chars": ["Kamisato Ayato", "Kokomi", "Yelan", "Xingqiu", "Barbara", "Furina"] },
       { "label": "Electro", "chars": ["Raiden Shogun", "Fischl", "Kuki Shinobu", "Beidou"] },
       { "label": "Flex",    "chars": ["Kazuha", "Zhongli", "Nahida", "Baizhu"] }
     ]
