@@ -2,6 +2,22 @@
 
 Weekly scraper runs - which critrole.com schedule pages were checked and what got added, so you can open the same page and compare it against what the scraper actually did that week.
 
+## Run: 2026-10-20
+
+Checked:
+- https://critrole.com/programming-schedule-week-of-october-12th-2026/
+- https://critrole.com/programming-schedule-week-of-october-19th-2026/
+- https://critrole.com/programming-schedule-week-of-october-5th-2026/
+- https://critrole.com/programming-schedule-week-of-september-21st-2026/
+- https://critrole.com/programming-schedule-week-of-september-28th-2026/
+
+Added (3):
+- [2026-10-19] C4E40 Cooldown
+- [2026-10-20] Episode 6 | Discussing Up To C4E39
+- [2026-10-22] Campaign 4 Episode 40
+
+Skipped as already tracked: 30
+
 ## Run: 2026-10-13
 
 Checked:
