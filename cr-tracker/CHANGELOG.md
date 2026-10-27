@@ -2,6 +2,22 @@
 
 Weekly scraper runs - which critrole.com schedule pages were checked and what got added, so you can open the same page and compare it against what the scraper actually did that week.
 
+## Run: 2026-10-27
+
+Checked:
+- https://critrole.com/programming-schedule-week-of-october-12th-2026/
+- https://critrole.com/programming-schedule-week-of-october-19th-2026/
+- https://critrole.com/programming-schedule-week-of-october-26th-2026/
+- https://critrole.com/programming-schedule-week-of-october-5th-2026/
+
+Added (4):
+- [2026-10-26] C4E41 Cooldown
+- [2026-10-26] Red Moon Requiem | Beacon Backstage Pass: London Live Show 2026
+- [2026-10-28] Season 4, Episode 1
+- [2026-10-29] Campaign 4 Episode 41
+
+Skipped as already tracked: 24
+
 ## Run: 2026-10-20
 
 Checked:
