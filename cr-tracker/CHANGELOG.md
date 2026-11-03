@@ -2,6 +2,22 @@
 
 Weekly scraper runs - which critrole.com schedule pages were checked and what got added, so you can open the same page and compare it against what the scraper actually did that week.
 
+## Run: 2026-11-03
+
+Checked:
+- https://critrole.com/programming-schedule-week-of-november-2nd-2026/
+- https://critrole.com/programming-schedule-week-of-october-12th-2026/
+- https://critrole.com/programming-schedule-week-of-october-19th-2026/
+- https://critrole.com/programming-schedule-week-of-october-26th-2026/
+
+Added (4):
+- [2026-11-02] C4E42 Cooldown
+- [2026-11-03] Red Moon Requiem | Echoes of Exandria | London Live Show 2026 | Beacon
+- [2026-11-04] Worldbuilding and Storytelling in Imaginative Settings
+- [2026-11-05] Campaign 4 Episode 42
+
+Skipped as already tracked: 22
+
 ## Run: 2026-10-27
 
 Checked:
