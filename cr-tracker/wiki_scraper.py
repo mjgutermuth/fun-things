@@ -56,6 +56,7 @@ ARC_PAGES = {
         'Campaign Four Arc 3',
         'Campaign Four Arc 4',
         'Campaign Four Arc 5',
+        'Campaign Four Arc 6',
     ],
 }
 
@@ -140,12 +141,9 @@ def parse_arc_episodes(html, campaign_name, arc_page_title):
     soup = BeautifulSoup(html, 'html.parser')
     episodes = []
 
-    # Derive display arc name from the h2/h3 headers in the rendered page, or
-    # fall back to the page title itself.
+    # The page's first h2 is a section heading ("Episode summaries"), not the
+    # arc's name, so the page title is what identifies the arc.
     arc_name = arc_page_title
-    h2 = soup.find('h2')
-    if h2:
-        arc_name = clean_text(h2.get_text())
 
     tables = soup.find_all('table', class_='wikitable')
     print(f"  [DIAG] '{arc_page_title}': {len(tables)} wikitable(s) found")
@@ -310,20 +308,30 @@ def merge_into_main_csv(new_episodes, main_csv='cr_episodes_series_airdates.csv'
             row = existing_rows[idx]
             existing_title = row.get('title', '')
             new_title = ep['title']
+            changed = False
 
+            # episode_id stays as it is: watched progress and pending Edit Mode
+            # overrides are keyed on it, so rewriting it would orphan them.
             if is_placeholder(existing_title) and not is_placeholder(new_title):
                 row['title'] = new_title
-                row['episode_id'] = f"Main Campaign|{ep['campaign']}|{ep['episode_number']}|{new_title}"
-                if ep.get('wiki_url') and not row.get('wiki_url'):
-                    row['wiki_url'] = ep['wiki_url']
-                if ep.get('arc') and not row.get('arc'):
-                    row['arc'] = ep['arc']
-                if ep.get('runtime') and not row.get('runtime'):
-                    row['runtime'] = ep['runtime']
+                changed = True
+                print(f"  ~ {ep['campaign']} E{ep['episode_number']}: {existing_title!r} -> {new_title!r}")
+
+            # Fill blanks even when the title is already real, since a title
+            # corrected through Edit Mode no longer looks like a placeholder.
+            # 'Forthcoming' is the wiki's stand-in for a runtime it doesn't have
+            # yet, so it counts as blank.
+            for field in ('wiki_url', 'arc', 'runtime'):
+                current = row.get(field, '')
+                is_blank = not current or current.lower() == 'forthcoming'
+                if ep.get(field) and is_blank and ep[field] != current:
+                    row[field] = ep[field]
+                    changed = True
+
+            if changed:
                 if 'wiki pending' in row.get('notes', '').lower():
                     row['notes'] = ''
                 updated.append(ep)
-                print(f"  ~ {ep['campaign']} E{ep['episode_number']}: {existing_title!r} -> {new_title!r}")
 
     # Report placeholders that still weren't resolved
     unresolved = [
@@ -352,7 +360,7 @@ def merge_into_main_csv(new_episodes, main_csv='cr_episodes_series_airdates.csv'
         writer.writerows(existing_rows)
 
     if updated:
-        print(f"\n✓ Updated {len(updated)} episode(s) with real titles")
+        print(f"\n✓ Updated {len(updated)} episode(s) with wiki data")
     if added:
         print(f"✓ Added {len(added)} new main campaign episode(s)")
     return len(added) + len(updated)
