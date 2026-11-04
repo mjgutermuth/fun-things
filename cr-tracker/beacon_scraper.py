@@ -142,7 +142,9 @@ def extract_beacon_content(html, week_date):
             'campaign': f'Campaign {campaign}',
             'episode_number': episode,
             'title': f'C{campaign}E{episode} Cooldown',
-            'release_date': week_date.strftime('%Y-%m-%d'),
+            # Campaign Cooldowns release alongside the Thursday episode, not on
+            # the schedule page's Monday.
+            'release_date': (week_date + timedelta(days=3)).strftime('%Y-%m-%d'),
             'notes': 'Post-show reactions'
         })
     
@@ -801,6 +803,7 @@ _MANUALLY_REWORDED_LIVE_SHOWS = [
     ('edinburgh', 'darktow', 'echoes'),      # Echoes of Exandria: Darktow – Edinburgh Live Show 2026 (now One-Shot)
     ('edinburgh', 'darktow', 'vip'),         # Darktow Backstage Pass – VIP Access: Edinburgh Live Show 2026
     ('edinburgh', 'darktow', 'road'),        # Darktow Backstage Pass – Road to Edinburgh Live Show 2026
+    ('london', 'red moon', 'cooldown'),      # Cooldown: Red Moon Requiem – London Live Show 2026
 ]
 
 

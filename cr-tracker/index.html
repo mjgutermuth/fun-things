@@ -2549,7 +2549,8 @@ SYNC:
                     // (Cooldown episode numbers match campaign episode numbers)
                     if (campaign === 'Critical Role Cooldown') {
                         const firstEp = episodes[0];
-                        const epNum = parseInt(firstEp.episode_number);
+                        // Campaign Cooldowns are numbered like 'C4x32'
+                        const epNum = parseInt(String(firstEp.episode_number).replace(/^C\d+x/i, ''));
                         const arc = firstEp.arc; // Which campaign it's for
 
                         // Check if the corresponding campaign episode is watched

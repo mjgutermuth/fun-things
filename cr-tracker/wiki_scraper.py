@@ -243,6 +243,40 @@ def fetch_all_episodes():
     return all_episodes
 
 
+def is_placeholder(title):
+    return bool(re.match(r'^Campaign \d+ Episode \d+$', title))
+
+
+def sync_c4_cooldowns(rows):
+    """
+    Bring 'C4E42 Cooldown' rows from the Beacon schedule into the standard
+    Cooldown format. The title waits until the main episode has a real one;
+    episode_id is left alone because watched progress is keyed on it.
+    Returns the number of rows changed.
+    """
+    main_titles = {
+        row.get('episode_number'): row.get('title', '')
+        for row in rows
+        if row.get('show_type') == 'Main Campaign' and row.get('campaign') == 'Campaign Four'
+    }
+    changed = 0
+    for row in rows:
+        match = re.fullmatch(r'C4E(\d+) Cooldown', row.get('title', ''))
+        if row.get('campaign') != 'Critical Role Cooldown' or not match:
+            continue
+        before = dict(row)
+        number = match.group(1)
+        row['episode_number'] = f'C4x{number}'
+        row['arc'] = 'Campaign Four'
+        row['is_canon'] = 'FALSE'
+        main_title = main_titles.get(number, '')
+        if main_title and not is_placeholder(main_title):
+            row['title'] = f'Cooldown: (C4) {main_title}'
+        if row != before:
+            changed += 1
+    return changed
+
+
 def merge_into_main_csv(new_episodes, main_csv='cr_episodes_series_airdates.csv'):
     """Merge new episodes into the main CSV, updating placeholders."""
     if not new_episodes:
@@ -264,9 +298,6 @@ def merge_into_main_csv(new_episodes, main_csv='cr_episodes_series_airdates.csv'
         if row.get('show_type') == 'Main Campaign':
             key = (row.get('campaign', ''), row.get('episode_number', ''))
             existing_episodes[key] = i
-
-    def is_placeholder(title):
-        return bool(re.match(r'^Campaign \d+ Episode \d+$', title))
 
     wiki_c4_numbers = {ep['episode_number'] for ep in new_episodes
                        if ep.get('campaign') == 'Campaign Four'}
@@ -348,11 +379,17 @@ def merge_into_main_csv(new_episodes, main_csv='cr_episodes_series_airdates.csv'
         if wiki_c4_numbers:
             print(f"[DIAG] Highest C4 episode returned by wiki: E{max(int(n) for n in wiki_c4_numbers if n.isdigit())}")
 
-    if not added and not updated:
+    synced = sync_c4_cooldowns(existing_rows)
+
+    if not added and not updated and not synced:
         print("\nNo new main campaign episodes to add or update")
         return 0
 
-    existing_rows.sort(key=lambda x: x.get('airdate', '') or '9999-99-99')
+    # A Cooldown shares its episode's airdate, so it sorts after it on ties.
+    existing_rows.sort(key=lambda x: (
+        x.get('airdate', '') or '9999-99-99',
+        x.get('campaign') == 'Critical Role Cooldown',
+    ))
 
     with open(main_csv, 'w', encoding='utf-8', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -363,7 +400,9 @@ def merge_into_main_csv(new_episodes, main_csv='cr_episodes_series_airdates.csv'
         print(f"\n✓ Updated {len(updated)} episode(s) with wiki data")
     if added:
         print(f"✓ Added {len(added)} new main campaign episode(s)")
-    return len(added) + len(updated)
+    if synced:
+        print(f"✓ Standardized {synced} Campaign Four Cooldown row(s)")
+    return len(added) + len(updated) + synced
 
 
 def main():

@@ -11,7 +11,7 @@ from datetime import datetime
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from wiki_scraper import clean_text, parse_date, parse_runtime
+from wiki_scraper import clean_text, parse_date, parse_runtime, sync_c4_cooldowns
 from beacon_scraper import (
     generate_schedule_urls, extract_beacon_content, normalize_live_show_title,
     parse_generic_title, parse_release_date_from_li, is_excluded_from_generic_fallback,
@@ -105,6 +105,39 @@ class TestBeaconScraperHelpers(unittest.TestCase):
                 )
 
 
+class TestSyncC4Cooldowns(unittest.TestCase):
+    """Tests for standardizing Beacon-schedule Cooldown rows"""
+
+    def _rows(self, main_title):
+        return [
+            {'show_type': 'Main Campaign', 'campaign': 'Campaign Four',
+             'episode_number': '41', 'title': main_title},
+            {'episode_id': 'Talk Show|Critical Role Cooldown|41|C4E41 Cooldown',
+             'show_type': 'Talk Show', 'campaign': 'Critical Role Cooldown',
+             'episode_number': '41', 'title': 'C4E41 Cooldown', 'arc': '', 'is_canon': ''},
+        ]
+
+    def test_uses_real_title_and_keeps_episode_id(self):
+        rows = self._rows('True Nature')
+        self.assertEqual(sync_c4_cooldowns(rows), 1)
+        self.assertEqual(rows[1]['title'], 'Cooldown: (C4) True Nature')
+        self.assertEqual(rows[1]['episode_number'], 'C4x41')
+        self.assertEqual(rows[1]['arc'], 'Campaign Four')
+        self.assertEqual(rows[1]['episode_id'], 'Talk Show|Critical Role Cooldown|41|C4E41 Cooldown')
+
+    def test_waits_for_real_title_and_is_idempotent(self):
+        rows = self._rows('Campaign 4 Episode 41')
+        self.assertEqual(sync_c4_cooldowns(rows), 1)
+        self.assertEqual(rows[1]['title'], 'C4E41 Cooldown')
+        self.assertEqual(rows[1]['episode_number'], 'C4x41')
+        self.assertEqual(sync_c4_cooldowns(rows), 0)
+
+        rows[0]['title'] = 'True Nature'
+        self.assertEqual(sync_c4_cooldowns(rows), 1)
+        self.assertEqual(rows[1]['title'], 'Cooldown: (C4) True Nature')
+        self.assertEqual(sync_c4_cooldowns(rows), 0)
+
+
 class TestBeaconContentExtraction(unittest.TestCase):
     """Tests for beacon content extraction"""
 
@@ -120,6 +153,8 @@ class TestBeaconContentExtraction(unittest.TestCase):
         self.assertEqual(len(cooldowns), 1)
         self.assertEqual(cooldowns[0]['campaign'], 'Campaign 4')
         self.assertEqual(cooldowns[0]['episode_number'], '12')
+        # week_date is a Monday; the Cooldown releases with Thursday's episode
+        self.assertEqual(cooldowns[0]['release_date'], '2024-05-16')
 
     def test_extract_fireside_chat_with_guest(self):
         html = """
