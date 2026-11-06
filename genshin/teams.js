@@ -7,8 +7,18 @@ const TEAMS_DATA = [
     "roles": [
       { "label": "DPS",     "chars": ["Sandrone"] },
       { "label": "Cryo",    "chars": ["Odette", "Traveler (Cryo)"] },
+      { "label": "Electro", "chars": ["Yae Miko", "Mitya", "Fischl"] },
+      { "label": "Support", "chars": ["Qiqi", "Nicole", "Valeriy", "Alyosha"] }
+    ]
+  },
+  {
+    "name": "Mitya Stellar-Conduct", "tier": 0, "tags": ["Stellar-Conduct", "Electro", "Cryo"],
+    "notes": "New in 7.2. Mitya is an Electro catalyst who can carry on-field (hold his Skill) or support off-field (tap it). Valeriy, the 7.2 4-star, shields the active character and buffs Electro damage from off-field, with stronger buffs in Stellar-Conduct teams. Mitya can also run off-field in Sandrone's team as a second Electro after Yae.",
+    "roles": [
+      { "label": "DPS",     "chars": ["Mitya"] },
+      { "label": "Cryo",    "chars": ["Odette", "Traveler (Cryo)"] },
       { "label": "Electro", "chars": ["Yae Miko", "Fischl"] },
-      { "label": "Support", "chars": ["Qiqi", "Nicole", "Alyosha"] }
+      { "label": "Support", "chars": ["Valeriy", "Nicole", "Qiqi"] }
     ]
   },
   {
