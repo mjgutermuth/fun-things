@@ -49,6 +49,19 @@ REFRESHING DATA
 Roster data is cached for 5 minutes. Hit the ↺ button to force a fresh fetch.
 
 
+SPIRAL ABYSS PLANNER
+--------------------
+
+The abyss tab shows Floor 12 data for each cycle (resets on the 16th). Hit
+"↻ pull from wiki" to fetch the current and next cycle's blessing, Ley Line
+Disorders, and enemies from the Genshin fandom wiki (Spiral_Abyss/Floors/
+YYYY-MM-16). Anything the wiki has commented out as unconfirmed is treated as
+not announced yet. Pulled data is saved in localStorage and layered over
+abyss.js, which stays as the offline fallback and holds the hand-written tips.
+Each half's `tags` (from the disorder text, or abyss.js) decide which teams.js
+teams get suggested. Plans are saved per cycle in localStorage.
+
+
 CLI MODE (optional)
 -------------------
 

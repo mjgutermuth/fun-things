@@ -155,12 +155,15 @@ function setTab(tab) {
 
   const priorityEl = document.getElementById('tab-priority');
   const teamsEl    = document.getElementById('tab-teams');
+  const abyssEl    = document.getElementById('tab-abyss');
 
   priorityEl.classList.add('hidden');
   teamsEl.classList.add('hidden');
+  abyssEl.classList.add('hidden');
 
   if (tab === 'priority') { priorityEl.classList.remove('hidden'); renderPriorityTab(); }
   if (tab === 'teams')    { teamsEl.classList.remove('hidden');    renderTeamsTab(); }
+  if (tab === 'abyss')    { abyssEl.classList.remove('hidden');    renderAbyssTab(); }
 }
 
 // ── NORMALIZE ──
@@ -305,6 +308,7 @@ async function loadRoster(config) {
 
     renderFilters();
     renderRoster();
+    if (activeTab === 'abyss') renderAbyssTab();
     document.getElementById('loading').classList.add('hidden');
     setFooter(config.uid, allChars, false);
   } catch {
@@ -547,6 +551,495 @@ function teamCard(team, charNames) {
       ${team.notes ? `<p class="team-notes">${team.notes}</p>` : ''}
       <div class="team-roles">${rolesHtml}</div>
     </div>`;
+}
+
+// ── ABYSS TAB ──
+
+const HALF_NAMES = ['first half', 'second half'];
+const WIKI_API = 'https://genshin-impact.fandom.com/api.php';
+let abyssCycleId = null;
+let abyssActiveHalf = 0;
+let abyssPoolElement = 'all';
+let abyssPoolSearch = '';
+let abyssPullMsg = '';
+
+// An element DMG bonus also favors teams tagged only by the reaction that element carries.
+const ELEMENT_REACTIONS = {
+  Cryo:    ['Freeze', 'Melt'],
+  Pyro:    ['Vaporize', 'Melt', 'Overloaded'],
+  Hydro:   ['Vaporize', 'Freeze', 'Bloom'],
+  Electro: ['Aggravate', 'Hyperbloom', 'Lunar-Charged'],
+  Dendro:  ['Bloom', 'Hyperbloom', 'Lunar Bloom'],
+};
+
+// Disorder text → TEAMS_DATA tags, so suggestions follow whatever the wiki says.
+const DISORDER_TAGS = [
+  [/stellar glimmer/i,          ['Stellar-Conduct', 'Stellar-Swirl']],
+  [/stellar-conduct|superconduct/i, ['Stellar-Conduct']],
+  [/stellar[- ]swirl/i,         ['Stellar-Swirl']],
+  [/lunar[- ]charged/i,         ['Lunar-Charged']],
+  [/lunar[- ]bloom/i,           ['Lunar Bloom']],
+  [/frozen|freeze|shatter/i,    ['Freeze']],
+  [/hyperbloom/i,               ['Hyperbloom']],
+  [/\bbloom\b/i,                ['Bloom']],
+  [/vaporize/i,                 ['Vaporize']],
+  [/\bmelt\b/i,                 ['Melt']],
+  [/aggravate/i,                ['Aggravate']],
+  [/overloaded/i,               ['Overloaded']],
+  [/plunging/i,                 ['Plunge']],
+  ...ELEMENTS.map(e => [new RegExp(`\\b${e}\\b`, 'i'), [e, ...(ELEMENT_REACTIONS[e] || [])]]),
+];
+
+function disorderTags(text) {
+  if (!text) return [];
+  return [...new Set(DISORDER_TAGS.filter(([re]) => re.test(text)).flatMap(([, tags]) => tags))];
+}
+
+// ── abyss data: static abyss.js, overlaid with whatever was last pulled from the wiki ──
+
+function loadPulledAbyss() {
+  try { return JSON.parse(localStorage.getItem('genshin_abyss_pulled') || 'null'); }
+  catch { return null; }
+}
+
+function mergeCycle(base, pulled) {
+  return {
+    ...base, ...pulled,
+    blessing: pulled.blessing || base.blessing,
+    halves: pulled.halves.map((h, i) => ({
+      disorder: h.disorder || base.halves[i]?.disorder || null,
+      tags: h.tags.length ? h.tags : (base.halves[i]?.tags || []),
+      tip: base.halves[i]?.tip || null, // tips are hand-written, the wiki has none
+    })),
+    chambers: pulled.chambers.length ? pulled.chambers : base.chambers,
+  };
+}
+
+function abyssCycles() {
+  const byId = new Map((typeof ABYSS_CYCLES !== 'undefined' ? ABYSS_CYCLES : []).map(c => [c.id, c]));
+  for (const p of loadPulledAbyss()?.cycles || []) {
+    byId.set(p.id, byId.has(p.id) ? mergeCycle(byId.get(p.id), p) : p);
+  }
+  return [...byId.values()].sort((a, b) => a.start.localeCompare(b.start));
+}
+
+// ── wiki pull ──
+
+async function wikiApi(params) {
+  const url = new URL(WIKI_API);
+  Object.entries({ format: 'json', formatversion: '2', origin: '*', ...params })
+    .forEach(([k, v]) => url.searchParams.set(k, v));
+  const data = await (await fetch(url)).json();
+  if (data.error) throw new Error(data.error.info || data.error.code);
+  return data;
+}
+
+function cleanWiki(s) {
+  return s
+    .replace(/\[\[(?:[^|\]]*\|)?([^\]]*)\]\]/g, '$1')
+    .replace(/\{\{Color\|[^|}]*\|([^}]*)\}\}/g, '$1')
+    .replace(/\{\{[^}]*\}\}/g, '')
+    .replace(/'''?/g, '')
+    .replace(/<[^>]+>/g, '')
+    .trim();
+}
+
+function templateParams(block) {
+  const params = {};
+  for (const line of block.split('\n')) {
+    const m = line.match(/^\s*\|\s*(\w+)\s*=\s*(.*)$/);
+    if (m) params[m[1]] = m[2].trim();
+  }
+  return params;
+}
+
+// "A*2; B// C*?" → [['A ×2', 'B'], ['C']]
+function parseWaves(s) {
+  return (s || '').split('//').map(wave => wave.split(';').map(e => {
+    const [name, count] = e.split('*').map(x => x.trim());
+    return cleanWiki(name) + (/^\d+$/.test(count || '') ? ` ×${count}` : '');
+  }).filter(Boolean)).filter(w => w.length);
+}
+
+function isoDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function nextCycleStart(start) {
+  const d = new Date(`${start}T12:00`);
+  d.setMonth(d.getMonth() + 1, 16);
+  return isoDate(d);
+}
+
+async function fetchWikiCycle(start) {
+  const title = `Spiral Abyss/Floors/${start}`;
+  const { parse } = await wikiApi({ action: 'parse', page: title, prop: 'wikitext' });
+  // The wiki comments out anything not yet confirmed — treat that as not announced.
+  const wt = parse.wikitext.replace(/<!--[\s\S]*?-->/g, '');
+
+  const spire = templateParams(wt.match(/\{\{Abyssal Moon Spire([\s\S]*?)\}\}/)?.[1] || '');
+  const floor12 = wt.split(/^===\s*Floor 12\s*===\s*$/m)[1]?.split(/^==[^=]/m)[0] || '';
+  const enemies = templateParams(floor12.match(/\{\{Domain Enemies([\s\S]*?)\n\}\}/)?.[1] || '');
+  const chambers = [1, 2, 3]
+    .filter(n => enemies[`enemies${n}_1`])
+    .map(n => ({
+      level: +enemies[`level${n}`] || null,
+      first: parseWaves(enemies[`enemies${n}_1`]),
+      second: parseWaves(enemies[`enemies${n}_2`]),
+    }));
+  if (!chambers.length) throw new Error(`no Floor 12 lineup on ${title}`);
+
+  const halfDisorder = label => {
+    const m = floor12.match(new RegExp(`${label}(?:\\}\\})?\\s*:\\s*(.+)`, 'i'));
+    return m ? cleanWiki(m[1]) : null;
+  };
+  const halves = ['First Half', 'Second Half'].map(label => {
+    const disorder = halfDisorder(label);
+    return { disorder, tags: disorderTags(disorder), tip: null };
+  });
+
+  let blessing = null;
+  if (wt.includes('{{Blessing of the Abyssal Moon Schedule}}')) {
+    const { expandtemplates } = await wikiApi({
+      action: 'expandtemplates', prop: 'wikitext', title,
+      text: '{{Blessing of the Abyssal Moon Schedule}}',
+    });
+    const html = expandtemplates.wikitext;
+    const name = html.match(/!\s*colspan=2\s*\|\s*(.+)/)?.[1];
+    const effect = [...html.matchAll(/<li>([\s\S]*?)<\/li>/g)].map(m => cleanWiki(m[1])).join(' ');
+    if (name && effect) blessing = { name: cleanWiki(name), effect };
+  }
+
+  return {
+    id: start, start,
+    reset: spire.next || nextCycleStart(start),
+    version: spire.startVersion || '?',
+    blessing, halves, chambers,
+  };
+}
+
+async function pullAbyssFromWiki() {
+  // Cycles start on the 16th: pull the one running now and the next one.
+  const cur = new Date();
+  if (cur.getDate() < 16) cur.setMonth(cur.getMonth() - 1, 16); else cur.setDate(16);
+  const start = isoDate(cur);
+
+  const results = await Promise.allSettled([start, nextCycleStart(start)].map(fetchWikiCycle));
+  const cycles = results.filter(r => r.status === 'fulfilled').map(r => r.value);
+  if (!cycles.length) throw new Error(results[0].reason?.message || 'wiki pull failed');
+
+  const prev = loadPulledAbyss()?.cycles || [];
+  const merged = [...prev.filter(p => !cycles.some(c => c.id === p.id)), ...cycles];
+  localStorage.setItem('genshin_abyss_pulled', JSON.stringify({ ts: Date.now(), cycles: merged }));
+  return cycles;
+}
+
+function loadAbyssPlans() {
+  try { return JSON.parse(localStorage.getItem('genshin_abyss') || '{}'); }
+  catch { return {}; }
+}
+function saveAbyssPlans(p) { localStorage.setItem('genshin_abyss', JSON.stringify(p)); }
+
+function abyssPlan(cycleId) {
+  const plan = loadAbyssPlans()[cycleId];
+  return plan?.halves ? plan.halves : [[null,null,null,null],[null,null,null,null]];
+}
+function setAbyssPlan(cycleId, halves) {
+  const plans = loadAbyssPlans();
+  plans[cycleId] = { halves };
+  saveAbyssPlans(plans);
+}
+
+// Cycles flip at 4am server time; local 4am is close enough for a countdown.
+function abyssDate(s) { return new Date(`${s}T04:00:00`); }
+function shortDate(d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toLowerCase(); }
+
+function cycleStatus(c, now = new Date()) {
+  if (now < abyssDate(c.start)) return 'upcoming';
+  if (now >= abyssDate(c.reset)) return 'ended';
+  return 'live';
+}
+
+function defaultAbyssCycle(all = abyssCycles()) {
+  return all.find(c => cycleStatus(c) === 'live')
+      || all.find(c => cycleStatus(c) === 'upcoming')
+      || all[all.length - 1];
+}
+
+function placeInHalf(halves, name, half, slot) {
+  // A character can only be in one slot across both halves — pull them out first.
+  halves.forEach(h => h.forEach((n, i) => { if (n === name) h[i] = null; }));
+  halves[half][slot] = name;
+}
+
+function abyssSuggestions(half, halves) {
+  const owned = new Set(allChars.map(c => c.name));
+  const usedElsewhere = new Set(halves[1 - half].filter(Boolean));
+  const available = n => owned.has(n) && !usedElsewhere.has(n);
+  const tags = new Set(abyssCycle().halves[half]?.tags || []);
+  return TEAMS_DATA
+    .filter(t => !tags.size || t.tags.some(tag => tags.has(tag)))
+    .map(t => ({
+      ...t,
+      score: t.roles.filter(r => r.chars.some(available)).length,
+      // A team's first tag is its archetype, so a match there counts double.
+      fit: t.tags.reduce((n, tag, i) => n + (tags.has(tag) ? (i === 0 ? 2 : 1) : 0), 0),
+    }))
+    .filter(t => t.score > 0)
+    .sort((a, b) => b.score - a.score || b.fit - a.fit || (a.tier ?? 99) - (b.tier ?? 99))
+    .slice(0, 3)
+    .map(t => {
+      const picked = [];
+      for (const r of t.roles) picked.push(r.chars.find(c => available(c) && !picked.includes(c)) || null);
+      return { team: t, picked };
+    });
+}
+
+function abyssCycle(all = abyssCycles()) {
+  return all.find(c => c.id === abyssCycleId) || defaultAbyssCycle(all);
+}
+
+function renderAbyssTab() {
+  const container = document.getElementById('tab-abyss');
+  const all = abyssCycles();
+  const pullBtn = `<button id="abyss-pull" class="abyss-clear-btn abyss-pull-btn">↻ pull from wiki</button>`;
+  if (!all.length) {
+    container.innerHTML = `<div class="abyss-top">${pullBtn}</div><p class="empty-hint">no abyss data — pull from the wiki or add a cycle to abyss.js</p>`;
+    wireAbyssPull();
+    return;
+  }
+
+  const cycle = abyssCycle(all);
+  abyssCycleId = cycle.id;
+  const now = new Date();
+  const halves = abyssPlan(cycle.id);
+  const last = all[all.length - 1];
+  const pulledAt = loadPulledAbyss()?.ts;
+
+  const visible = all.filter(c => cycleStatus(c, now) !== 'ended');
+  const cycles = visible.length ? visible : [last];
+  const resetEnd = new Date(abyssDate(cycle.reset) - 86400000);
+  const daysLeft = Math.ceil((abyssDate(cycle.reset) - now) / 86400000);
+  const status = cycleStatus(cycle, now);
+
+  const staleNote = !all.some(c => cycleStatus(c, now) === 'live')
+    ? `<div class="abyss-warn">abyss data is out of date — the last known cycle reset on ${shortDate(abyssDate(last.reset))}. hit "pull from wiki" to grab the current one.</div>`
+    : '';
+  const pullNote = abyssPullMsg || (pulledAt ? `pulled from the genshin wiki ${shortDate(new Date(pulledAt))}` : 'using abyss.js');
+
+  const cycleChips = cycles.map(c => `
+    <button class="filter-btn abyss-cycle-btn${c.id === cycle.id ? ' active' : ''}" data-cycle="${c.id}">
+      v${c.version} · ${shortDate(abyssDate(c.start))}${cycleStatus(c, now) === 'upcoming' ? ' · next' : ''}
+    </button>`).join('');
+
+  const timing = status === 'live'
+    ? `resets in ${daysLeft} day${daysLeft === 1 ? '' : 's'} · ${shortDate(abyssDate(cycle.start))} – ${shortDate(resetEnd)}`
+    : status === 'upcoming'
+      ? `starts ${shortDate(abyssDate(cycle.start))} · runs until ${shortDate(resetEnd)}`
+      : `ended ${shortDate(resetEnd)}`;
+
+  const blessing = cycle.blessing
+    ? `<div class="abyss-blessing"><span class="abyss-blessing-name">${cycle.blessing.name}</span> ${cycle.blessing.effect}</div>`
+    : `<div class="abyss-blessing tbd">blessing not announced yet</div>`;
+
+  container.innerHTML = `
+    ${staleNote}
+    <div class="abyss-top">
+      <div class="element-filters">${cycleChips}</div>
+      <span class="setup-note">${timing}</span>
+    </div>
+    <div class="abyss-top">
+      <span class="setup-note">${pullNote}</span>
+      ${pullBtn}
+    </div>
+    ${blessing}
+    <div class="abyss-halves">${[0, 1].map(h => abyssHalfHtml(cycle, h, halves)).join('')}</div>
+    ${abyssPoolHtml(halves)}
+  `;
+  wireAbyssTab(cycle, halves);
+}
+
+function abyssHalfHtml(cycle, h, halves) {
+  const info = cycle.halves[h];
+  const enemies = cycle.chambers.map((ch, i) => `
+    <div class="abyss-chamber">
+      <span class="abyss-chamber-num">12-${i + 1}${ch.level ? ` · lv ${ch.level}` : ''}</span>
+      <span class="abyss-enemies">${ch[h === 0 ? 'first' : 'second'].map(w => w.join(', ')).join(' → ')}</span>
+    </div>`).join('');
+
+  const slots = halves[h].map((name, i) => {
+    const c = name && allChars.find(x => x.name === name);
+    if (!name) return `<div class="abyss-slot empty" data-half="${h}" data-slot="${i}">+</div>`;
+    return `
+      <div class="abyss-slot" data-half="${h}" data-slot="${i}" data-element="${c?.element || ''}" draggable="true" data-name="${name}">
+        ${c ? `<img src="${c.icon}" alt="${name}" class="abyss-slot-icon ${c.rarity === 5 ? 'r5' : 'r4'}" onerror="this.style.display='none'">` : ''}
+        <span class="abyss-slot-name">${name}</span>
+        <button class="abyss-slot-remove" data-half="${h}" data-slot="${i}" title="remove">×</button>
+      </div>`;
+  }).join('');
+
+  const elements = halves[h].map(n => allChars.find(c => c.name === n)?.element).filter(Boolean);
+  const elementPills = [...new Set(elements)].map(e => `<span class="element-pill ${e}">${e}</span>`).join('');
+
+  const suggestions = abyssSuggestions(h, halves).map((s, i) => `
+    <div class="abyss-suggestion">
+      <span class="abyss-sugg-name">${s.team.name}</span>
+      <span class="abyss-sugg-chars">${s.picked.map(n => n || '—').join(' · ')}</span>
+      <button class="abyss-use-btn" data-half="${h}" data-sugg="${i}">use</button>
+    </div>`).join('');
+
+  return `
+    <section class="abyss-half${abyssActiveHalf === h ? ' active' : ''}" data-half="${h}">
+      <div class="abyss-half-head">
+        <span class="abyss-half-name">${HALF_NAMES[h]}</span>
+        ${elementPills}
+        <button class="abyss-clear-btn" data-half="${h}">clear</button>
+      </div>
+      <div class="abyss-disorder${info.disorder ? '' : ' tbd'}">${info.disorder || 'disorder not announced yet'}</div>
+      ${info.tip ? `<p class="team-notes">${info.tip}</p>` : ''}
+      <div class="abyss-chambers">${enemies}</div>
+      <div class="abyss-slots">${slots}</div>
+      ${suggestions ? `<div class="abyss-suggestions"><div class="role-label">suggested from your roster</div>${suggestions}</div>` : ''}
+    </section>`;
+}
+
+function abyssPoolHtml(halves) {
+  if (!allChars.length) return '<p class="empty-hint">roster still loading…</p>';
+  const usedIn = {};
+  halves.forEach((h, i) => h.forEach(n => { if (n) usedIn[n] = i; }));
+
+  const present = new Set(allChars.map(c => c.element));
+  const filters = ['all', ...ELEMENTS.filter(e => present.has(e))].map(e => `
+    <button class="filter-btn abyss-pool-filter${abyssPoolElement === e ? ' active' : ''}" data-element="${e}">${e.toLowerCase()}</button>`).join('');
+
+  const chars = allChars
+    .filter(c => abyssPoolElement === 'all' || c.element === abyssPoolElement)
+    .filter(c => !abyssPoolSearch || c.name.toLowerCase().includes(abyssPoolSearch))
+    .sort((a, b) => b.rarity - a.rarity || b.level - a.level || a.name.localeCompare(b.name));
+
+  const pills = chars.map(c => `
+    <div class="abyss-pool-char${usedIn[c.name] != null ? ' used' : ''}" draggable="true" data-name="${c.name}" data-element="${c.element}">
+      <img src="${c.icon}" alt="${c.name}" class="mini-icon ${c.rarity === 5 ? 'r5' : 'r4'}" onerror="this.style.display='none'">
+      <span class="mini-name">${c.name}</span>
+      ${usedIn[c.name] != null ? `<span class="abyss-used-badge">${usedIn[c.name] === 0 ? '1st' : '2nd'}</span>` : ''}
+    </div>`).join('');
+
+  return `
+    <section class="priority-section abyss-pool-section">
+      <div class="priority-section-head">your roster · drag into a slot, or click to add to the ${HALF_NAMES[abyssActiveHalf]}</div>
+      <div class="abyss-pool-controls">
+        <div class="element-filters">${filters}</div>
+        <div class="search-group"><input id="abyss-search" type="text" placeholder="search..." spellcheck="false" value="${abyssPoolSearch.replace(/"/g, '&quot;')}"></div>
+      </div>
+      <div class="abyss-pool">${pills || '<p class="empty-hint">no matches</p>'}</div>
+    </section>`;
+}
+
+function wireAbyssPull() {
+  const btn = document.getElementById('abyss-pull');
+  if (!btn) return;
+  btn.onclick = async () => {
+    btn.disabled = true;
+    btn.textContent = 'pulling…';
+    try {
+      const got = await pullAbyssFromWiki();
+      abyssPullMsg = `pulled ${got.map(c => `v${c.version}`).join(' + ')} from the genshin wiki just now`;
+    } catch (e) {
+      abyssPullMsg = `wiki pull failed: ${e.message}`;
+    }
+    renderAbyssTab();
+  };
+}
+
+function wireAbyssTab(cycle, halves) {
+  const container = document.getElementById('tab-abyss');
+  const commit = () => { setAbyssPlan(cycle.id, halves); renderAbyssTab(); };
+  wireAbyssPull();
+
+  container.querySelectorAll('.abyss-cycle-btn').forEach(btn => {
+    btn.onclick = () => { abyssCycleId = btn.dataset.cycle; renderAbyssTab(); };
+  });
+  container.querySelectorAll('.abyss-half').forEach(sec => {
+    sec.onclick = e => {
+      if (e.target.closest('button, .abyss-slot:not(.empty)')) return;
+      abyssActiveHalf = +sec.dataset.half;
+      renderAbyssTab();
+    };
+  });
+  container.querySelectorAll('.abyss-slot-remove').forEach(btn => {
+    btn.onclick = () => { halves[+btn.dataset.half][+btn.dataset.slot] = null; commit(); };
+  });
+  container.querySelectorAll('.abyss-clear-btn').forEach(btn => {
+    btn.onclick = () => { halves[+btn.dataset.half] = [null, null, null, null]; commit(); };
+  });
+  container.querySelectorAll('.abyss-use-btn').forEach(btn => {
+    btn.onclick = () => {
+      const h = +btn.dataset.half;
+      const { picked } = abyssSuggestions(h, halves)[+btn.dataset.sugg];
+      halves[h] = [null, null, null, null];
+      picked.forEach((n, i) => { if (n) placeInHalf(halves, n, h, i); });
+      commit();
+    };
+  });
+  container.querySelectorAll('.abyss-pool-filter').forEach(btn => {
+    btn.onclick = () => { abyssPoolElement = btn.dataset.element; renderAbyssTab(); };
+  });
+  const search = container.querySelector('#abyss-search');
+  if (search) search.oninput = e => {
+    abyssPoolSearch = e.target.value.toLowerCase();
+    renderAbyssTab();
+    const el = document.getElementById('abyss-search');
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  };
+
+  // Click-to-add: fills the first empty slot of the active half.
+  container.querySelectorAll('.abyss-pool-char').forEach(el => {
+    el.onclick = () => {
+      const slot = halves[abyssActiveHalf].indexOf(null);
+      if (slot === -1) return;
+      placeInHalf(halves, el.dataset.name, abyssActiveHalf, slot);
+      commit();
+    };
+  });
+
+  // Drag and drop: pool → slot, slot → slot (swaps), slot → pool (removes).
+  container.querySelectorAll('[draggable="true"]').forEach(el => {
+    el.ondragstart = e => {
+      const from = el.classList.contains('abyss-slot') ? { half: +el.dataset.half, slot: +el.dataset.slot } : null;
+      e.dataTransfer.setData('text/plain', JSON.stringify({ name: el.dataset.name, from }));
+      e.dataTransfer.effectAllowed = 'move';
+    };
+  });
+  const readDrag = e => { try { return JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return null; } };
+
+  container.querySelectorAll('.abyss-slot').forEach(slotEl => {
+    slotEl.ondragover = e => { e.preventDefault(); slotEl.classList.add('drag-over'); };
+    slotEl.ondragleave = () => slotEl.classList.remove('drag-over');
+    slotEl.ondrop = e => {
+      e.preventDefault();
+      const drag = readDrag(e);
+      if (!drag) return;
+      const h = +slotEl.dataset.half, s = +slotEl.dataset.slot;
+      if (drag.from) {
+        const displaced = halves[h][s];
+        halves[h][s] = drag.name;
+        halves[drag.from.half][drag.from.slot] = displaced;
+      } else {
+        placeInHalf(halves, drag.name, h, s);
+      }
+      commit();
+    };
+  });
+  const pool = container.querySelector('.abyss-pool');
+  if (pool) {
+    pool.ondragover = e => e.preventDefault();
+    pool.ondrop = e => {
+      e.preventDefault();
+      const drag = readDrag(e);
+      if (drag?.from) { halves[drag.from.half][drag.from.slot] = null; commit(); }
+    };
+  }
 }
 
 // ── PRIORITY TAB ──
