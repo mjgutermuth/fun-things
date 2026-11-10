@@ -2,6 +2,24 @@
 
 Weekly scraper runs - which critrole.com schedule pages were checked and what got added, so you can open the same page and compare it against what the scraper actually did that week.
 
+## Run: 2026-11-10
+
+Checked:
+- https://critrole.com/programming-schedule-week-of-november-2nd-2026/
+- https://critrole.com/programming-schedule-week-of-november-9th-2026/
+- https://critrole.com/programming-schedule-week-of-october-19th-2026/
+- https://critrole.com/programming-schedule-week-of-october-26th-2026/
+
+Added (6):
+- [2026-11-10] Sam Riegel's 50th Birthday SAMSTRAVAGANZA Presented by Bambu Lab
+- [2026-11-11] Season 4, Episode 2
+- [2026-11-12] C4E43 Cooldown
+- [2026-11-12] Campaign 4 Episode 43
+- [2026-11-13] Shattered Legends (Critical Role X hololive production) | Episode 1
+- [2026-11-13] Critical Role Cooldown | Shattered Legends, Episode 1
+
+Skipped as already tracked: 21
+
 ## Run: 2026-11-03
 
 Checked:
