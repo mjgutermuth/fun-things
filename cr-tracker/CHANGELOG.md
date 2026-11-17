@@ -2,6 +2,24 @@
 
 Weekly scraper runs - which critrole.com schedule pages were checked and what got added, so you can open the same page and compare it against what the scraper actually did that week.
 
+## Run: 2026-11-17
+
+Checked:
+- https://critrole.com/programming-schedule-week-of-november-16th-2026/
+- https://critrole.com/programming-schedule-week-of-november-2nd-2026/
+- https://critrole.com/programming-schedule-week-of-november-9th-2026/
+- https://critrole.com/programming-schedule-week-of-october-26th-2026/
+
+Added (6):
+- [2026-11-16] The Long Rest | Rhyming & SchemingIn this episode, our two stories will be:Mischief and Moorbounders | Written by Nick Williams and George Primavera | Read by Aabria IyengarThe Quest for Cupcakes | Written by Keo Lacebal | Read by Sam Riegel
+- [2026-11-16] The Long Rest | Rhyming & SchemingIn this episode, our two stories will be:1. Mischief and Moorbounders | Written by Nick Williams and George Primavera | Read by Aabria Iyengar2. The Quest for Cupcakes | Written by Keo Lacebal | Read by Sam Riegel•
+- [2026-11-19] C4E44 Cooldown
+- [2026-11-19] Campaign 4 Episode 44
+- [2026-11-20] Shattered Legends (Critical Role X hololive production) | Episode 2
+- [2026-11-20] Critical Role Cooldown | Shattered Legends, Episode 2
+
+Skipped as already tracked: 24
+
 ## Run: 2026-11-10
 
 Checked:
