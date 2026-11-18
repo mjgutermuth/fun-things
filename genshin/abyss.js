@@ -28,10 +28,21 @@ const ABYSS_CYCLES = [
   },
   {
     id: '2026-11-16', start: '2026-11-16', reset: '2026-12-16', version: '7.2',
-    blessing: null, // not announced yet
+    blessing: {
+      name: 'Resounding Moon',
+      effect: 'Triggering Superconduct or Stellar-Conduct grants a stack. At 3 stacks, a True DMG shockwave hits the enemy\'s position and consumes the stacks.',
+    },
     halves: [
-      { disorder: null, tags: [], tip: null },
-      { disorder: null, tags: [], tip: null },
+      {
+        disorder: 'Lunar-Crystallize DMG +75%',
+        tags: ['Lunar-Crystallize'],
+        tip: 'Lunar-Crystallize gets the disorder bonus. The blessing does nothing here, so ignore it.',
+      },
+      {
+        disorder: 'All party members gain 200 Elemental Mastery',
+        tags: ['Stellar-Conduct', 'Lunar-Charged', 'Lunar Bloom', 'Hyperbloom'],
+        tip: 'Bring Stellar-Conduct to use the blessing too. Yae needs Witch\'s Revelation to trigger Stellar-Conduct.',
+      },
     ],
     chambers: [
       { level: 95,  first: [['Battle-Hardened Prism Slime']], second: [['Wavebinder']] },

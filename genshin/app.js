@@ -579,6 +579,7 @@ const DISORDER_TAGS = [
   [/stellar[- ]swirl/i,         ['Stellar-Swirl']],
   [/lunar[- ]charged/i,         ['Lunar-Charged']],
   [/lunar[- ]bloom/i,           ['Lunar Bloom']],
+  [/lunar[- ]crystallize/i,     ['Lunar-Crystallize']],
   [/frozen|freeze|shatter/i,    ['Freeze']],
   [/hyperbloom/i,               ['Hyperbloom']],
   [/\bbloom\b/i,                ['Bloom']],

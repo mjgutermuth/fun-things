@@ -71,6 +71,16 @@ const TEAMS_DATA = [
       { "label": "Support", "chars": ["Xilonen", "Jahoda", "Sucrose"] }
     ]
   },
+  {
+    "name": "Zibai Lunar-Crystallize", "tier": 0, "tags": ["Lunar-Crystallize", "Geo", "Hydro"],
+    "notes": "Columbina handles Hydro application; Linnea is the standard Lunar-Crystallize sub-DPS, with Geo RES shred, buffs, and healing. Gorou or Zhongli can replace Illuga. F2P: Zibai / Illuga / Aino / Dahlia. Adding Ineffa makes a Lunar-Charged hybrid, but Linnea works less well there.",
+    "roles": [
+      { "label": "DPS",     "chars": ["Zibai"] },
+      { "label": "Hydro",   "chars": ["Columbina", "Aino"] },
+      { "label": "Geo",     "chars": ["Linnea"] },
+      { "label": "Support", "chars": ["Illuga", "Gorou", "Zhongli", "Dahlia"] }
+    ]
+  },
   // --- Tier 1 ---
   {
     "name": "Neuvillette Hypercarry", "tier": 1, "tags": ["Hydro"],
