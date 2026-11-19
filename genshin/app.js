@@ -786,7 +786,8 @@ function abyssSuggestions(half, halves) {
       // A team's first tag is its archetype, so a match there counts double.
       fit: t.tags.reduce((n, tag, i) => n + (tags.has(tag) ? (i === 0 ? 2 : 1) : 0), 0),
     }))
-    .filter(t => t.score > 0)
+    // The first role is the team's carry/core — don't suggest a team built around someone you don't have.
+    .filter(t => t.roles[0].chars.some(available))
     .sort((a, b) => b.score - a.score || b.fit - a.fit || (a.tier ?? 99) - (b.tier ?? 99))
     .slice(0, 3)
     .map(t => {
@@ -875,6 +876,7 @@ function abyssHalfHtml(cycle, h, halves) {
       <div class="abyss-slot" data-half="${h}" data-slot="${i}" data-element="${c?.element || ''}" draggable="true" data-name="${name}">
         ${c ? `<img src="${c.icon}" alt="${name}" class="abyss-slot-icon ${c.rarity === 5 ? 'r5' : 'r4'}" onerror="this.style.display='none'">` : ''}
         <span class="abyss-slot-name">${name}</span>
+        ${c?.level != null ? `<span class="abyss-slot-level">lv ${c.level}${c.max_level != null ? `/${c.max_level}` : ''}</span>` : ''}
         <button class="abyss-slot-remove" data-half="${h}" data-slot="${i}" title="remove">×</button>
       </div>`;
   }).join('');
@@ -885,7 +887,7 @@ function abyssHalfHtml(cycle, h, halves) {
   const suggestions = abyssSuggestions(h, halves).map((s, i) => `
     <div class="abyss-suggestion">
       <span class="abyss-sugg-name">${s.team.name}</span>
-      <span class="abyss-sugg-chars">${s.picked.map(n => n || '—').join(' · ')}</span>
+      <span class="abyss-sugg-chars">${s.picked.map((n, i) => n || `<span class="abyss-sugg-missing">no ${s.team.roles[i].label.toLowerCase()}</span>`).join(' · ')}</span>
       <button class="abyss-use-btn" data-half="${h}" data-sugg="${i}">use</button>
     </div>`).join('');
 
